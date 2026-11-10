@@ -3,10 +3,10 @@
 Update this file after every meaningful implementation change.
 
 ## Current Phase
-Phase 10: Milestone v1.3.0 — General Multi-Stream Console & UI De-duplication (COMPLETE)
+Phase 11: Milestone v1.4.0 — Dedicated Quarantine Stream & Structured Console Log Columns (COMPLETE)
 
 ## Current Goal
-The entire Autonomous IoT Cyber Defense Testbed is running on release v1.3.0 (SOC Terminal v1.3-SOC) with a de-duplicated reset workflow, auto and manual console clear capability, and a General Multi-Stream System & Network Activity Console with category filter tabs and real-time MQTT mesh telemetry ingestion. 37/37 tests passing.
+The entire Autonomous IoT Cyber Defense Testbed is running on release v1.4.0 (SOC Terminal v1.4-SOC) with a dedicated [QUARANTINE] category filter in General Activity Logs, structured fixed-width columns (Time, Stream Badge, Message Details), and updated documentation and runbook. 38/38 tests passing.
 
 ## Completed
 - [x] Context foundation files established and verified at root.
@@ -22,6 +22,7 @@ The entire Autonomous IoT Cyber Defense Testbed is running on release v1.3.0 (SO
 - [x] Phase 8: Milestone v1.1.0 — Option A Interactive Adversary Simulation Toolbar added to dashboard with 1-click attack triggers (`/api/simulate/attack/brute-force`, `/api/simulate/attack/exploit`, `/api/simulate/attack/port-sweep`), live SSE feedback, and 32 passing unit tests.
 - [x] Phase 9: Milestone v1.2.0 — Threat Intelligence Panel & External Log Analytics Console: Added real-time attack distribution bars, top credential analytics, deception port breakdown, dedicated External Analytics & SIEM Forensics modal (separate button in header), deep IP dossier inspection, and 1-click JSON report export. 35/35 tests passing.
 - [x] Phase 10: Milestone v1.3.0 — General Multi-Stream Console & UI De-duplication: Removed redundant "Reset DB" button from ledger header, unified database wipe with console clear, added dedicated manual "Clear" button for the terminal feed, implemented General Activity Logs with category filter tabs (`[ ALL ]`, `[ HONEYPOT ]`, `[ MITIGATION ]`, `[ IOT MESH ]`, `[ SYSTEM ]`), and added background `IoTTelemetryListener` streaming live MQTT mesh telemetry over SSE. 37/37 tests passing.
+- [x] Phase 11: Milestone v1.4.0 — Dedicated Quarantine Stream & Structured Console Log Columns: Added dedicated `[ QUARANTINE ]` filter tab in General Activity Logs, aligned terminal feed lines into structured columns (Time, Category Badge, Message Details), and integrated real-time dynamic container isolation and restoration events directly under the quarantine category. 38/38 tests passing.
 
 ## In Progress
 - [ ] Live evaluation demonstration and evaluator walkthrough.

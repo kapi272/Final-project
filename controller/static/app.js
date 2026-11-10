@@ -27,7 +27,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return d.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
     }
 
-    // Append log line to general activity terminal feed console
+    // Append log line to general activity terminal feed console with structured columns
     function appendTerminalLog(prefix, message, type = "info", category = "system") {
         const line = document.createElement("div");
         line.dataset.category = category;
@@ -40,10 +40,14 @@ document.addEventListener("DOMContentLoaded", () => {
             line.style.display = "flex";
         }
 
-        const timeSpan = createSafeElement("span", `[${formatTime(Date.now() / 1000)}]`, "text-slate-500 select-none text-[10px] pt-0.5");
+        // Column 1: Time (fixed width)
+        const timeSpan = createSafeElement("span", `[${formatTime(Date.now() / 1000)}]`, "min-w-[65px] text-slate-500 select-none text-[10px] pt-0.5 font-mono");
         
+        // Column 2: Stream Badge (fixed width, color-coded)
         let badgeColor = "text-sky-400";
-        if (category === "honeypot") {
+        if (category === "quarantine") {
+            badgeColor = type === "threat" ? "text-red-400 font-bold" : "text-emerald-400 font-bold";
+        } else if (category === "honeypot") {
             badgeColor = type === "threat" ? "text-rose-400 font-bold" : "text-amber-400 font-bold";
         } else if (category === "mitigation") {
             badgeColor = "text-rose-400 font-bold";
@@ -53,7 +57,9 @@ document.addEventListener("DOMContentLoaded", () => {
             badgeColor = type === "success" ? "text-emerald-400 font-bold" : "text-sky-400";
         }
 
-        const prefixSpan = createSafeElement("span", `[${prefix}]`, badgeColor);
+        const prefixSpan = createSafeElement("span", `[${prefix}]`, `min-w-[95px] font-mono text-[11px] font-bold ${badgeColor}`);
+        
+        // Column 3: Event message details
         const msgSpan = createSafeElement("span", message, "text-slate-300 break-all flex-1");
 
         line.appendChild(timeSpan);
@@ -75,13 +81,23 @@ document.addEventListener("DOMContentLoaded", () => {
     // Filter switching handler
     window.setLogFilter = function(filter) {
         currentLogFilter = filter;
-        const categories = ["all", "honeypot", "mitigation", "iot", "system"];
+        const categories = ["all", "honeypot", "mitigation", "quarantine", "iot", "system"];
         
         categories.forEach(cat => {
             const btn = document.getElementById(`filter-btn-${cat}`);
             if (!btn) return;
             if (cat === filter) {
-                btn.className = "px-2 py-0.5 rounded font-bold bg-sky-950/80 border border-sky-700 text-sky-300 transition-all";
+                if (filter === "quarantine") {
+                    btn.className = "px-2 py-0.5 rounded font-bold bg-red-950/80 border border-red-700 text-red-300 transition-all";
+                } else if (filter === "mitigation") {
+                    btn.className = "px-2 py-0.5 rounded font-bold bg-rose-950/80 border border-rose-700 text-rose-300 transition-all";
+                } else if (filter === "honeypot") {
+                    btn.className = "px-2 py-0.5 rounded font-bold bg-amber-950/80 border border-amber-700 text-amber-300 transition-all";
+                } else if (filter === "iot") {
+                    btn.className = "px-2 py-0.5 rounded font-bold bg-emerald-950/80 border border-emerald-700 text-emerald-300 transition-all";
+                } else {
+                    btn.className = "px-2 py-0.5 rounded font-bold bg-sky-950/80 border border-sky-700 text-sky-300 transition-all";
+                }
             } else {
                 btn.className = "px-2 py-0.5 rounded font-semibold bg-slate-800/50 hover:bg-slate-800 border border-transparent hover:border-slate-700 text-slate-400 hover:text-slate-200 transition-all";
             }
@@ -305,7 +321,7 @@ document.addEventListener("DOMContentLoaded", () => {
             try {
                 const payload = JSON.parse(e.data);
                 updateNodeStatus(payload.data.node_id, "quarantined");
-                appendTerminalLog("QUARANTINE", `Dynamic containment triggered: ${payload.data.node_id} isolated to iot_quarantine_net.`, "threat", "iot");
+                appendTerminalLog("QUARANTINE", `Dynamic containment triggered: ${payload.data.node_id} isolated to iot_quarantine_net.`, "threat", "quarantine");
             } catch (err) {
                 console.error(err);
             }
@@ -315,7 +331,7 @@ document.addEventListener("DOMContentLoaded", () => {
             try {
                 const payload = JSON.parse(e.data);
                 updateNodeStatus(payload.data.node_id, "production");
-                appendTerminalLog("QUARANTINE", `Container restored: ${payload.data.node_id} reconnected to iot_production_net.`, "success", "iot");
+                appendTerminalLog("QUARANTINE", `Container restored: ${payload.data.node_id} reconnected to iot_production_net.`, "success", "quarantine");
             } catch (err) {
                 console.error(err);
             }

@@ -24,6 +24,7 @@ class TestDashboardUI(unittest.TestCase):
         self.assertIn("btn-clear-console", body)
         self.assertIn("filter-btn-all", body)
         self.assertIn("filter-btn-honeypot", body)
+        self.assertIn("filter-btn-quarantine", body)
         self.assertIn("filter-btn-iot", body)
         # Verify de-duplication: no duplicate reset button in ledger
         self.assertNotIn("🗑️ Reset DB", body)
@@ -39,6 +40,12 @@ class TestDashboardUI(unittest.TestCase):
         self.assertIn("setLogFilter", body)
         self.assertIn("clearConsole", body)
         self.assertIn("iot_telemetry", body)
+        self.assertIn("quarantine", body)
+
+    def test_quarantine_ui_category_integration(self) -> None:
+        res = self.client.get("/static/app.js")
+        self.assertIn("quarantine", res.text)
+        self.assertIn("Dynamic containment triggered", res.text)
 
     def test_mqtt_telemetry_listener_lifecycle(self) -> None:
         from controller.core.mqtt_listener import IoTTelemetryListener
