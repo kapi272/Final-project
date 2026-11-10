@@ -73,7 +73,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./controller:/app/controller
-      - ./honeypot/logs:/app/honeypot/logs:ro
+      - ./honeypot/logs:/app/honeypot/logs
       - ./data:/app/data
     environment:
       - HOST=0.0.0.0

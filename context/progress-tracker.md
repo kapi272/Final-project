@@ -3,10 +3,10 @@
 Update this file after every meaningful implementation change.
 
 ## Current Phase
-Phase 7: System Validation & Operational Readiness (COMPLETE)
+Phase 8: Milestone v1.1.0 — Interactive Adversary Simulation & SOC UX Controls (IN PROGRESS)
 
 ## Current Goal
-The entire Autonomous IoT Cyber Defense Testbed has been built, tested, and validated across all 6 units. The system is operational and ready for live evaluation.
+Bumping system release to v1.1.0 (SOC Terminal v1.1-SOC) and introducing interactive on-demand adversary attack triggers (Option A) to enable seamless browser-driven intrusion tests without command-line dependencies.
 
 ## Completed
 - [x] Context foundation files established and verified at root.
