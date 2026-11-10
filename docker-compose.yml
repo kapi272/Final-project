@@ -69,7 +69,7 @@ services:
     cap_add:
       - NET_ADMIN
     ports:
-      - "8000:8000"
+      - "8050:8000"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./honeypot/logs:/app/honeypot/logs:ro
@@ -83,6 +83,8 @@ services:
     networks:
       iot_production_net:
         ipv4_address: 172.20.0.5
+      iot_quarantine_net:
+        ipv4_address: 172.21.0.5
 
 networks:
   iot_production_net:

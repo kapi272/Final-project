@@ -21,3 +21,4 @@ COPY controller/ controller/
 EXPOSE 8000
 
 CMD ["python", "-m", "controller.main"]
+

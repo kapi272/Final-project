@@ -15,10 +15,10 @@ docker compose up -d
 * **Temperature Sensor Node:** Telemetry Publisher (IP `172.20.0.21`)
 * **Smart Bulb Node:** Actuator Subscriber (IP `172.20.0.22`)
 * **Cowrie Honeypot Decoy:** Medium-Interaction Trap (IP `172.20.0.50`, Ports `2222`, `2223`)
-* **Defense Controller & SOC UI:** FastAPI + SSE Dashboard (IP `172.20.0.5`, Port `8000`)
+* **Defense Controller & SOC UI:** FastAPI + SSE Dashboard (IP `172.20.0.5`, Port `8050`)
 
 Access the SOC Terminal Dashboard in your browser:
-👉 **`http://localhost:8000`**
+👉 **`http://localhost:8050`**
 
 ---
 

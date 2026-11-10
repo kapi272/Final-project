@@ -7,6 +7,7 @@ rogue container lateral infections against the Autonomous IoT Defense Testbed.
 
 import argparse
 import json
+import os
 import socket
 import sys
 import time
@@ -14,11 +15,11 @@ import urllib.error
 import urllib.request
 from typing import Any, Dict, List, Tuple
 
-TARGET_HOST: str = "127.0.0.1"
-API_PORT: int = 8000
-HONEYPOT_SSH_PORT: int = 2222
-HONEYPOT_TELNET_PORT: int = 2223
-MQTT_PORT: int = 1883
+TARGET_HOST: str = os.getenv("TARGET_HOST", "127.0.0.1")
+API_PORT: int = int(os.getenv("API_PORT", "8050"))
+HONEYPOT_SSH_PORT: int = int(os.getenv("HONEYPOT_SSH_PORT", "2222"))
+HONEYPOT_TELNET_PORT: int = int(os.getenv("HONEYPOT_TELNET_PORT", "2223"))
+MQTT_PORT: int = int(os.getenv("MQTT_PORT", "1883"))
 
 DEFAULT_CREDENTIALS: List[Tuple[str, str]] = [
     ("root", "root"),
