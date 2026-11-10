@@ -122,6 +122,30 @@ class TestAPIRoutes(unittest.TestCase):
             first_line = next(stream.iter_lines())
             self.assertIn("event: connected", first_line)
 
+    def test_simulate_bruteforce_attack(self) -> None:
+        res = self.client.post("/api/simulate/attack/brute-force")
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["status"], "success")
+        self.assertEqual(data["data"]["target_ip"], "198.51.100.99")
+        self.assertTrue(self.firewall.is_ip_banned("198.51.100.99"))
+
+    def test_simulate_exploit_attack(self) -> None:
+        res = self.client.post("/api/simulate/attack/exploit")
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["status"], "success")
+        self.assertEqual(data["data"]["target_ip"], "203.0.113.88")
+        self.assertTrue(self.firewall.is_ip_banned("203.0.113.88"))
+
+    def test_simulate_portsweep_attack(self) -> None:
+        res = self.client.post("/api/simulate/attack/port-sweep")
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["status"], "success")
+        self.assertEqual(data["data"]["target_ip"], "198.51.100.77")
+        self.assertTrue(self.firewall.is_ip_banned("198.51.100.77"))
+
 
 if __name__ == "__main__":
     unittest.main()

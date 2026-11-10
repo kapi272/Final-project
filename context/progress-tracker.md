@@ -3,10 +3,10 @@
 Update this file after every meaningful implementation change.
 
 ## Current Phase
-Phase 8: Milestone v1.1.0 — Interactive Adversary Simulation & SOC UX Controls (IN PROGRESS)
+Phase 8: Milestone v1.1.0 — Interactive Adversary Simulation & SOC UX Controls (COMPLETE)
 
 ## Current Goal
-Bumping system release to v1.1.0 (SOC Terminal v1.1-SOC) and introducing interactive on-demand adversary attack triggers (Option A) to enable seamless browser-driven intrusion tests without command-line dependencies.
+All 6 core architecture units and Phase 8 Milestone v1.1.0 interactive controls are fully implemented, verified with 32 unit/integration tests, and deployed live.
 
 ## Completed
 - [x] Context foundation files established and verified at root.
@@ -19,6 +19,7 @@ Bumping system release to v1.1.0 (SOC Terminal v1.1-SOC) and introducing interac
 - [x] Unit 06: Red Team Simulation & End-to-End Autonomous Validation (`tests/attacker_sim.py`, latency benchmark 0.56ms < 1000ms SLA).
 - [x] Phase 7: Operational Readiness (Containerized controller `controller/Dockerfile`, 5-service `docker-compose.yml`, and live evaluation runbook `docs/EVALUATION_RUNBOOK.md`).
 - [x] Live Honeypot Telemetry & Autonomous Mitigation Ledger Synchronization: Fixed Cowrie log path mount, added Docker Desktop gateway allowlist protection (`192.168.65.0/24`), Netfilter fallback to `INPUT`, mounted live `./controller:/app/controller`, and verified real-time drops and ledger population.
+- [x] Phase 8: Milestone v1.1.0 — Option A Interactive Adversary Simulation Toolbar added to dashboard with 1-click attack triggers (`/api/simulate/attack/brute-force`, `/api/simulate/attack/exploit`, `/api/simulate/attack/port-sweep`), live SSE feedback, and 32 passing unit tests.
 
 ## In Progress
 - [ ] Live evaluation demonstration and evaluator walkthrough.

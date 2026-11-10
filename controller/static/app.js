@@ -54,15 +54,15 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Add or update row in live mitigation table
-    function addMitigationRow(record) {
-        // If row with this IP already exists, remove it first
-        const existingRow = document.getElementById(`row-ip-${record.src_ip.replace(/[^a-zA-Z0-9]/g, '_')}`);
+    function addMitigationRow(record, prepend = true) {
+        const rowKey = record.id ? `row-id-${record.id}` : `row-ip-${record.src_ip.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        const existingRow = document.getElementById(rowKey);
         if (existingRow) {
             existingRow.remove();
         }
 
         const tr = document.createElement("tr");
-        tr.id = `row-ip-${record.src_ip.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        tr.id = rowKey;
         tr.className = "border-b border-slate-800/80 hover:bg-slate-800/40 transition-colors";
 
         // Timestamp
@@ -74,13 +74,13 @@ document.addEventListener("DOMContentLoaded", () => {
         // Action badge
         const tdAction = document.createElement("td");
         tdAction.className = "px-4 py-2";
-        const actionBadge = createSafeElement(
-            "span",
-            record.action || "IPTABLES_DROP",
-            record.action === "UNBAN" 
-                ? "px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-emerald-950/60 border border-emerald-800 text-emerald-400"
-                : "px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-rose-950/60 border border-rose-800 text-rose-400"
-        );
+        let badgeClass = "px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-rose-950/60 border border-rose-800 text-rose-400";
+        if (record.action === "UNBAN") {
+            badgeClass = "px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-emerald-950/60 border border-emerald-800 text-emerald-400";
+        } else if (record.action === "RESET_ALL_BANS") {
+            badgeClass = "px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-amber-950/60 border border-amber-800 text-amber-400";
+        }
+        const actionBadge = createSafeElement("span", record.action || "IPTABLES_DROP", badgeClass);
         tdAction.appendChild(actionBadge);
 
         // Reason
@@ -101,7 +101,11 @@ document.addEventListener("DOMContentLoaded", () => {
         tr.appendChild(tdReason);
         tr.appendChild(tdControls);
 
-        mitigationTableBody.insertBefore(tr, mitigationTableBody.firstChild);
+        if (prepend && mitigationTableBody.firstChild) {
+            mitigationTableBody.insertBefore(tr, mitigationTableBody.firstChild);
+        } else {
+            mitigationTableBody.appendChild(tr);
+        }
     }
 
     // Update node topology card UI
@@ -138,10 +142,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                 }
 
-                // Pre-populate mitigation rows
+                // Pre-populate mitigation rows in descending order
                 if (payload.recent_mitigations) {
                     mitigationTableBody.innerHTML = "";
-                    payload.recent_mitigations.forEach(addMitigationRow);
+                    payload.recent_mitigations.forEach(r => addMitigationRow(r, false));
                 }
             }
         } catch (e) {
@@ -287,6 +291,44 @@ document.addEventListener("DOMContentLoaded", () => {
             await fetch(`/api/simulate/restore/${nodeId}`, { method: "POST" });
         } catch (e) {
             alert(`Error restoring node: ${e}`);
+        }
+    };
+
+    // Wire Option A: Red Team Adversary Simulation Triggers
+    window.triggerAttack = async function(attackType) {
+        const btnId = `btn-attack-${attackType.replace(/[^a-zA-Z0-9]/g, '')}`;
+        const btn = document.getElementById(btnId);
+        const originalContent = btn ? btn.innerHTML : "";
+
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = `<span class="animate-spin mr-1">⚙️</span> Launching ${attackType}...`;
+            btn.classList.add("opacity-75");
+        }
+
+        appendTerminalLog("ADVERSARY", `Initiating ${attackType.toUpperCase()} intrusion attack simulation...`, "warning");
+
+        try {
+            const res = await fetch(`/api/simulate/attack/${attackType}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" }
+            });
+            const data = await res.json();
+            if (data.status === "success") {
+                appendTerminalLog("ADVERSARY", `Simulation payload delivered: ${data.message}`, "threat");
+            } else {
+                appendTerminalLog("ADVERSARY", `Simulation request error: ${data.message}`, "warning");
+            }
+        } catch (err) {
+            appendTerminalLog("ADVERSARY", `Network error triggering simulation: ${err}`, "threat");
+        } finally {
+            setTimeout(() => {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalContent;
+                    btn.classList.remove("opacity-75");
+                }
+            }, 1000);
         }
     };
 
