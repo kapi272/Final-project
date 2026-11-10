@@ -155,6 +155,23 @@ async def reset_all_bans(request: Request) -> Dict[str, Any]:
     return make_response(message="All firewall drop rules have been successfully flushed.")
 
 
+@router.post("/defense/reset-database")
+async def reset_database_endpoint(request: Request) -> Dict[str, Any]:
+    """Completely purges the audit database history, active bans, and in-memory analytics."""
+    detector = get_detector(request)
+    broadcaster = get_broadcaster(request)
+
+    success = detector.reset_full_database()
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to reset database.")
+
+    await broadcaster.broadcast("database_reset_alert", {
+        "message": "Database audit history and analytics completely wiped."
+    })
+
+    return make_response(message="Database and audit history successfully wiped clean.")
+
+
 @router.post("/simulate/infect/{node_id}")
 async def simulate_node_infection(node_id: str, request: Request) -> Dict[str, Any]:
     """Simulates internal compromise of a virtual IoT container, isolating it to quarantine."""

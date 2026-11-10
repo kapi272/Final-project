@@ -48,8 +48,13 @@
                     <span>External Analytics & Forensics</span>
                 </button>
 
-                <button id="btn-reset-bans" class="px-3 py-1 text-xs font-semibold rounded bg-slate-800 hover:bg-rose-900/40 hover:text-rose-300 border border-slate-700 hover:border-rose-700 text-slate-300 transition-all">
+                <button id="btn-reset-bans" class="px-3 py-1 text-xs font-semibold rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all">
                     Reset All Bans
+                </button>
+
+                <button id="btn-reset-db" onclick="resetDatabase()" class="px-3 py-1 text-xs font-semibold rounded bg-rose-950/50 hover:bg-rose-900 border border-rose-800 text-rose-300 transition-all flex items-center space-x-1" title="Completely purge database audit logs, active bans, and threat analytics">
+                    <span>🗑️</span>
+                    <span>Reset Database</span>
                 </button>
             </div>
         </div>
@@ -327,7 +332,12 @@
                         <span class="w-2 h-2 rounded-full bg-rose-500"></span>
                         <h2 class="text-sm font-bold text-white uppercase tracking-wider">Autonomous Mitigation Ledger</h2>
                     </div>
-                    <span class="text-xs font-mono text-slate-500">Sub-second Netfilter Drops</span>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs font-mono text-slate-500">Sub-second Netfilter Drops</span>
+                        <button onclick="resetDatabase()" class="text-[11px] font-semibold text-rose-400 hover:text-rose-300 hover:underline px-2 py-0.5 rounded border border-rose-900/60 bg-rose-950/30 hover:bg-rose-950 transition-colors">
+                            🗑️ Reset DB
+                        </button>
+                    </div>
                 </div>
 
                 <div class="flex-1 overflow-x-auto mt-3 max-h-[360px] overflow-y-auto">

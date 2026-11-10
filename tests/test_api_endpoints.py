@@ -102,6 +102,15 @@ class TestAPIRoutes(unittest.TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertEqual(len(self.firewall.list_banned_ips()), 0)
 
+    def test_reset_database_endpoint(self) -> None:
+        self.firewall.ban_ip("198.51.100.66")
+        res = self.client.post("/api/defense/reset-database")
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["status"], "success")
+        self.assertEqual(len(self.firewall.list_banned_ips()), 0)
+        self.assertEqual(len(self.db.get_history()), 0)
+
     def test_simulate_infection_and_restore(self) -> None:
         infect_res = self.client.post("/api/simulate/infect/iot_sensor_node")
         self.assertEqual(infect_res.status_code, 200)

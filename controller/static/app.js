@@ -237,6 +237,16 @@ document.addEventListener("DOMContentLoaded", () => {
             appendTerminalLog("ADMIN", "All firewall drop rules have been reset.", "info");
         });
 
+        eventSource.addEventListener("database_reset_alert", () => {
+            activeBansCount = 0;
+            bannedCountEl.textContent = "0";
+            totalTraps = 0;
+            trapsCountEl.textContent = "0";
+            mitigationTableBody.innerHTML = "";
+            loadAnalytics();
+            appendTerminalLog("ADMIN", "Database audit history and analytics wiped clean by admin.", "success");
+        });
+
         eventSource.addEventListener("node_quarantined", (e) => {
             try {
                 const payload = JSON.parse(e.data);
@@ -290,6 +300,30 @@ document.addEventListener("DOMContentLoaded", () => {
             alert(`Error: ${e}`);
         }
     });
+
+    // Complete Database Wipe & Reset
+    window.resetDatabase = async function() {
+        if (!confirm("⚠️ Are you sure you want to completely RESET the database?\n\nThis will permanently delete all audit history, clear active firewall bans, and wipe threat intelligence analytics for a clean presentation demo.")) {
+            return;
+        }
+        try {
+            const res = await fetch("/api/defense/reset-database", { method: "POST" });
+            const data = await res.json();
+            if (data.status === "success") {
+                mitigationTableBody.innerHTML = "";
+                activeBansCount = 0;
+                bannedCountEl.textContent = "0";
+                totalTraps = 0;
+                trapsCountEl.textContent = "0";
+                loadAnalytics();
+                appendTerminalLog("ADMIN", "Database and audit ledger completely wiped clean.", "success");
+            } else {
+                alert(`Reset failed: ${data.message}`);
+            }
+        } catch (e) {
+            alert(`Error resetting database: ${e}`);
+        }
+    };
 
     // Wire Node Simulate Buttons
     window.infectNode = async function(nodeId) {

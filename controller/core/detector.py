@@ -219,6 +219,19 @@ class IntrusionDetector:
             logger.info("Global firewall reset completed.")
         return success
 
+    def reset_full_database(self) -> bool:
+        """Completely purges database history, active bans, and in-memory analytics."""
+        self.firewall.flush_blocklist()
+        self.db.reset_database()
+        self._failed_attempts.clear()
+        self._attack_counts = {"brute_force": 0, "exploit": 0, "probe": 0}
+        self._username_counts.clear()
+        self._password_counts.clear()
+        self._port_counts = {"2222": 0, "2223": 0, "1883": 0}
+        self._events_history.clear()
+        logger.info("Complete system reset: Netfilter rules flushed, database wiped, in-memory analytics cleared.")
+        return True
+
     def get_analytics(self) -> Dict[str, Any]:
         """Returns aggregated threat intelligence and log analytics statistics."""
         sorted_users = sorted(self._username_counts.items(), key=lambda x: x[1], reverse=True)[:5]

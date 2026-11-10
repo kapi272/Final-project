@@ -120,3 +120,17 @@ class DefenseDatabase:
             conn.commit()
             return True
 
+    def reset_database(self) -> bool:
+        """Completely purges all historical mitigation records, active bans, and autoincrement sequences."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM mitigation_history")
+            cursor.execute("DELETE FROM active_bans")
+            try:
+                cursor.execute("DELETE FROM sqlite_sequence WHERE name IN ('mitigation_history')")
+            except Exception:
+                pass
+            conn.commit()
+            logger.info("Database reset: All mitigation history and active bans cleared.")
+            return True
+
