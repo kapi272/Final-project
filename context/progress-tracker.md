@@ -3,10 +3,10 @@
 Update this file after every meaningful implementation change.
 
 ## Current Phase
-Phase 11: Milestone v1.4.0 — Dedicated Quarantine Stream & Structured Console Log Columns (COMPLETE)
+Phase 12: Milestone v1.5.0 — SIEM Multi-Column Structured Console & Payload Ingestion (IN PROGRESS)
 
 ## Current Goal
-The entire Autonomous IoT Cyber Defense Testbed is running on release v1.4.0 (SOC Terminal v1.4-SOC) with a dedicated [QUARANTINE] category filter in General Activity Logs, structured fixed-width columns (Time, Stream Badge, Message Details), and updated documentation and runbook. 38/38 tests passing.
+Bumping version to v1.5.0 (SOC Terminal v1.5-SOC) and upgrading General Activity Logs with a 6-column SIEM data grid: TIME, STREAM, SEVERITY, SOURCE, PROTOCOL, and EVENT DATA & PAYLOAD.
 
 ## Completed
 - [x] Context foundation files established and verified at root.

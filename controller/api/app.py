@@ -112,7 +112,7 @@ def create_app(
     app = FastAPI(
         title="Autonomous IoT Cyber Defense System",
         description="Autonomous Netfilter & Container Quarantine SOC Controller",
-        version="1.4.0",
+        version="1.5.0",
         lifespan=lifespan,
     )
 
