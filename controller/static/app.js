@@ -1,0 +1,296 @@
+// Autonomous IoT Cyber Defense System - SOC Terminal Client
+document.addEventListener("DOMContentLoaded", () => {
+    const ssePill = document.getElementById("sse-status-pill");
+    const sseIndicator = document.getElementById("sse-indicator");
+    const bannedCountEl = document.getElementById("metric-banned-count");
+    const trapsCountEl = document.getElementById("metric-traps-count");
+    const mitigationTableBody = document.getElementById("mitigation-table-body");
+    const terminalFeed = document.getElementById("terminal-feed");
+    const resetBansBtn = document.getElementById("btn-reset-bans");
+
+    let totalTraps = 0;
+    let activeBansCount = 0;
+
+    // Helper: Safely append text to an element to prevent DOM XSS
+    function createSafeElement(tag, text, classes = "") {
+        const el = document.createElement(tag);
+        if (classes) el.className = classes;
+        el.textContent = text;
+        return el;
+    }
+
+    // Format UNIX timestamp
+    function formatTime(ts) {
+        if (!ts) return "--:--:--";
+        const d = new Date(ts * 1000);
+        return d.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+
+    // Append log line to terminal feed console
+    function appendTerminalLog(prefix, message, type = "info") {
+        const line = document.createElement("div");
+        line.className = "flex items-start space-x-2 py-0.5 border-b border-slate-900/60";
+
+        const timeSpan = createSafeElement("span", `[${formatTime(Date.now() / 1000)}]`, "text-slate-500 select-none");
+        let badgeColor = "text-sky-400";
+        if (type === "threat") badgeColor = "text-rose-400 font-bold";
+        else if (type === "warning") badgeColor = "text-amber-400";
+        else if (type === "success") badgeColor = "text-emerald-400";
+
+        const prefixSpan = createSafeElement("span", `[${prefix}]`, badgeColor);
+        const msgSpan = createSafeElement("span", message, "text-slate-300 break-all");
+
+        line.appendChild(timeSpan);
+        line.appendChild(prefixSpan);
+        line.appendChild(msgSpan);
+
+        terminalFeed.appendChild(line);
+        terminalFeed.scrollTop = terminalFeed.scrollHeight;
+
+        // Cap terminal lines at 150 to keep browser memory lightweight
+        while (terminalFeed.childNodes.length > 150) {
+            terminalFeed.removeChild(terminalFeed.firstChild);
+        }
+    }
+
+    // Add or update row in live mitigation table
+    function addMitigationRow(record) {
+        // If row with this IP already exists, remove it first
+        const existingRow = document.getElementById(`row-ip-${record.src_ip.replace(/[^a-zA-Z0-9]/g, '_')}`);
+        if (existingRow) {
+            existingRow.remove();
+        }
+
+        const tr = document.createElement("tr");
+        tr.id = `row-ip-${record.src_ip.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        tr.className = "border-b border-slate-800/80 hover:bg-slate-800/40 transition-colors";
+
+        // Timestamp
+        const tdTime = createSafeElement("td", formatTime(record.timestamp), "px-4 py-2 text-slate-400 font-mono text-xs whitespace-nowrap");
+        
+        // Target IP
+        const tdIp = createSafeElement("td", record.src_ip, "px-4 py-2 font-mono text-sm text-slate-200 font-semibold");
+
+        // Action badge
+        const tdAction = document.createElement("td");
+        tdAction.className = "px-4 py-2";
+        const actionBadge = createSafeElement(
+            "span",
+            record.action || "IPTABLES_DROP",
+            record.action === "UNBAN" 
+                ? "px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-emerald-950/60 border border-emerald-800 text-emerald-400"
+                : "px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-rose-950/60 border border-rose-800 text-rose-400"
+        );
+        tdAction.appendChild(actionBadge);
+
+        // Reason
+        const tdReason = createSafeElement("td", record.reason, "px-4 py-2 text-xs text-slate-300 max-w-xs truncate");
+
+        // Unban Action Button
+        const tdControls = document.createElement("td");
+        tdControls.className = "px-4 py-2 text-right";
+        if (record.action === "IPTABLES_DROP") {
+            const unbanBtn = createSafeElement("button", "Unban", "px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-rose-900/60 border border-slate-700 text-slate-300 hover:text-white transition-colors");
+            unbanBtn.onclick = () => unbanIp(record.src_ip);
+            tdControls.appendChild(unbanBtn);
+        }
+
+        tr.appendChild(tdTime);
+        tr.appendChild(tdIp);
+        tr.appendChild(tdAction);
+        tr.appendChild(tdReason);
+        tr.appendChild(tdControls);
+
+        mitigationTableBody.insertBefore(tr, mitigationTableBody.firstChild);
+    }
+
+    // Update node topology card UI
+    function updateNodeStatus(nodeId, state) {
+        const card = document.getElementById(`card-${nodeId}`);
+        const badge = document.getElementById(`badge-${nodeId}`);
+        if (!card || !badge) return;
+
+        if (state === "quarantined") {
+            card.className = "p-4 rounded-lg bg-red-950/30 border border-red-600 shadow-lg shadow-red-950/40 transition-all";
+            badge.className = "px-2 py-0.5 rounded-full text-[11px] font-bold tracking-wide uppercase bg-red-950 border border-red-500 text-red-400 animate-pulse";
+            badge.textContent = "QUARANTINED";
+        } else {
+            card.className = "p-4 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 transition-all";
+            badge.className = "px-2 py-0.5 rounded-full text-[11px] font-bold tracking-wide uppercase bg-emerald-950/60 border border-emerald-800 text-emerald-400";
+            badge.textContent = "PRODUCTION";
+        }
+    }
+
+    // Initial status fetch
+    async function fetchInitialStatus() {
+        try {
+            const res = await fetch("/api/defense/status");
+            const data = await res.json();
+            if (data.status === "success") {
+                const payload = data.data;
+                activeBansCount = payload.banned_count || 0;
+                bannedCountEl.textContent = activeBansCount;
+
+                // Pre-populate node states
+                if (payload.node_states) {
+                    for (const [nodeId, state] of Object.entries(payload.node_states)) {
+                        updateNodeStatus(nodeId, state);
+                    }
+                }
+
+                // Pre-populate mitigation rows
+                if (payload.recent_mitigations) {
+                    mitigationTableBody.innerHTML = "";
+                    payload.recent_mitigations.forEach(addMitigationRow);
+                }
+            }
+        } catch (e) {
+            appendTerminalLog("SYSTEM", `Failed to load initial status: ${e}`, "threat");
+        }
+    }
+
+    // Connect SSE Stream
+    function connectSSE() {
+        appendTerminalLog("STREAM", "Connecting to telemetry event stream /api/stream...", "info");
+        const eventSource = new EventSource("/api/stream");
+
+        eventSource.addEventListener("open", () => {
+            sseIndicator.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse";
+            ssePill.className = "inline-flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-950/40 border border-emerald-800 text-emerald-400";
+            document.getElementById("sse-text").textContent = "STREAM LIVE";
+            appendTerminalLog("STREAM", "Connected to realtime security bus.", "success");
+        });
+
+        eventSource.addEventListener("connected", (e) => {
+            appendTerminalLog("STREAM", "Session handshake synchronized.", "success");
+        });
+
+        eventSource.addEventListener("heartbeat", () => {
+            // Heartbeat received
+        });
+
+        eventSource.addEventListener("honeypot_hit", (e) => {
+            totalTraps++;
+            trapsCountEl.textContent = totalTraps;
+            try {
+                const payload = JSON.parse(e.data);
+                const ev = payload.data || {};
+                const src = ev.src_ip || "unknown";
+                const user = ev.username || "";
+                const pwd = ev.password ? `(pwd: ${ev.password})` : "";
+                const cmd = ev.input_command ? `cmd: "${ev.input_command}"` : "";
+                appendTerminalLog("HONEYPOT", `Trap hit from ${src} -> ${ev.eventid} ${user} ${pwd} ${cmd}`.trim(), "warning");
+            } catch (err) {
+                appendTerminalLog("HONEYPOT", "Raw hit received.", "warning");
+            }
+        });
+
+        eventSource.addEventListener("mitigation_alert", (e) => {
+            try {
+                const payload = JSON.parse(e.data);
+                const rec = payload.data || {};
+                activeBansCount++;
+                bannedCountEl.textContent = activeBansCount;
+                addMitigationRow(rec);
+                appendTerminalLog("MITIGATION", `AUTONOMOUS BAN ENFORCED: ${rec.src_ip} -> ${rec.reason}`, "threat");
+            } catch (err) {
+                appendTerminalLog("MITIGATION", "Mitigation alert received.", "threat");
+            }
+        });
+
+        eventSource.addEventListener("unban_alert", (e) => {
+            try {
+                const payload = JSON.parse(e.data);
+                const ip = payload.data.ip;
+                const row = document.getElementById(`row-ip-${ip.replace(/[^a-zA-Z0-9]/g, '_')}`);
+                if (row) row.remove();
+                if (activeBansCount > 0) activeBansCount--;
+                bannedCountEl.textContent = activeBansCount;
+                appendTerminalLog("ADMIN", `Manual unban executed for IP: ${ip}`, "info");
+            } catch (err) {
+                console.error(err);
+            }
+        });
+
+        eventSource.addEventListener("reset_alert", () => {
+            activeBansCount = 0;
+            bannedCountEl.textContent = "0";
+            mitigationTableBody.innerHTML = "";
+            appendTerminalLog("ADMIN", "All firewall drop rules have been reset.", "info");
+        });
+
+        eventSource.addEventListener("node_quarantined", (e) => {
+            try {
+                const payload = JSON.parse(e.data);
+                updateNodeStatus(payload.data.node_id, "quarantined");
+                appendTerminalLog("QUARANTINE", `Dynamic containment triggered: ${payload.data.node_id} isolated to iot_quarantine_net.`, "threat");
+            } catch (err) {
+                console.error(err);
+            }
+        });
+
+        eventSource.addEventListener("node_restored", (e) => {
+            try {
+                const payload = JSON.parse(e.data);
+                updateNodeStatus(payload.data.node_id, "production");
+                appendTerminalLog("QUARANTINE", `Container restored: ${payload.data.node_id} reconnected to iot_production_net.`, "success");
+            } catch (err) {
+                console.error(err);
+            }
+        });
+
+        eventSource.addEventListener("error", () => {
+            sseIndicator.className = "w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping";
+            ssePill.className = "inline-flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-semibold bg-rose-950/40 border border-rose-800 text-rose-400";
+            document.getElementById("sse-text").textContent = "RECONNECTING";
+        });
+    }
+
+    // Manual Unban
+    async function unbanIp(ip) {
+        try {
+            const res = await fetch("/api/defense/unban", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ip: ip, admin_user: "soc_admin" })
+            });
+            const data = await res.json();
+            if (data.status !== "success") {
+                alert(`Unban failed: ${data.message}`);
+            }
+        } catch (e) {
+            alert(`Error: ${e}`);
+        }
+    }
+
+    // Global Reset Bans
+    resetBansBtn.addEventListener("click", async () => {
+        if (!confirm("Are you sure you want to flush all active firewall drop rules?")) return;
+        try {
+            await fetch("/api/defense/reset-bans", { method: "POST" });
+        } catch (e) {
+            alert(`Error: ${e}`);
+        }
+    });
+
+    // Wire Node Simulate Buttons
+    window.infectNode = async function(nodeId) {
+        try {
+            await fetch(`/api/simulate/infect/${nodeId}`, { method: "POST" });
+        } catch (e) {
+            alert(`Error isolating node: ${e}`);
+        }
+    };
+
+    window.restoreNode = async function(nodeId) {
+        try {
+            await fetch(`/api/simulate/restore/${nodeId}`, { method: "POST" });
+        } catch (e) {
+            alert(`Error restoring node: ${e}`);
+        }
+    };
+
+    // Initialize
+    fetchInitialStatus();
+    connectSSE();
+});

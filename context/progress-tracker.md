@@ -3,10 +3,10 @@
 Update this file after every meaningful implementation change.
 
 ## Current Phase
-Phase 5: Single-Page Real-Time SOC Dashboard
+Phase 6: Red Team Simulation & End-to-End Autonomous Validation
 
 ## Current Goal
-Implement Unit 05: Build the real-time SOC dashboard UI adhering to `context/ui-context.md` (slate-900 surface, dark SOC aesthetic, emerald node health, amber deception traps, rose firewall drop badges), dynamic topology status cards, unban/reset controls, infection simulator triggers, and auto-scrolling honeypot console.
+Implement Unit 06: Build automated adversary red team testing script (`tests/attacker_sim.py`) simulating reconnaissance port sweeps, SSH/Telnet credential brute-force dictionary attacks, and rogue container lateral movement for end-to-end autonomous mitigation validation in <1,000 ms.
 
 ## Completed
 - [x] Context foundation files established and verified at root.
@@ -19,12 +19,14 @@ Implement Unit 05: Build the real-time SOC dashboard UI adhering to `context/ui-
 - [x] Unit 03: Honeypot Ingestion Engine & Detection Core (async log tailer, in-memory sliding window, SQLite audit store, 7 unit tests passing).
 - [x] Unit 04 specification written (`context/specs/04-fastapi-telemetry-engine.md`).
 - [x] Unit 04: FastAPI Telemetry Engine & SSE Streaming API (non-buffering SSE stream, REST unban/reset/infect endpoints, 7 unit tests passing).
+- [x] Unit 05 specification written (`context/specs/05-soc-dashboard.md`).
+- [x] Unit 05: Single-Page Real-Time SOC Dashboard (Tailwind CSS, dynamic node cards, live ledger, auto-scrolling terminal, 2 unit tests passing).
 
 ## In Progress
-- [ ] Unit 05: Single-Page Real-Time SOC Dashboard (`controller/templates/index.html`, `controller/static/`).
+- [ ] Unit 06: Red Team Simulation & End-to-End Autonomous Validation (`tests/attacker_sim.py`).
 
 ## Next Up
-- [ ] Unit 06: Red Team Simulation & End-to-End Autonomous Validation (`tests/attacker_sim.py`).
+- [ ] Multi-container Docker Compose live stack validation and viva evaluation runbook.
 
 ## Open Questions & Decisions Needed
 1. **Network Packet Sniffing on macOS:** Since macOS Docker Desktop bridges traffic through a lightweight Linux VM, packet sniffing must run inside a container connected to `iot_production_net` rather than directly on the native Darwin macOS network stack.
