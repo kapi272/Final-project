@@ -20,12 +20,24 @@ document.addEventListener("DOMContentLoaded", () => {
         return el;
     }
 
-    // Format UNIX timestamp
-    function formatTime(ts) {
-        if (!ts) return "--:--:--";
-        const d = new Date(ts * 1000);
-        return d.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    // Format UNIX timestamp according to Indian Date & Time Standards (IST / Asia/Kolkata: DD/MM/YYYY, HH:mm:ss)
+    function formatDateTime(ts) {
+        if (!ts) return "--/--/----, --:--:--";
+        const ms = typeof ts === "number" && ts < 1e11 ? ts * 1000 : ts;
+        const d = new Date(ms);
+        if (isNaN(d.getTime())) return "--/--/----, --:--:--";
+        return d.toLocaleString("en-IN", {
+            timeZone: "Asia/Kolkata",
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: false
+        });
     }
+    const formatTime = formatDateTime;
 
     // Append log line to general activity terminal feed console with 6-column SIEM layout
     function appendTerminalLog(arg1, arg2, arg3 = "info", arg4 = "system") {
@@ -50,7 +62,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const line = document.createElement("div");
         line.dataset.category = category;
-        line.className = "flex items-center space-x-2 py-1 px-3 border-b border-slate-900/60 hover:bg-slate-900/40 transition-colors min-w-[760px]";
+        line.className = "flex items-center space-x-2 py-1 px-3 border-b border-slate-900/60 hover:bg-slate-900/40 transition-colors min-w-[860px]";
 
         // Filter visibility logic
         if (currentLogFilter !== "all" && currentLogFilter !== category) {
@@ -59,8 +71,8 @@ document.addEventListener("DOMContentLoaded", () => {
             line.style.display = "flex";
         }
 
-        // 1. Time Column (full 8 chars 00:00:00)
-        const timeSpan = createSafeElement("span", formatTime(Date.now() / 1000), "w-[75px] shrink-0 text-slate-400 select-none text-[10px] font-mono tracking-tight");
+        // 1. Date & Time Column (Indian Standard IST: DD/MM/YYYY, HH:mm:ss)
+        const timeSpan = createSafeElement("span", formatDateTime(Date.now() / 1000), "w-[145px] shrink-0 text-slate-400 select-none text-[10px] font-mono tracking-tight");
 
         // 2. Stream Badge Column
         let streamStyle = "text-sky-400 bg-sky-950/40 border-sky-800/40";
@@ -184,8 +196,8 @@ document.addEventListener("DOMContentLoaded", () => {
         tr.id = rowKey;
         tr.className = "border-b border-slate-800/80 hover:bg-slate-800/40 transition-colors";
 
-        // Timestamp
-        const tdTime = createSafeElement("td", formatTime(record.timestamp), "px-4 py-2 text-slate-400 font-mono text-xs whitespace-nowrap");
+        // Timestamp (Indian Standard IST: DD/MM/YYYY, HH:mm:ss)
+        const tdTime = createSafeElement("td", formatDateTime(record.timestamp), "px-4 py-2 text-slate-400 font-mono text-xs whitespace-nowrap");
         
         // Target IP (Clickable for deep forensics)
         const tdIp = document.createElement("td");
@@ -809,13 +821,13 @@ document.addEventListener("DOMContentLoaded", () => {
                         <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Chronological Forensic Sequence:</div>
                 `;
                 events.forEach(ev => {
-                    const timeStr = formatTime(ev.timestamp);
+                    const timeStr = formatDateTime(ev.timestamp);
                     const cmdStr = ev.input_command ? `<code class="text-rose-400 font-mono text-[11px]">cmd: ${ev.input_command}</code>` : '';
                     const credStr = ev.username ? `<span class="text-amber-300">${ev.username}:${ev.password || ''}</span>` : '';
                     html += `
                         <div class="flex items-start space-x-2 p-1.5 rounded bg-slate-900/80 border border-slate-800/80 text-[11px]">
-                            <span class="font-mono text-slate-500">${timeStr}</span>
-                            <span class="font-mono px-1 rounded bg-slate-800 text-sky-400 text-[10px]">${ev.eventid}</span>
+                            <span class="font-mono text-slate-400 shrink-0 text-[10px]">${timeStr}</span>
+                            <span class="font-mono px-1 rounded bg-slate-800 text-sky-400 text-[10px] shrink-0">${ev.eventid}</span>
                             <span class="flex-1 text-slate-300">${credStr} ${cmdStr} ${ev.message || ''}</span>
                         </div>
                     `;

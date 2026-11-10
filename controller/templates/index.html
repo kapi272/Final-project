@@ -341,7 +341,7 @@
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="border-b border-slate-800 text-[11px] text-slate-400 uppercase tracking-wider font-semibold">
-                                <th class="px-4 py-2">Time</th>
+                                <th class="px-4 py-2 whitespace-nowrap">Date & Time (IST)</th>
                                 <th class="px-4 py-2">Offending IP</th>
                                 <th class="px-4 py-2">Mitigation</th>
                                 <th class="px-4 py-2">Trigger Reason</th>
@@ -384,8 +384,8 @@
                 <!-- Unified Horizontal Scroll Wrapper for Header & Rows -->
                 <div class="flex-1 overflow-x-auto mt-2 rounded bg-slate-950 border border-slate-800 flex flex-col">
                     <!-- 6-Column SIEM Grid Header Bar -->
-                    <div id="siem-grid-header" class="flex items-center space-x-2 px-3 py-1.5 bg-slate-900/90 border-b border-slate-800 text-[10px] font-mono uppercase font-bold text-slate-400 select-none min-w-[760px] sticky top-0 z-10">
-                        <span class="w-[75px] shrink-0 text-slate-500">TIME</span>
+                    <div id="siem-grid-header" class="flex items-center space-x-2 px-3 py-1.5 bg-slate-900/90 border-b border-slate-800 text-[10px] font-mono uppercase font-bold text-slate-400 select-none min-w-[860px] sticky top-0 z-10">
+                        <span class="w-[145px] shrink-0 text-slate-500">DATE & TIME (IST)</span>
                         <span class="w-[88px] shrink-0 text-slate-400 text-center">STREAM</span>
                         <span class="w-[56px] shrink-0 text-center text-slate-400">SEV</span>
                         <span class="w-[115px] shrink-0 text-slate-400 text-center">SOURCE/NODE</span>
@@ -393,7 +393,7 @@
                         <span class="flex-1 min-w-[300px] text-slate-400">PAYLOAD & EVENT DATA</span>
                     </div>
 
-                    <div id="terminal-feed" class="flex-1 p-0 font-mono text-[11px] h-[330px] overflow-y-auto min-w-[760px] space-y-0.5">
+                    <div id="terminal-feed" class="flex-1 p-0 font-mono text-[11px] h-[330px] overflow-y-auto min-w-[860px] space-y-0.5">
                         <!-- Stream logs will auto-scroll here -->
                     </div>
                 </div>
