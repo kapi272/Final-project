@@ -3,10 +3,10 @@
 Update this file after every meaningful implementation change.
 
 ## Current Phase
-Phase 3: Honeypot Ingestion Engine & Detection Core
+Phase 4: FastAPI Telemetry Engine & SSE Streaming API
 
 ## Current Goal
-Implement Unit 03: Build the async log tailer for `cowrie.json`, sliding-window attack classifier (`collections.deque`), SQLite defense history database (`data/defense_history.db`), and autonomous trigger dispatcher.
+Implement Unit 04: Build the FastAPI async web application, non-buffering Server-Sent Events endpoint (`GET /api/stream`), manual unban APIs (`POST /api/defense/unban`, `POST /api/defense/reset-bans`), and node compromise test trigger (`POST /api/simulate/infect/{node_id}`).
 
 ## Completed
 - [x] Context foundation files established and verified at root.
@@ -15,13 +15,15 @@ Implement Unit 03: Build the async log tailer for `cowrie.json`, sliding-window 
 - [x] Unit 01: Docker Orchestration & Virtual IoT Network (docker-compose, Mosquitto, Simulators, Cowrie).
 - [x] Unit 02 specification written (`context/specs/02-mitigation-engine.md`).
 - [x] Unit 02: Mitigation Engine (firewall netfilter driver, Docker SDK quarantine controller, allowlist protection, 11 unit tests passing).
+- [x] Unit 03 specification written (`context/specs/03-honeypot-ingestion-engine.md`).
+- [x] Unit 03: Honeypot Ingestion Engine & Detection Core (async log tailer, in-memory sliding window, SQLite audit store, 7 unit tests passing).
 
 ## In Progress
-- [ ] Unit 03: Honeypot Ingestion Engine & Detection Core (`controller/core/`).
+- [ ] Unit 04: FastAPI Telemetry Engine & SSE Streaming API (`controller/api/`).
 
 ## Next Up
-- [ ] Unit 04: FastAPI Telemetry Engine & SSE Streaming API (`controller/api/`).
 - [ ] Unit 05: Single-Page Real-Time SOC Dashboard (`controller/templates/`, `controller/static/`).
+- [ ] Unit 06: Red Team Simulation & End-to-End Autonomous Validation (`tests/attacker_sim.py`).
 
 ## Open Questions & Decisions Needed
 1. **Network Packet Sniffing on macOS:** Since macOS Docker Desktop bridges traffic through a lightweight Linux VM, packet sniffing must run inside a container connected to `iot_production_net` rather than directly on the native Darwin macOS network stack.
