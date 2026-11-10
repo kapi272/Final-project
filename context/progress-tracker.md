@@ -3,10 +3,10 @@
 Update this file after every meaningful implementation change.
 
 ## Current Phase
-Phase 8: Milestone v1.1.0 — Interactive Adversary Simulation & SOC UX Controls (COMPLETE)
+Phase 9: Milestone v1.2.0 — Threat Intelligence Panel & External Analytics Tool (IN PROGRESS)
 
 ## Current Goal
-All 6 core architecture units and Phase 8 Milestone v1.1.0 interactive controls are fully implemented, verified with 32 unit/integration tests, and deployed live.
+Bumping version to v1.2.0 (SOC Terminal v1.2-SOC) and integrating a Threat Intelligence Panel for honeypot log analytics (attack breakdown, credential stuffing frequency, port surface) plus a dedicated external analytics tool modal/view.
 
 ## Completed
 - [x] Context foundation files established and verified at root.
