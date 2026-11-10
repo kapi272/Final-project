@@ -77,15 +77,23 @@ python3 tests/attacker_sim.py --all
 
 ---
 
-### Step 3: Demonstrate Multi-Stream Filtering & General Activity Logs
+### Step 3: Demonstrate Multi-Stream Filtering & 6-Column SIEM Activity Logs
 1. Locate the **General Activity Logs** console in the lower-right quadrant.
-2. Click the category filter tabs:
-   * **`[ ALL ]`**: Displays all unified stream events (IoT telemetry, honeypot hits, mitigations, and admin operations).
+2. Highlight the **6-Column SIEM Data Grid**:
+   * **`TIME`**: Event timestamp.
+   * **`STREAM`**: Category pill (`HONEYPOT`, `MITIGATION`, `QUARANTINE`, `IOT MESH`, `SYSTEM`, `ADVERSARY`).
+   * **`SEV`**: Severity rating badge (`CRIT`, `HIGH`, `WARN`, `INFO`).
+   * **`SOURCE/NODE`**: Offending IP or virtual IoT device ID (`198.51.100.99`, `temp_sensor_01`, `soc_admin`).
+   * **`PROTOCOL`**: Transport identifier (`SSH:2222`, `TELNET:2223`, `MQTT:1883`, `NETFILTER`, `DOCKER-API`, `HTTP:8050`).
+   * **`PAYLOAD & EVENT DATA`**: Raw transmitted telemetry payloads, attempted credentials, or command arguments.
+3. Click the category filter tabs:
+   * **`[ ALL ]`**: Displays all unified stream events.
    * **`[ HONEYPOT ]`**: Filters down exclusively to SSH/Telnet login attempts, exploits, and reconnaissance probes.
    * **`[ MITIGATION ]`**: Displays only Netfilter firewall drops, unbans, and rule flushes.
-   * **`[ IOT MESH ]`**: Shows live temperature telemetry published by `temp_sensor_01` (`home/sensors/temperature`) and container isolation migrations.
+   * **`[ QUARANTINE ]`**: Displays only dynamic container network isolations and restorations.
+   * **`[ IOT MESH ]`**: Shows live temperature telemetry published by `temp_sensor_01` (`home/sensors/temperature`) and actuator status.
    * **`[ SYSTEM ]`**: Shows SSE connections, stream handshakes, and database wipe events.
-3. Click the **`[ 🧹 Clear ]`** button to demonstrate on-demand terminal buffer clearing without affecting backend persistence.
+4. Click the **`[ 🧹 Clear ]`** button to demonstrate on-demand terminal buffer clearing without affecting backend persistence.
 
 ---
 
@@ -145,14 +153,14 @@ python3 tests/attacker_sim.py --all
 ---
 
 ## 4. Test Suite Execution
-To prove system reliability during evaluation, run all 37 automated tests:
+To prove system reliability during evaluation, run all 38 automated tests:
 ```bash
 python3 -m unittest discover -s tests
 ```
 * **Mitigation Driver Tests:** 11 tests (allowlists, Netfilter idempotency, Docker SDK mocking)
 * **Detection Engine Tests:** 7 tests (sliding window, brute-force threshold, SQLite audit)
 * **FastAPI Backend Tests:** 10 tests (SSE stream headers, REST API schema validation, attack simulation triggers)
-* **SOC Dashboard & UI Tests:** 3 tests (HTML template serving, XSS-safe JavaScript rendering, General Activity Logs multi-stream and Clear button validation)
+* **SOC Dashboard & UI Tests:** 4 tests (HTML template serving, XSS-safe JavaScript rendering, 6-column SIEM grid, General Activity Logs multi-stream and Clear button validation)
 * **IoT Telemetry Listener Tests:** 1 test (MQTT listener lifecycle, non-blocking asynchronous message parsing)
 * **End-to-End Benchmark:** 2 tests (closed-loop latency SLA validation < 1,000 ms)
 * **Security & IP Forensics Tests:** 3 tests (Threat intelligence aggregation, IP dossier timeline queries, SIEM JSON export)
