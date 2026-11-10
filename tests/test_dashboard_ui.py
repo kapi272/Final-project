@@ -26,6 +26,10 @@ class TestDashboardUI(unittest.TestCase):
         self.assertIn("filter-btn-honeypot", body)
         self.assertIn("filter-btn-quarantine", body)
         self.assertIn("filter-btn-iot", body)
+        self.assertIn("siem-grid-header", body)
+        self.assertIn("SOURCE/NODE", body)
+        self.assertIn("PROTOCOL", body)
+        self.assertIn("PAYLOAD & EVENT DATA", body)
         # Verify de-duplication: no duplicate reset button in ledger
         self.assertNotIn("🗑️ Reset DB", body)
 

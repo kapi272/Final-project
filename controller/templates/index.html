@@ -381,7 +381,17 @@
                     <button id="filter-btn-system" onclick="setLogFilter('system')" class="px-2 py-0.5 rounded font-semibold bg-slate-800/50 hover:bg-slate-800 border border-transparent hover:border-slate-700 text-slate-400 hover:text-slate-200 transition-all">SYSTEM</button>
                 </div>
 
-                <div id="terminal-feed" class="flex-1 mt-2 p-3 rounded bg-slate-950 border border-slate-800 font-mono text-[11px] h-[345px] overflow-y-auto space-y-1">
+                <!-- 6-Column SIEM Grid Header Bar -->
+                <div id="siem-grid-header" class="flex items-center space-x-2 px-2.5 py-1.5 bg-slate-950/90 border-b border-slate-800 text-[10px] font-mono uppercase font-bold text-slate-400 select-none overflow-x-hidden mt-1.5 rounded-t">
+                    <span class="w-[62px] shrink-0 text-slate-500">TIME</span>
+                    <span class="w-[82px] shrink-0 text-slate-400">STREAM</span>
+                    <span class="w-[58px] shrink-0 text-center text-slate-400">SEV</span>
+                    <span class="w-[105px] shrink-0 text-slate-400">SOURCE/NODE</span>
+                    <span class="w-[78px] shrink-0 text-center text-slate-400">PROTOCOL</span>
+                    <span class="flex-1 min-w-[150px] text-slate-400">PAYLOAD & EVENT DATA</span>
+                </div>
+
+                <div id="terminal-feed" class="flex-1 p-2.5 rounded-b bg-slate-950 border border-slate-800 border-t-0 font-mono text-[11px] h-[330px] overflow-y-auto space-y-1">
                     <!-- Stream logs will auto-scroll here -->
                 </div>
             </div>

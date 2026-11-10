@@ -27,11 +27,30 @@ document.addEventListener("DOMContentLoaded", () => {
         return d.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
     }
 
-    // Append log line to general activity terminal feed console with structured columns
-    function appendTerminalLog(prefix, message, type = "info", category = "system") {
+    // Append log line to general activity terminal feed console with 6-column SIEM layout
+    function appendTerminalLog(arg1, arg2, arg3 = "info", arg4 = "system") {
+        let stream, message, severity, category, source, protocol;
+
+        if (typeof arg1 === "object" && arg1 !== null) {
+            stream = arg1.stream || "SYSTEM";
+            category = arg1.category || "system";
+            severity = arg1.severity || "INFO";
+            source = arg1.source || "--";
+            protocol = arg1.protocol || "--";
+            message = arg1.message || "";
+        } else {
+            stream = arg1;
+            message = arg2;
+            const type = arg3;
+            category = arg4;
+            severity = type === "threat" ? "CRIT" : (type === "warning" ? "WARN" : "INFO");
+            source = category === "honeypot" ? "ATTACKER" : (category === "quarantine" || category === "iot" ? "IOT_NODE" : "SOC_CTRL");
+            protocol = category === "honeypot" ? "SSH:2222" : (category === "mitigation" ? "NETFILTER" : (category === "iot" ? "MQTT:1883" : "HTTP:8050"));
+        }
+
         const line = document.createElement("div");
         line.dataset.category = category;
-        line.className = "flex items-start space-x-2 py-0.5 border-b border-slate-900/60";
+        line.className = "flex items-center space-x-2 py-1 px-1 border-b border-slate-900/60 hover:bg-slate-900/40 transition-colors";
 
         // Filter visibility logic
         if (currentLogFilter !== "all" && currentLogFilter !== category) {
@@ -40,31 +59,50 @@ document.addEventListener("DOMContentLoaded", () => {
             line.style.display = "flex";
         }
 
-        // Column 1: Time (fixed width)
-        const timeSpan = createSafeElement("span", `[${formatTime(Date.now() / 1000)}]`, "min-w-[65px] text-slate-500 select-none text-[10px] pt-0.5 font-mono");
-        
-        // Column 2: Stream Badge (fixed width, color-coded)
-        let badgeColor = "text-sky-400";
-        if (category === "quarantine") {
-            badgeColor = type === "threat" ? "text-red-400 font-bold" : "text-emerald-400 font-bold";
-        } else if (category === "honeypot") {
-            badgeColor = type === "threat" ? "text-rose-400 font-bold" : "text-amber-400 font-bold";
-        } else if (category === "mitigation") {
-            badgeColor = "text-rose-400 font-bold";
-        } else if (category === "iot") {
-            badgeColor = type === "threat" ? "text-rose-400 font-bold" : "text-emerald-400 font-bold";
-        } else if (category === "system") {
-            badgeColor = type === "success" ? "text-emerald-400 font-bold" : "text-sky-400";
-        }
+        // 1. Time Column
+        const timeSpan = createSafeElement("span", formatTime(Date.now() / 1000), "w-[62px] shrink-0 text-slate-500 select-none text-[10px] font-mono");
 
-        const prefixSpan = createSafeElement("span", `[${prefix}]`, `min-w-[95px] font-mono text-[11px] font-bold ${badgeColor}`);
-        
-        // Column 3: Event message details
-        const msgSpan = createSafeElement("span", message, "text-slate-300 break-all flex-1");
+        // 2. Stream Badge Column
+        let streamStyle = "text-sky-400 bg-sky-950/40 border-sky-800/40";
+        if (category === "quarantine") {
+            streamStyle = "text-red-400 bg-red-950/50 border-red-700/60";
+        } else if (category === "honeypot") {
+            streamStyle = "text-amber-400 bg-amber-950/40 border-amber-800/40";
+        } else if (category === "mitigation") {
+            streamStyle = "text-rose-400 bg-rose-950/40 border-rose-800/40";
+        } else if (category === "iot") {
+            streamStyle = "text-emerald-400 bg-emerald-950/40 border-emerald-800/40";
+        }
+        const streamSpan = createSafeElement("span", stream, `w-[82px] shrink-0 text-center font-mono text-[9px] font-bold px-1 py-0.5 rounded border ${streamStyle} truncate`);
+
+        // 3. Severity Badge Column
+        let sevStyle = "text-slate-300 bg-slate-800/80 border-slate-700";
+        if (severity === "CRIT") {
+            sevStyle = "text-white bg-red-900/80 border-red-500 font-extrabold shadow-sm shadow-red-950";
+        } else if (severity === "HIGH") {
+            sevStyle = "text-rose-300 bg-rose-950/80 border-rose-700 font-bold";
+        } else if (severity === "WARN") {
+            sevStyle = "text-amber-300 bg-amber-950/80 border-amber-700 font-bold";
+        } else if (severity === "INFO") {
+            sevStyle = "text-sky-300 bg-sky-950/60 border-sky-800";
+        }
+        const sevSpan = createSafeElement("span", severity, `w-[58px] shrink-0 text-center font-mono text-[9px] px-1 py-0.5 rounded border ${sevStyle}`);
+
+        // 4. Source/Node Badge Column
+        const sourceSpan = createSafeElement("span", source, "w-[105px] shrink-0 font-mono text-[10px] text-sky-300 font-semibold truncate bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-800");
+
+        // 5. Protocol Badge Column
+        const protoSpan = createSafeElement("span", protocol, "w-[78px] shrink-0 font-mono text-[10px] text-indigo-300 text-center truncate bg-indigo-950/30 px-1 py-0.5 rounded border border-indigo-900/40");
+
+        // 6. Payload & Event Details Column
+        const dataSpan = createSafeElement("span", message, "flex-1 min-w-[150px] text-slate-300 break-all text-[11px]");
 
         line.appendChild(timeSpan);
-        line.appendChild(prefixSpan);
-        line.appendChild(msgSpan);
+        line.appendChild(streamSpan);
+        line.appendChild(sevSpan);
+        line.appendChild(sourceSpan);
+        line.appendChild(protoSpan);
+        line.appendChild(dataSpan);
 
         terminalFeed.appendChild(line);
 
@@ -119,7 +157,14 @@ document.addEventListener("DOMContentLoaded", () => {
     // Manual console clear
     window.clearConsole = function() {
         terminalFeed.innerHTML = "";
-        appendTerminalLog("SYSTEM", "Console buffer cleared. Session stream active.", "info", "system");
+        appendTerminalLog({
+            stream: "SYSTEM",
+            category: "system",
+            severity: "INFO",
+            source: "soc_admin",
+            protocol: "HTTP:8050",
+            message: "Console buffer cleared. Session stream active."
+        });
     };
 
     // Add or update row in live mitigation table
@@ -234,18 +279,39 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Connect SSE Stream
     function connectSSE() {
-        appendTerminalLog("STREAM", "Connecting to telemetry event stream /api/stream...", "info", "system");
+        appendTerminalLog({
+            stream: "STREAM",
+            category: "system",
+            severity: "INFO",
+            source: "sse_bus",
+            protocol: "HTTP:8050",
+            message: "Connecting to telemetry event stream /api/stream..."
+        });
         const eventSource = new EventSource("/api/stream");
 
         eventSource.addEventListener("open", () => {
             sseIndicator.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse";
             ssePill.className = "inline-flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-950/40 border border-emerald-800 text-emerald-400";
             document.getElementById("sse-text").textContent = "STREAM LIVE";
-            appendTerminalLog("STREAM", "Connected to realtime security bus.", "success", "system");
+            appendTerminalLog({
+                stream: "STREAM",
+                category: "system",
+                severity: "INFO",
+                source: "sse_bus",
+                protocol: "HTTP:8050",
+                message: "Connected to realtime security bus. Stream active."
+            });
         });
 
         eventSource.addEventListener("connected", (e) => {
-            appendTerminalLog("STREAM", "Session handshake synchronized.", "success", "system");
+            appendTerminalLog({
+                stream: "STREAM",
+                category: "system",
+                severity: "INFO",
+                source: "sse_bus",
+                protocol: "HTTP:8050",
+                message: "Session handshake synchronized."
+            });
         });
 
         eventSource.addEventListener("heartbeat", () => {
@@ -262,11 +328,29 @@ document.addEventListener("DOMContentLoaded", () => {
                 const user = ev.username || "";
                 const pwd = ev.password ? `(pwd: ${ev.password})` : "";
                 const cmd = ev.input_command ? `cmd: "${ev.input_command}"` : "";
-                appendTerminalLog("HONEYPOT", `Trap hit from ${src} -> ${ev.eventid} ${user} ${pwd} ${cmd}`.trim(), "warning", "honeypot");
+                const proto = ev.dst_port ? (ev.dst_port === 2223 ? "TELNET:2223" : "SSH:2222") : "SSH:2222";
+                const sev = ev.input_command ? "CRIT" : (ev.eventid && ev.eventid.includes("failed") ? "HIGH" : "WARN");
+                const detail = ev.input_command 
+                    ? `Critical exploit command injection: '${ev.input_command}'`
+                    : (ev.username ? `Auth Failed: [${user} / ${ev.password || ''}] -> ${ev.eventid}` : (ev.message || ev.eventid || "Recon probe hit"));
+                appendTerminalLog({
+                    stream: "HONEYPOT",
+                    category: "honeypot",
+                    severity: sev,
+                    source: src,
+                    protocol: proto,
+                    message: detail
+                });
             } catch (err) {
-                appendTerminalLog("HONEYPOT", "Raw hit received.", "warning", "honeypot");
+                appendTerminalLog({
+                    stream: "HONEYPOT",
+                    category: "honeypot",
+                    severity: "WARN",
+                    source: "ATTACKER",
+                    protocol: "SSH:2222",
+                    message: "Raw hit frame received."
+                });
             }
-            // Refresh Threat Intelligence
             loadAnalytics();
         });
 
@@ -277,11 +361,24 @@ document.addEventListener("DOMContentLoaded", () => {
                 activeBansCount++;
                 bannedCountEl.textContent = activeBansCount;
                 addMitigationRow(rec);
-                appendTerminalLog("MITIGATION", `AUTONOMOUS BAN ENFORCED: ${rec.src_ip} -> ${rec.reason}`, "threat", "mitigation");
+                appendTerminalLog({
+                    stream: "MITIGATION",
+                    category: "mitigation",
+                    severity: rec.severity || "CRIT",
+                    source: rec.src_ip || "unknown",
+                    protocol: "NETFILTER",
+                    message: `AUTONOMOUS BAN ENFORCED: ${rec.reason} (Chain: IOT_DEFENSE_BLOCKLIST)`
+                });
             } catch (err) {
-                appendTerminalLog("MITIGATION", "Mitigation alert received.", "threat", "mitigation");
+                appendTerminalLog({
+                    stream: "MITIGATION",
+                    category: "mitigation",
+                    severity: "CRIT",
+                    source: "NETFILTER",
+                    protocol: "IPTABLES",
+                    message: "Mitigation alert received."
+                });
             }
-            // Refresh Threat Intelligence
             loadAnalytics();
         });
 
@@ -293,7 +390,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (row) row.remove();
                 if (activeBansCount > 0) activeBansCount--;
                 bannedCountEl.textContent = activeBansCount;
-                appendTerminalLog("MITIGATION", `Manual unban executed for IP: ${ip}`, "info", "mitigation");
+                appendTerminalLog({
+                    stream: "MITIGATION",
+                    category: "mitigation",
+                    severity: "INFO",
+                    source: ip,
+                    protocol: "NETFILTER",
+                    message: `Manual unban executed by ${payload.data.unbanned_by || 'soc_admin'}`
+                });
             } catch (err) {
                 console.error(err);
             }
@@ -303,7 +407,14 @@ document.addEventListener("DOMContentLoaded", () => {
             activeBansCount = 0;
             bannedCountEl.textContent = "0";
             mitigationTableBody.innerHTML = "";
-            appendTerminalLog("MITIGATION", "All firewall drop rules have been reset.", "info", "mitigation");
+            appendTerminalLog({
+                stream: "MITIGATION",
+                category: "mitigation",
+                severity: "INFO",
+                source: "0.0.0.0/0",
+                protocol: "NETFILTER",
+                message: "All firewall drop rules flushed from Linux kernel."
+            });
         });
 
         eventSource.addEventListener("database_reset_alert", () => {
@@ -314,14 +425,28 @@ document.addEventListener("DOMContentLoaded", () => {
             mitigationTableBody.innerHTML = "";
             window.clearConsole();
             loadAnalytics();
-            appendTerminalLog("ADMIN", "Database audit history and analytics wiped clean by admin.", "success", "system");
+            appendTerminalLog({
+                stream: "ADMIN",
+                category: "system",
+                severity: "INFO",
+                source: "soc_admin",
+                protocol: "SQLITE:DB",
+                message: "Database audit history, threat analytics, and bans wiped clean."
+            });
         });
 
         eventSource.addEventListener("node_quarantined", (e) => {
             try {
                 const payload = JSON.parse(e.data);
                 updateNodeStatus(payload.data.node_id, "quarantined");
-                appendTerminalLog("QUARANTINE", `Dynamic containment triggered: ${payload.data.node_id} isolated to iot_quarantine_net.`, "threat", "quarantine");
+                appendTerminalLog({
+                    stream: "QUARANTINE",
+                    category: "quarantine",
+                    severity: "CRIT",
+                    source: payload.data.node_id,
+                    protocol: "DOCKER-API",
+                    message: "Dynamic containment triggered: Detached from 172.20.0.0/24 -> Attached to iot_quarantine_net"
+                });
             } catch (err) {
                 console.error(err);
             }
@@ -331,7 +456,14 @@ document.addEventListener("DOMContentLoaded", () => {
             try {
                 const payload = JSON.parse(e.data);
                 updateNodeStatus(payload.data.node_id, "production");
-                appendTerminalLog("QUARANTINE", `Container restored: ${payload.data.node_id} reconnected to iot_production_net.`, "success", "quarantine");
+                appendTerminalLog({
+                    stream: "QUARANTINE",
+                    category: "quarantine",
+                    severity: "INFO",
+                    source: payload.data.node_id,
+                    protocol: "DOCKER-API",
+                    message: "Container restored: Reconnected to production mesh network (iot_production_net)"
+                });
             } catch (err) {
                 console.error(err);
             }
@@ -343,9 +475,26 @@ document.addEventListener("DOMContentLoaded", () => {
                 const data = payload.data || {};
                 const topic = data.topic || "home/iot";
                 const val = data.payload || "";
-                appendTerminalLog("IOT MESH", `${topic} :: ${val}`, "info", "iot");
+                let dev = "iot_node";
+                if (topic.includes("temperature") || topic.includes("sensor")) dev = "temp_sensor_01";
+                else if (topic.includes("bulb") || topic.includes("device")) dev = "smart_bulb_01";
+                appendTerminalLog({
+                    stream: "IOT MESH",
+                    category: "iot",
+                    severity: "INFO",
+                    source: dev,
+                    protocol: "MQTT:1883",
+                    message: `Telemetry Payload: ${val} (Topic: ${topic})`
+                });
             } catch (err) {
-                appendTerminalLog("IOT MESH", "Telemetry packet received.", "info", "iot");
+                appendTerminalLog({
+                    stream: "IOT MESH",
+                    category: "iot",
+                    severity: "INFO",
+                    source: "iot_node",
+                    protocol: "MQTT:1883",
+                    message: "Telemetry packet received."
+                });
             }
         });
 
@@ -399,7 +548,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 trapsCountEl.textContent = "0";
                 window.clearConsole();
                 loadAnalytics();
-                appendTerminalLog("ADMIN", "Database and audit ledger completely wiped clean.", "success", "system");
+                appendTerminalLog({
+                    stream: "ADMIN",
+                    category: "system",
+                    severity: "INFO",
+                    source: "soc_admin",
+                    protocol: "SQLITE:DB",
+                    message: "Database and audit ledger completely wiped clean."
+                });
             } else {
                 alert(`Reset failed: ${data.message}`);
             }
@@ -437,7 +593,17 @@ document.addEventListener("DOMContentLoaded", () => {
             btn.classList.add("opacity-75");
         }
 
-        appendTerminalLog("ADVERSARY", `Initiating ${attackType.toUpperCase()} intrusion attack simulation...`, "warning", "honeypot");
+        const attackerIp = attackType === "exploit" ? "203.0.113.88" : (attackType === "port-sweep" ? "198.51.100.77" : "198.51.100.99");
+        const proto = attackType === "exploit" ? "SSH:2222" : (attackType === "port-sweep" ? "TCP:SWEEP" : "SSH:2222");
+
+        appendTerminalLog({
+            stream: "ADVERSARY",
+            category: "honeypot",
+            severity: attackType === "exploit" ? "CRIT" : "HIGH",
+            source: attackerIp,
+            protocol: proto,
+            message: `Initiating ${attackType.toUpperCase()} intrusion attack simulation...`
+        });
 
         try {
             const res = await fetch(`/api/simulate/attack/${attackType}`, {
@@ -446,12 +612,33 @@ document.addEventListener("DOMContentLoaded", () => {
             });
             const data = await res.json();
             if (data.status === "success") {
-                appendTerminalLog("ADVERSARY", `Simulation payload delivered: ${data.message}`, "threat", "honeypot");
+                appendTerminalLog({
+                    stream: "ADVERSARY",
+                    category: "honeypot",
+                    severity: attackType === "exploit" ? "CRIT" : "HIGH",
+                    source: attackerIp,
+                    protocol: proto,
+                    message: `Simulation payload delivered: ${data.message}`
+                });
             } else {
-                appendTerminalLog("ADVERSARY", `Simulation request error: ${data.message}`, "warning", "honeypot");
+                appendTerminalLog({
+                    stream: "ADVERSARY",
+                    category: "honeypot",
+                    severity: "WARN",
+                    source: attackerIp,
+                    protocol: proto,
+                    message: `Simulation request error: ${data.message}`
+                });
             }
         } catch (err) {
-            appendTerminalLog("ADVERSARY", `Network error triggering simulation: ${err}`, "threat", "honeypot");
+            appendTerminalLog({
+                stream: "ADVERSARY",
+                category: "honeypot",
+                severity: "CRIT",
+                source: attackerIp,
+                protocol: proto,
+                message: `Network error triggering simulation: ${err}`
+            });
         } finally {
             setTimeout(() => {
                 if (btn) {
@@ -651,7 +838,14 @@ document.addEventListener("DOMContentLoaded", () => {
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            appendTerminalLog("AUDIT", "SOC Forensic Audit Report downloaded successfully.", "success", "system");
+            appendTerminalLog({
+                stream: "AUDIT",
+                category: "system",
+                severity: "INFO",
+                source: "soc_admin",
+                protocol: "HTTP:8050",
+                message: "SOC Forensic Audit Report downloaded successfully."
+            });
         } catch (e) {
             alert(`Error downloading report: ${e}`);
         }

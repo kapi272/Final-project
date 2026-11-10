@@ -3,10 +3,10 @@
 Update this file after every meaningful implementation change.
 
 ## Current Phase
-Phase 12: Milestone v1.5.0 — SIEM Multi-Column Structured Console & Payload Ingestion (IN PROGRESS)
+Phase 12: Milestone v1.5.0 — SIEM Multi-Column Structured Console & Payload Ingestion (COMPLETE)
 
 ## Current Goal
-Bumping version to v1.5.0 (SOC Terminal v1.5-SOC) and upgrading General Activity Logs with a 6-column SIEM data grid: TIME, STREAM, SEVERITY, SOURCE, PROTOCOL, and EVENT DATA & PAYLOAD.
+The entire Autonomous IoT Cyber Defense Testbed is running on release v1.5.0 (SOC Terminal v1.5-SOC) with an enterprise 6-column SIEM data grid in General Activity Logs (TIME, STREAM, SEVERITY, SOURCE/NODE, PROTOCOL, PAYLOAD & EVENT DATA), dedicated category tabs, and real-time MQTT mesh telemetry streaming. 38/38 tests passing.
 
 ## Completed
 - [x] Context foundation files established and verified at root.
@@ -23,6 +23,7 @@ Bumping version to v1.5.0 (SOC Terminal v1.5-SOC) and upgrading General Activity
 - [x] Phase 9: Milestone v1.2.0 — Threat Intelligence Panel & External Log Analytics Console: Added real-time attack distribution bars, top credential analytics, deception port breakdown, dedicated External Analytics & SIEM Forensics modal (separate button in header), deep IP dossier inspection, and 1-click JSON report export. 35/35 tests passing.
 - [x] Phase 10: Milestone v1.3.0 — General Multi-Stream Console & UI De-duplication: Removed redundant "Reset DB" button from ledger header, unified database wipe with console clear, added dedicated manual "Clear" button for the terminal feed, implemented General Activity Logs with category filter tabs (`[ ALL ]`, `[ HONEYPOT ]`, `[ MITIGATION ]`, `[ IOT MESH ]`, `[ SYSTEM ]`), and added background `IoTTelemetryListener` streaming live MQTT mesh telemetry over SSE. 37/37 tests passing.
 - [x] Phase 11: Milestone v1.4.0 — Dedicated Quarantine Stream & Structured Console Log Columns: Added dedicated `[ QUARANTINE ]` filter tab in General Activity Logs, aligned terminal feed lines into structured columns (Time, Category Badge, Message Details), and integrated real-time dynamic container isolation and restoration events directly under the quarantine category. 38/38 tests passing.
+- [x] Phase 12: Milestone v1.5.0 — SIEM Multi-Column Structured Console & Payload Ingestion: Upgraded the General Activity Logs with Option B (6-column layout: TIME, STREAM, SEVERITY, SOURCE/NODE, PROTOCOL, PAYLOAD & EVENT DATA), rendered an aligned table grid header, and wired all telemetry, honeypot, mitigation, and quarantine events to display their protocol and payload data. 38/38 tests passing.
 
 ## In Progress
 - [ ] Live evaluation demonstration and evaluator walkthrough.
