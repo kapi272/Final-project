@@ -146,6 +146,34 @@ class TestAPIRoutes(unittest.TestCase):
         self.assertEqual(data["data"]["target_ip"], "198.51.100.77")
         self.assertTrue(self.firewall.is_ip_banned("198.51.100.77"))
 
+    def test_defense_analytics_endpoint(self) -> None:
+        # Trigger an attack first to populate stats
+        self.client.post("/api/simulate/attack/brute-force")
+        res = self.client.get("/api/defense/analytics")
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["status"], "success")
+        self.assertGreaterEqual(data["data"]["total_threat_events"], 5)
+        self.assertIn("attack_breakdown", data["data"])
+
+    def test_ip_forensics_endpoint(self) -> None:
+        self.client.post("/api/simulate/attack/exploit")
+        res = self.client.get("/api/defense/forensics/203.0.113.88")
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["status"], "success")
+        self.assertEqual(data["data"]["src_ip"], "203.0.113.88")
+        self.assertTrue(data["data"]["is_banned"])
+        self.assertGreaterEqual(data["data"]["total_events"], 1)
+
+    def test_export_audit_report_endpoint(self) -> None:
+        res = self.client.get("/api/defense/export")
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["status"], "success")
+        self.assertIn("threat_intelligence", data["data"])
+        self.assertIn("mitigation_audit_log", data["data"])
+
 
 if __name__ == "__main__":
     unittest.main()

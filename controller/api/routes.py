@@ -274,3 +274,37 @@ async def trigger_simulated_port_sweep(request: Request) -> Dict[str, Any]:
         message=f"Reconnaissance sweep simulation completed for IP {attacker_ip}."
     )
 
+
+@router.get("/defense/analytics")
+async def get_defense_analytics(request: Request) -> Dict[str, Any]:
+    """Returns aggregated honeypot threat intelligence and attack analytics."""
+    detector = get_detector(request)
+    stats = detector.get_analytics()
+    return make_response(data=stats)
+
+
+@router.get("/defense/forensics/{ip}")
+async def get_ip_forensics(ip: str, request: Request) -> Dict[str, Any]:
+    """Returns deep chronological forensic timeline and event history for a specific IP."""
+    detector = get_detector(request)
+    forensics = detector.get_ip_forensics(ip)
+    return make_response(data=forensics)
+
+
+@router.get("/defense/export")
+async def export_audit_report(request: Request) -> Dict[str, Any]:
+    """Exports full audit and forensic records for external SIEM / compliance reporting."""
+    detector = get_detector(request)
+    analytics = detector.get_analytics()
+    history = detector.db.get_history(limit=200)
+    banned_ips = detector.firewall.list_banned_ips()
+
+    export_payload = {
+        "report_generated_at": time.time(),
+        "total_active_drops": len(banned_ips),
+        "banned_ips": banned_ips,
+        "threat_intelligence": analytics,
+        "mitigation_audit_log": history,
+    }
+    return make_response(data=export_payload, message="SOC Audit Report generated successfully.")
+

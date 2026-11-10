@@ -68,8 +68,18 @@ document.addEventListener("DOMContentLoaded", () => {
         // Timestamp
         const tdTime = createSafeElement("td", formatTime(record.timestamp), "px-4 py-2 text-slate-400 font-mono text-xs whitespace-nowrap");
         
-        // Target IP
-        const tdIp = createSafeElement("td", record.src_ip, "px-4 py-2 font-mono text-sm text-slate-200 font-semibold");
+        // Target IP (Clickable for deep forensics)
+        const tdIp = document.createElement("td");
+        tdIp.className = "px-4 py-2";
+        if (record.src_ip && record.src_ip !== "0.0.0.0/0") {
+            const ipBtn = createSafeElement("button", record.src_ip, "font-mono text-sm text-sky-400 hover:text-sky-300 hover:underline font-semibold flex items-center space-x-1.5");
+            const searchIcon = createSafeElement("span", "🔍", "text-[10px] text-slate-500 opacity-70");
+            ipBtn.appendChild(searchIcon);
+            ipBtn.onclick = () => window.openIpForensics(record.src_ip);
+            tdIp.appendChild(ipBtn);
+        } else {
+            tdIp.appendChild(createSafeElement("span", record.src_ip || "0.0.0.0/0", "font-mono text-sm text-slate-400 font-semibold"));
+        }
 
         // Action badge
         const tdAction = document.createElement("td");
@@ -187,6 +197,8 @@ document.addEventListener("DOMContentLoaded", () => {
             } catch (err) {
                 appendTerminalLog("HONEYPOT", "Raw hit received.", "warning");
             }
+            // Refresh Threat Intelligence
+            loadAnalytics();
         });
 
         eventSource.addEventListener("mitigation_alert", (e) => {
@@ -200,6 +212,8 @@ document.addEventListener("DOMContentLoaded", () => {
             } catch (err) {
                 appendTerminalLog("MITIGATION", "Mitigation alert received.", "threat");
             }
+            // Refresh Threat Intelligence
+            loadAnalytics();
         });
 
         eventSource.addEventListener("unban_alert", (e) => {
@@ -332,8 +346,203 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
 
+    // Threat Intelligence & Log Analytics Loader
+    async function loadAnalytics() {
+        try {
+            const res = await fetch("/api/defense/analytics");
+            const data = await res.json();
+            if (data.status !== "success") return;
+
+            const stats = data.data || {};
+            const total = stats.total_threat_events || 0;
+            const bd = stats.attack_breakdown || {};
+
+            const totalEl = document.getElementById("analytics-total-threats");
+            if (totalEl) totalEl.textContent = `${total} Events Analyzed`;
+
+            // Attack Distribution Values & Bars
+            const brute = bd.brute_force || 0;
+            const exploit = bd.exploit || 0;
+            const probe = bd.probe || 0;
+
+            const brutePct = total > 0 ? Math.round((brute / total) * 100) : 0;
+            const exploitPct = total > 0 ? Math.round((exploit / total) * 100) : 0;
+            const probePct = total > 0 ? Math.round((probe / total) * 100) : 0;
+
+            const bruteVal = document.getElementById("dist-brute-val");
+            const bruteBar = document.getElementById("dist-brute-bar");
+            if (bruteVal) bruteVal.textContent = `${brute} (${brutePct}%)`;
+            if (bruteBar) bruteBar.style.width = `${brutePct}%`;
+
+            const exploitVal = document.getElementById("dist-exploit-val");
+            const exploitBar = document.getElementById("dist-exploit-bar");
+            if (exploitVal) exploitVal.textContent = `${exploit} (${exploitPct}%)`;
+            if (exploitBar) exploitBar.style.width = `${exploitPct}%`;
+
+            const probeVal = document.getElementById("dist-probe-val");
+            const probeBar = document.getElementById("dist-probe-bar");
+            if (probeVal) probeVal.textContent = `${probe} (${probePct}%)`;
+            if (probeBar) probeBar.style.width = `${probePct}%`;
+
+            // Top Usernames
+            const userContainer = document.getElementById("intel-usernames");
+            if (userContainer) {
+                userContainer.innerHTML = "";
+                const users = stats.top_usernames || [];
+                if (users.length === 0) {
+                    userContainer.appendChild(createSafeElement("span", "none yet", "text-[11px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-500"));
+                } else {
+                    users.forEach(([u, count]) => {
+                        userContainer.appendChild(createSafeElement("span", `${u} (${count})`, "text-[11px] font-mono px-2 py-0.5 rounded bg-indigo-950/60 border border-indigo-800 text-indigo-300"));
+                    });
+                }
+            }
+
+            // Top Passwords
+            const passContainer = document.getElementById("intel-passwords");
+            if (passContainer) {
+                passContainer.innerHTML = "";
+                const passes = stats.top_passwords || [];
+                if (passes.length === 0) {
+                    passContainer.appendChild(createSafeElement("span", "none yet", "text-[11px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-500"));
+                } else {
+                    passes.forEach(([p, count]) => {
+                        passContainer.appendChild(createSafeElement("span", `${p} (${count})`, "text-[11px] font-mono px-2 py-0.5 rounded bg-rose-950/60 border border-rose-800 text-rose-300"));
+                    });
+                }
+            }
+
+            // Port Breakdown
+            const ports = stats.target_ports || {};
+            const p2222 = document.getElementById("port-2222-count");
+            const p2223 = document.getElementById("port-2223-count");
+            const p1883 = document.getElementById("port-1883-count");
+            if (p2222) p2222.textContent = ports["2222"] || 0;
+            if (p2223) p2223.textContent = ports["2223"] || 0;
+            if (p1883) p1883.textContent = ports["1883"] || 0;
+
+        } catch (e) {
+            console.error("Error loading analytics:", e);
+        }
+    }
+
+    // Modal Control & Deep Forensics Inspection
+    window.openAnalyticsModal = function() {
+        const modal = document.getElementById("analytics-modal");
+        if (modal) modal.classList.remove("hidden");
+        loadAnalytics();
+    };
+
+    window.closeAnalyticsModal = function() {
+        const modal = document.getElementById("analytics-modal");
+        if (modal) modal.classList.add("hidden");
+    };
+
+    window.openIpForensics = function(ip) {
+        window.openAnalyticsModal();
+        const input = document.getElementById("forensic-ip-input");
+        if (input) input.value = ip;
+        window.inspectIpForensics(ip);
+    };
+
+    window.inspectIpForensics = async function(customIp = null) {
+        const input = document.getElementById("forensic-ip-input");
+        const ip = (customIp || (input ? input.value : "")).trim();
+        const container = document.getElementById("forensic-result-container");
+        if (!container) return;
+
+        if (!ip) {
+            container.innerHTML = `<div class="text-amber-400">Please enter a valid IP address to inspect.</div>`;
+            return;
+        }
+
+        container.innerHTML = `<div class="text-slate-400 animate-pulse">Querying forensic logs for ${ip}...</div>`;
+
+        try {
+            const res = await fetch(`/api/defense/forensics/${encodeURIComponent(ip)}`);
+            const data = await res.json();
+            if (data.status !== "success") {
+                container.innerHTML = `<div class="text-rose-400">Could not find forensics for IP: ${ip}</div>`;
+                return;
+            }
+
+            const info = data.data || {};
+            const events = info.events || [];
+            const mitigations = info.mitigations || [];
+            const isBanned = info.is_banned;
+
+            let html = `
+                <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm font-mono font-bold text-white">${info.src_ip}</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isBanned ? 'bg-rose-950 text-rose-400 border border-rose-800' : 'bg-slate-800 text-slate-300'}">
+                            ${isBanned ? 'KERNEL DROPPED' : 'UNBLOCKED'}
+                        </span>
+                    </div>
+                    <span class="text-xs font-mono text-slate-400">${info.total_events} Captured Intrusions</span>
+                </div>
+            `;
+
+            if (mitigations.length > 0) {
+                html += `
+                    <div class="p-2.5 rounded bg-rose-950/30 border border-rose-900/60 text-xs">
+                        <span class="font-bold text-rose-300">Active Autonomous Mitigation:</span>
+                        <span class="text-slate-300 ml-1">${mitigations[0].reason} (${mitigations[0].action})</span>
+                    </div>
+                `;
+            }
+
+            if (events.length === 0) {
+                html += `<div class="text-slate-400 italic py-2">No individual packets recorded in live window for this IP.</div>`;
+            } else {
+                html += `
+                    <div class="max-h-60 overflow-y-auto space-y-1.5 pt-1">
+                        <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Chronological Forensic Sequence:</div>
+                `;
+                events.forEach(ev => {
+                    const timeStr = formatTime(ev.timestamp);
+                    const cmdStr = ev.input_command ? `<code class="text-rose-400 font-mono text-[11px]">cmd: ${ev.input_command}</code>` : '';
+                    const credStr = ev.username ? `<span class="text-amber-300">${ev.username}:${ev.password || ''}</span>` : '';
+                    html += `
+                        <div class="flex items-start space-x-2 p-1.5 rounded bg-slate-900/80 border border-slate-800/80 text-[11px]">
+                            <span class="font-mono text-slate-500">${timeStr}</span>
+                            <span class="font-mono px-1 rounded bg-slate-800 text-sky-400 text-[10px]">${ev.eventid}</span>
+                            <span class="flex-1 text-slate-300">${credStr} ${cmdStr} ${ev.message || ''}</span>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+            }
+
+            container.innerHTML = html;
+        } catch (e) {
+            container.innerHTML = `<div class="text-rose-400">Error retrieving forensic data: ${e}</div>`;
+        }
+    };
+
+    // Download Full SOC Audit Report (JSON)
+    window.downloadSocAuditReport = async function() {
+        try {
+            const res = await fetch("/api/defense/export");
+            const data = await res.json();
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `soc_audit_report_${Date.now()}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            appendTerminalLog("AUDIT", "SOC Forensic Audit Report downloaded successfully.", "success");
+        } catch (e) {
+            alert(`Error downloading report: ${e}`);
+        }
+    };
+
     // Initialize
     fetchInitialStatus();
+    loadAnalytics();
     connectSSE();
 });
 

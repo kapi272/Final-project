@@ -51,6 +51,13 @@ class IntrusionDetector:
         # In-memory sliding window: IP -> deque of timestamps
         self._failed_attempts: Dict[str, deque] = {}
 
+        # Telemetry analytics counters
+        self._attack_counts: Dict[str, int] = {"brute_force": 0, "exploit": 0, "probe": 0}
+        self._username_counts: Dict[str, int] = {}
+        self._password_counts: Dict[str, int] = {}
+        self._port_counts: Dict[str, int] = {"2222": 0, "2223": 0, "1883": 0}
+        self._events_history: List[Dict[str, Any]] = []
+
     def _prune_expired_attempts(self, ip: str, now: float) -> None:
         """Removes timestamps outside the rolling time window."""
         queue = self._failed_attempts.get(ip)
@@ -68,6 +75,38 @@ class IntrusionDetector:
         action was triggered.
         """
         src_ip = event.src_ip.strip()
+
+        # Update telemetry analytics counters
+        if event.dst_port:
+            port_key = str(event.dst_port)
+            self._port_counts[port_key] = self._port_counts.get(port_key, 0) + 1
+        elif event.eventid.startswith("cowrie"):
+            self._port_counts["2222"] = self._port_counts.get("2222", 0) + 1
+
+        if event.username:
+            self._username_counts[event.username] = self._username_counts.get(event.username, 0) + 1
+        if event.password:
+            self._password_counts[event.password] = self._password_counts.get(event.password, 0) + 1
+
+        if event.eventid == "cowrie.login.failed":
+            self._attack_counts["brute_force"] = self._attack_counts.get("brute_force", 0) + 1
+        elif event.eventid in ["cowrie.client.version", "cowrie.session.connect"]:
+            self._attack_counts["probe"] = self._attack_counts.get("probe", 0) + 1
+        elif event.eventid == "cowrie.command.input":
+            self._attack_counts["exploit"] = self._attack_counts.get("exploit", 0) + 1
+
+        self._events_history.append({
+            "timestamp": event.timestamp,
+            "src_ip": src_ip,
+            "dst_port": event.dst_port or 2222,
+            "eventid": event.eventid,
+            "username": event.username,
+            "password": event.password,
+            "input_command": event.input_command,
+            "message": event.message,
+        })
+        if len(self._events_history) > 500:
+            self._events_history = self._events_history[-500:]
 
         # Invariant check: Allowlisted and management IPs are never banned
         if self.allowlist.is_ip_protected(src_ip):
@@ -179,4 +218,36 @@ class IntrusionDetector:
             self.db.record_mitigation(record)
             logger.info("Global firewall reset completed.")
         return success
+
+    def get_analytics(self) -> Dict[str, Any]:
+        """Returns aggregated threat intelligence and log analytics statistics."""
+        sorted_users = sorted(self._username_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+        sorted_passwords = sorted(self._password_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+        total_threats = sum(self._attack_counts.values())
+
+        return {
+            "total_threat_events": total_threats,
+            "attack_breakdown": self._attack_counts,
+            "top_usernames": sorted_users,
+            "top_passwords": sorted_passwords,
+            "target_ports": self._port_counts,
+            "recent_events_count": len(self._events_history),
+        }
+
+    def get_ip_forensics(self, ip: str) -> Dict[str, Any]:
+        """Returns deep forensic timeline and event history for a specific offending IP."""
+        sanitized_ip = ip.strip()
+        matched_events = [ev for ev in self._events_history if ev.get("src_ip") == sanitized_ip]
+        is_banned = self.firewall.is_ip_banned(sanitized_ip)
+
+        history = self.db.get_history(limit=50)
+        ip_mitigations = [m for m in history if m.get("src_ip") == sanitized_ip]
+
+        return {
+            "src_ip": sanitized_ip,
+            "is_banned": is_banned,
+            "total_events": len(matched_events),
+            "events": matched_events[-25:],
+            "mitigations": ip_mitigations,
+        }
 

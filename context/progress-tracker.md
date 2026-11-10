@@ -3,10 +3,10 @@
 Update this file after every meaningful implementation change.
 
 ## Current Phase
-Phase 9: Milestone v1.2.0 — Threat Intelligence Panel & External Analytics Tool (IN PROGRESS)
+Phase 9: Milestone v1.2.0 — Threat Intelligence Panel & External Analytics Tool (COMPLETE)
 
 ## Current Goal
-Bumping version to v1.2.0 (SOC Terminal v1.2-SOC) and integrating a Threat Intelligence Panel for honeypot log analytics (attack breakdown, credential stuffing frequency, port surface) plus a dedicated external analytics tool modal/view.
+The entire Autonomous IoT Cyber Defense Testbed, including Phase 8 interactive simulation controls and Phase 9 Threat Intelligence & External SIEM Analytics Console, is operational, tested with 35 tests, and deployed.
 
 ## Completed
 - [x] Context foundation files established and verified at root.
@@ -20,6 +20,7 @@ Bumping version to v1.2.0 (SOC Terminal v1.2-SOC) and integrating a Threat Intel
 - [x] Phase 7: Operational Readiness (Containerized controller `controller/Dockerfile`, 5-service `docker-compose.yml`, and live evaluation runbook `docs/EVALUATION_RUNBOOK.md`).
 - [x] Live Honeypot Telemetry & Autonomous Mitigation Ledger Synchronization: Fixed Cowrie log path mount, added Docker Desktop gateway allowlist protection (`192.168.65.0/24`), Netfilter fallback to `INPUT`, mounted live `./controller:/app/controller`, and verified real-time drops and ledger population.
 - [x] Phase 8: Milestone v1.1.0 — Option A Interactive Adversary Simulation Toolbar added to dashboard with 1-click attack triggers (`/api/simulate/attack/brute-force`, `/api/simulate/attack/exploit`, `/api/simulate/attack/port-sweep`), live SSE feedback, and 32 passing unit tests.
+- [x] Phase 9: Milestone v1.2.0 — Threat Intelligence Panel & External Log Analytics Console: Added real-time attack distribution bars, top credential analytics, deception port breakdown, dedicated External Analytics & SIEM Forensics modal (separate button in header), deep IP dossier inspection, and 1-click JSON report export. 35/35 tests passing.
 
 ## In Progress
 - [ ] Live evaluation demonstration and evaluator walkthrough.
