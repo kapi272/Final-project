@@ -50,7 +50,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const line = document.createElement("div");
         line.dataset.category = category;
-        line.className = "flex items-center space-x-2 py-1 px-1 border-b border-slate-900/60 hover:bg-slate-900/40 transition-colors";
+        line.className = "flex items-center space-x-2 py-1 px-3 border-b border-slate-900/60 hover:bg-slate-900/40 transition-colors min-w-[760px]";
 
         // Filter visibility logic
         if (currentLogFilter !== "all" && currentLogFilter !== category) {
@@ -59,8 +59,8 @@ document.addEventListener("DOMContentLoaded", () => {
             line.style.display = "flex";
         }
 
-        // 1. Time Column
-        const timeSpan = createSafeElement("span", formatTime(Date.now() / 1000), "w-[62px] shrink-0 text-slate-500 select-none text-[10px] font-mono");
+        // 1. Time Column (full 8 chars 00:00:00)
+        const timeSpan = createSafeElement("span", formatTime(Date.now() / 1000), "w-[75px] shrink-0 text-slate-400 select-none text-[10px] font-mono tracking-tight");
 
         // 2. Stream Badge Column
         let streamStyle = "text-sky-400 bg-sky-950/40 border-sky-800/40";
@@ -73,29 +73,34 @@ document.addEventListener("DOMContentLoaded", () => {
         } else if (category === "iot") {
             streamStyle = "text-emerald-400 bg-emerald-950/40 border-emerald-800/40";
         }
-        const streamSpan = createSafeElement("span", stream, `w-[82px] shrink-0 text-center font-mono text-[9px] font-bold px-1 py-0.5 rounded border ${streamStyle} truncate`);
+        const streamSpan = createSafeElement("span", stream, `w-[88px] shrink-0 text-center font-mono text-[9px] font-bold px-1.5 py-0.5 rounded border ${streamStyle} truncate`);
 
-        // 3. Severity Badge Column
+        // 3. Severity Badge Column (supports CRIT, HIGH, WARN, NORM, SYS, INFO)
         let sevStyle = "text-slate-300 bg-slate-800/80 border-slate-700";
         if (severity === "CRIT") {
-            sevStyle = "text-white bg-red-900/80 border-red-500 font-extrabold shadow-sm shadow-red-950";
+            sevStyle = "text-white bg-red-900/90 border-red-500 font-extrabold shadow-sm shadow-red-950";
         } else if (severity === "HIGH") {
-            sevStyle = "text-rose-300 bg-rose-950/80 border-rose-700 font-bold";
+            sevStyle = "text-rose-300 bg-rose-950/90 border-rose-700 font-bold";
         } else if (severity === "WARN") {
-            sevStyle = "text-amber-300 bg-amber-950/80 border-amber-700 font-bold";
-        } else if (severity === "INFO") {
-            sevStyle = "text-sky-300 bg-sky-950/60 border-sky-800";
+            sevStyle = "text-amber-300 bg-amber-950/90 border-amber-700 font-bold";
+        } else if (severity === "NORM" || severity === "LIVE") {
+            sevStyle = "text-emerald-300 bg-emerald-950/80 border-emerald-700 font-bold";
+        } else if (severity === "SYS") {
+            sevStyle = "text-sky-300 bg-sky-950/80 border-sky-700 font-bold";
+        } else {
+            sevStyle = "text-slate-300 bg-slate-800 border-slate-700";
         }
-        const sevSpan = createSafeElement("span", severity, `w-[58px] shrink-0 text-center font-mono text-[9px] px-1 py-0.5 rounded border ${sevStyle}`);
+        const sevSpan = createSafeElement("span", severity, `w-[56px] shrink-0 text-center font-mono text-[9px] px-1 py-0.5 rounded border ${sevStyle}`);
 
         // 4. Source/Node Badge Column
-        const sourceSpan = createSafeElement("span", source, "w-[105px] shrink-0 font-mono text-[10px] text-sky-300 font-semibold truncate bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-800");
+        const sourceSpan = createSafeElement("span", source, "w-[115px] shrink-0 font-mono text-[10px] text-sky-300 font-semibold truncate bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800 text-center");
 
         // 5. Protocol Badge Column
-        const protoSpan = createSafeElement("span", protocol, "w-[78px] shrink-0 font-mono text-[10px] text-indigo-300 text-center truncate bg-indigo-950/30 px-1 py-0.5 rounded border border-indigo-900/40");
+        const protoSpan = createSafeElement("span", protocol, "w-[85px] shrink-0 font-mono text-[10px] text-indigo-300 text-center truncate bg-indigo-950/40 px-1 py-0.5 rounded border border-indigo-900/50");
 
-        // 6. Payload & Event Details Column
-        const dataSpan = createSafeElement("span", message, "flex-1 min-w-[150px] text-slate-300 break-all text-[11px]");
+        // 6. Payload & Event Details Column (with full hover tooltip)
+        const dataSpan = createSafeElement("span", message, "flex-1 min-w-[300px] text-slate-300 text-[11px] truncate");
+        dataSpan.title = message;
 
         line.appendChild(timeSpan);
         line.appendChild(streamSpan);

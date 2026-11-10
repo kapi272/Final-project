@@ -325,8 +325,8 @@
         <!-- Split View: Mitigation Table & Live Terminal -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-            <!-- Left: Autonomous Mitigation History Table (7 cols) -->
-            <div class="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-lg p-5 shadow-sm flex flex-col">
+            <!-- Left: Autonomous Mitigation History Table (5 cols) -->
+            <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-lg p-5 shadow-sm flex flex-col">
                 <div class="flex items-center justify-between pb-3 border-b border-slate-800">
                     <div class="flex items-center space-x-2">
                         <span class="w-2 h-2 rounded-full bg-rose-500"></span>
@@ -355,15 +355,15 @@
                 </div>
             </div>
 
-            <!-- Right: Real-time Multi-Stream Activity Console (5 cols) -->
-            <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-lg p-5 shadow-sm flex flex-col">
+            <!-- Right: Real-time Multi-Stream Activity Console (7 cols) -->
+            <div class="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-lg p-5 shadow-sm flex flex-col">
                 <div class="flex items-center justify-between pb-2 border-b border-slate-800">
                     <div class="flex items-center space-x-2">
                         <span class="w-2 h-2 rounded-full bg-sky-400 animate-pulse"></span>
                         <h2 class="text-sm font-bold text-white uppercase tracking-wider">General Activity Logs</h2>
                     </div>
                     <div class="flex items-center space-x-2">
-                        <span class="text-[11px] font-mono text-slate-500 mr-1 hidden sm:inline">Multi-Stream</span>
+                        <span class="text-[11px] font-mono text-slate-500 mr-1 hidden sm:inline">Multi-Stream SIEM</span>
                         <button id="btn-clear-console" onclick="clearConsole()" class="text-[11px] font-semibold text-slate-300 hover:text-white px-2 py-0.5 rounded border border-slate-700 bg-slate-800/80 hover:bg-slate-700 transition-colors flex items-center space-x-1" title="Clear terminal logs buffer">
                             <span>🧹</span>
                             <span>Clear</span>
@@ -381,18 +381,21 @@
                     <button id="filter-btn-system" onclick="setLogFilter('system')" class="px-2 py-0.5 rounded font-semibold bg-slate-800/50 hover:bg-slate-800 border border-transparent hover:border-slate-700 text-slate-400 hover:text-slate-200 transition-all">SYSTEM</button>
                 </div>
 
-                <!-- 6-Column SIEM Grid Header Bar -->
-                <div id="siem-grid-header" class="flex items-center space-x-2 px-2.5 py-1.5 bg-slate-950/90 border-b border-slate-800 text-[10px] font-mono uppercase font-bold text-slate-400 select-none overflow-x-hidden mt-1.5 rounded-t">
-                    <span class="w-[62px] shrink-0 text-slate-500">TIME</span>
-                    <span class="w-[82px] shrink-0 text-slate-400">STREAM</span>
-                    <span class="w-[58px] shrink-0 text-center text-slate-400">SEV</span>
-                    <span class="w-[105px] shrink-0 text-slate-400">SOURCE/NODE</span>
-                    <span class="w-[78px] shrink-0 text-center text-slate-400">PROTOCOL</span>
-                    <span class="flex-1 min-w-[150px] text-slate-400">PAYLOAD & EVENT DATA</span>
-                </div>
+                <!-- Unified Horizontal Scroll Wrapper for Header & Rows -->
+                <div class="flex-1 overflow-x-auto mt-2 rounded bg-slate-950 border border-slate-800 flex flex-col">
+                    <!-- 6-Column SIEM Grid Header Bar -->
+                    <div id="siem-grid-header" class="flex items-center space-x-2 px-3 py-1.5 bg-slate-900/90 border-b border-slate-800 text-[10px] font-mono uppercase font-bold text-slate-400 select-none min-w-[760px] sticky top-0 z-10">
+                        <span class="w-[75px] shrink-0 text-slate-500">TIME</span>
+                        <span class="w-[88px] shrink-0 text-slate-400 text-center">STREAM</span>
+                        <span class="w-[56px] shrink-0 text-center text-slate-400">SEV</span>
+                        <span class="w-[115px] shrink-0 text-slate-400 text-center">SOURCE/NODE</span>
+                        <span class="w-[85px] shrink-0 text-center text-slate-400">PROTOCOL</span>
+                        <span class="flex-1 min-w-[300px] text-slate-400">PAYLOAD & EVENT DATA</span>
+                    </div>
 
-                <div id="terminal-feed" class="flex-1 p-2.5 rounded-b bg-slate-950 border border-slate-800 border-t-0 font-mono text-[11px] h-[330px] overflow-y-auto space-y-1">
-                    <!-- Stream logs will auto-scroll here -->
+                    <div id="terminal-feed" class="flex-1 p-0 font-mono text-[11px] h-[330px] overflow-y-auto min-w-[760px] space-y-0.5">
+                        <!-- Stream logs will auto-scroll here -->
+                    </div>
                 </div>
             </div>
 
