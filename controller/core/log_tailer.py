@@ -75,3 +75,4 @@ class HoneypotLogTailer:
     def stop(self) -> None:
         """Signals the tailer loop to terminate cleanly."""
         self.running = False
+

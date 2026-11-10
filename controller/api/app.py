@@ -123,3 +123,4 @@ def create_app(
         return HTMLResponse(content="<h1>Autonomous IoT Defense System</h1><p>Dashboard UI initializing...</p>")
 
     return app
+

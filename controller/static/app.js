@@ -294,3 +294,4 @@ document.addEventListener("DOMContentLoaded", () => {
     fetchInitialStatus();
     connectSSE();
 });
+

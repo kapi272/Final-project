@@ -60,6 +60,30 @@ services:
       iot_production_net:
         ipv4_address: 172.20.0.50
 
+  defense_controller:
+    build:
+      context: .
+      dockerfile: controller/Dockerfile
+    container_name: iot_defense_controller
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - "8000:8000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./honeypot/logs:/app/honeypot/logs:ro
+      - ./data:/app/data
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+    depends_on:
+      - mqtt_broker
+      - cowrie_honeypot
+    networks:
+      iot_production_net:
+        ipv4_address: 172.20.0.5
+
 networks:
   iot_production_net:
     name: iot_production_net

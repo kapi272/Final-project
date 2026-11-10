@@ -173,3 +173,4 @@ class IntrusionDetector:
             self.db.record_mitigation(record)
             logger.info("Global firewall reset completed.")
         return success
+

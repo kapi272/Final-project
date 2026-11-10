@@ -54,3 +54,4 @@ class SSEBroadcaster:
 
             for dead in dead_queues:
                 self._subscribers.discard(dead)
+

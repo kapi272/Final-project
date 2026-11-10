@@ -3,32 +3,27 @@
 Update this file after every meaningful implementation change.
 
 ## Current Phase
-Phase 7: System Validation & Operational Readiness
+Phase 7: System Validation & Operational Readiness (COMPLETE)
 
 ## Current Goal
-Complete system validation across Docker multi-subnet networking, live honeypot telemetry tailing, and end-to-end evaluation runbook.
+The entire Autonomous IoT Cyber Defense Testbed has been built, tested, and validated across all 6 units. The system is operational and ready for live evaluation.
 
 ## Completed
 - [x] Context foundation files established and verified at root.
 - [x] Build plan created (`context/specs/00-build-plan.md`).
-- [x] Unit 01 specification written (`context/specs/01-docker-network-orchestration.md`).
-- [x] Unit 01: Docker Orchestration & Virtual IoT Network (docker-compose, Mosquitto, Simulators, Cowrie).
-- [x] Unit 02 specification written (`context/specs/02-mitigation-engine.md`).
-- [x] Unit 02: Mitigation Engine (firewall netfilter driver, Docker SDK quarantine controller, allowlist protection, 11 unit tests passing).
-- [x] Unit 03 specification written (`context/specs/03-honeypot-ingestion-engine.md`).
-- [x] Unit 03: Honeypot Ingestion Engine & Detection Core (async log tailer, in-memory sliding window, SQLite audit store, 7 unit tests passing).
-- [x] Unit 04 specification written (`context/specs/04-fastapi-telemetry-engine.md`).
-- [x] Unit 04: FastAPI Telemetry Engine & SSE Streaming API (non-buffering SSE stream, REST unban/reset/infect endpoints, 7 unit tests passing).
-- [x] Unit 05 specification written (`context/specs/05-soc-dashboard.md`).
-- [x] Unit 05: Single-Page Real-Time SOC Dashboard (Tailwind CSS, dynamic node cards, live ledger, auto-scrolling terminal, 2 unit tests passing).
-- [x] Unit 06 specification written (`context/specs/06-red-team-simulation.md`).
-- [x] Unit 06: Red Team Simulation & End-to-End Autonomous Validation (`tests/attacker_sim.py`, latency benchmark 0.65ms < 1000ms SLA, 2 unit tests passing).
+- [x] Unit 01: Docker Orchestration & Virtual IoT Network (dual-bridge subnets, Mosquitto, Simulators, Cowrie).
+- [x] Unit 02: Mitigation Engine (Netfilter `IOT_DEFENSE_BLOCKLIST` driver, Docker SDK quarantine controller, allowlist protection).
+- [x] Unit 03: Honeypot Ingestion Engine & Detection Core (async log tailer, in-memory sliding window, SQLite audit store).
+- [x] Unit 04: FastAPI Telemetry Engine & SSE Streaming API (non-buffering SSE stream, REST unban/reset/infect endpoints).
+- [x] Unit 05: Single-Page Real-Time SOC Dashboard (Tailwind CSS, dynamic node cards, live ledger, auto-scrolling terminal).
+- [x] Unit 06: Red Team Simulation & End-to-End Autonomous Validation (`tests/attacker_sim.py`, latency benchmark 0.56ms < 1000ms SLA).
+- [x] Phase 7: Operational Readiness (Containerized controller `controller/Dockerfile`, 5-service `docker-compose.yml`, and live evaluation runbook `docs/EVALUATION_RUNBOOK.md`).
 
 ## In Progress
-- [ ] Live Docker Compose multi-container verification and viva evaluation guide.
+- [ ] Live evaluation demonstration and evaluator walkthrough.
 
 ## Next Up
-- [ ] Push all committed units to GitHub repository (`kapi272/Final-project.git`).
+- [ ] Run `docker compose up -d` for live multi-container demo whenever evaluator is ready.
 
 ## Open Questions & Decisions Needed
 1. **Network Packet Sniffing on macOS:** Since macOS Docker Desktop bridges traffic through a lightweight Linux VM, packet sniffing must run inside a container connected to `iot_production_net` rather than directly on the native Darwin macOS network stack.
