@@ -51,3 +51,4 @@ The project is built unit-by-unit according to **[`context/specs/00-build-plan.m
 ├── honeypot/                  # Cowrie decoy configuration & logs
 └── tests/                     # Automated adversary testing scripts (Unit 6)
 ```
+

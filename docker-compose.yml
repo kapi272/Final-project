@@ -1,0 +1,80 @@
+services:
+  mqtt_broker:
+    image: eclipse-mosquitto:2.0
+    container_name: iot_mqtt_broker
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./config/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    networks:
+      iot_production_net:
+        ipv4_address: 172.20.0.10
+
+  sensor_node:
+    build:
+      context: ./simulators/sensor
+      dockerfile: Dockerfile
+    container_name: iot_sensor_node
+    restart: unless-stopped
+    environment:
+      - MQTT_BROKER_HOST=172.20.0.10
+      - MQTT_BROKER_PORT=1883
+      - DEVICE_ID=temp_sensor_01
+      - MQTT_TOPIC=home/sensors/temperature
+      - PUBLISH_INTERVAL=2.0
+    depends_on:
+      - mqtt_broker
+    networks:
+      iot_production_net:
+        ipv4_address: 172.20.0.21
+
+  bulb_node:
+    build:
+      context: ./simulators/bulb
+      dockerfile: Dockerfile
+    container_name: iot_bulb_node
+    restart: unless-stopped
+    environment:
+      - MQTT_BROKER_HOST=172.20.0.10
+      - MQTT_BROKER_PORT=1883
+      - DEVICE_ID=smart_bulb_01
+      - MQTT_SET_TOPIC=home/devices/bulb/set
+      - MQTT_STATUS_TOPIC=home/devices/bulb/status
+    depends_on:
+      - mqtt_broker
+    networks:
+      iot_production_net:
+        ipv4_address: 172.20.0.22
+
+  cowrie_honeypot:
+    image: cowrie/cowrie:latest
+    container_name: iot_cowrie_honeypot
+    restart: unless-stopped
+    ports:
+      - "2222:2222"
+      - "2223:2223"
+    volumes:
+      - ./honeypot/logs:/cowrie/var/log/cowrie
+    networks:
+      iot_production_net:
+        ipv4_address: 172.20.0.50
+
+networks:
+  iot_production_net:
+    name: iot_production_net
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/24
+          gateway: 172.20.0.1
+
+  iot_quarantine_net:
+    name: iot_quarantine_net
+    driver: bridge
+    internal: true
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.21.0.0/24

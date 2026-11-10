@@ -41,8 +41,8 @@ Provision the containerized virtual IoT network infrastructure via Docker Compos
 - `paho-mqtt` (for simulators)
 
 ## Verify when done
-- [ ] `docker-compose config` validates without syntax or network errors.
-- [ ] `config/mosquitto/mosquitto.conf` is present with anonymous access enabled.
-- [ ] `simulators/sensor/` and `simulators/bulb/` contain runnable code and Dockerfiles.
-- [ ] Directory `honeypot/logs/` is initialized and volume-mounted.
+- [x] `docker-compose config` validates without syntax or network errors.
+- [x] `config/mosquitto/mosquitto.conf` is present with anonymous access enabled.
+- [x] `simulators/sensor/` and `simulators/bulb/` contain runnable code and Dockerfiles.
+- [x] Directory `honeypot/logs/` is initialized and volume-mounted.
 

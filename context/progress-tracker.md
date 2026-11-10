@@ -3,24 +3,23 @@
 Update this file after every meaningful implementation change.
 
 ## Current Phase
-Phase 1: Virtual IoT Network & Container Orchestration
+Phase 2: Mitigation Engine & Container Quarantine
 
 ## Current Goal
-Implement Unit 01: Provision the containerized virtual IoT network infrastructure via Docker Compose (dual-bridge subnets, Mosquitto broker, sensor/bulb simulators, Cowrie honeypot).
+Implement Unit 02: Mitigation Drivers (`controller/mitigation/firewall.py` with custom chain `IOT_DEFENSE_BLOCKLIST` allowlist protection and `quarantine.py` with Docker SDK network migration).
 
 ## Completed
 - [x] Context foundation files established and verified at root.
 - [x] Build plan created (`context/specs/00-build-plan.md`).
 - [x] Unit 01 specification written (`context/specs/01-docker-network-orchestration.md`).
+- [x] Unit 01: Docker Orchestration & Virtual IoT Network (docker-compose, Mosquitto, Simulators, Cowrie).
 
 ## In Progress
-- [ ] Unit 01: Docker Orchestration & Virtual IoT Network (docker-compose, Mosquitto, Simulators, Cowrie).
-
+- [ ] Unit 02: Mitigation Engine (firewall netfilter driver, Docker SDK quarantine controller).
 
 ## Next Up
-- [ ] Wire the frontend "Simulate Infection" button directly to `/api/simulate/infect/{node_id}` and verify container migration to `iot_quarantine_net`.
-- [ ] Connect the manual unban button on the dashboard to the `POST /api/defense/unban` endpoint.
-- [ ] Implement an automated internal rogue packet generator inside the virtual sensor container for dynamic quarantine verification.
+- [ ] Unit 03: Honeypot Ingestion Engine & Detection Core (`controller/core/`).
+- [ ] Unit 04: FastAPI Telemetry Engine & SSE Streaming API (`controller/api/`).
 
 ## Open Questions & Decisions Needed
 1. **Network Packet Sniffing on macOS:** Since macOS Docker Desktop bridges traffic through a lightweight Linux VM, packet sniffing must run inside a container connected to `iot_production_net` rather than directly on the native Darwin macOS network stack.
