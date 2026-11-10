@@ -5,8 +5,9 @@ An autonomous, containerized host-level IoT cyber defense testbed using virtual 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![Docker Compose](https://img.shields.io/badge/Docker-Compose%20v2+-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
-[![Reaction SLA](https://img.shields.io/badge/Mitigation%20Latency-0.56%20ms-emerald)](./context/specs/06-red-team-simulation.md)
-[![Tests Passing](https://img.shields.io/badge/Tests-29%2F29%20Passing-brightgreen)](./tests/)
+[![Release: v1.2.0](https://img.shields.io/badge/Release-v1.2.0-blue)](./)
+[![Reaction SLA](https://img.shields.io/badge/Mitigation%20Latency-0.65%20ms-emerald)](./context/specs/06-red-team-simulation.md)
+[![Tests Passing](https://img.shields.io/badge/Tests-35%2F35%20Passing-brightgreen)](./tests/)
 
 ---
 
@@ -89,7 +90,7 @@ All architectural decisions, invariants, and build plans are organized in [`cont
 
 ## Automated Test Suite
 
-Run the full automated test suite (29 tests across all units):
+Run the full automated test suite (35 tests across all units):
 ```bash
 python3 -m unittest discover -s tests
 ```
