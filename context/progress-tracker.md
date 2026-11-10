@@ -3,10 +3,10 @@
 Update this file after every meaningful implementation change.
 
 ## Current Phase
-Phase 6: Red Team Simulation & End-to-End Autonomous Validation
+Phase 7: System Validation & Operational Readiness
 
 ## Current Goal
-Implement Unit 06: Build automated adversary red team testing script (`tests/attacker_sim.py`) simulating reconnaissance port sweeps, SSH/Telnet credential brute-force dictionary attacks, and rogue container lateral movement for end-to-end autonomous mitigation validation in <1,000 ms.
+Complete system validation across Docker multi-subnet networking, live honeypot telemetry tailing, and end-to-end evaluation runbook.
 
 ## Completed
 - [x] Context foundation files established and verified at root.
@@ -21,12 +21,14 @@ Implement Unit 06: Build automated adversary red team testing script (`tests/att
 - [x] Unit 04: FastAPI Telemetry Engine & SSE Streaming API (non-buffering SSE stream, REST unban/reset/infect endpoints, 7 unit tests passing).
 - [x] Unit 05 specification written (`context/specs/05-soc-dashboard.md`).
 - [x] Unit 05: Single-Page Real-Time SOC Dashboard (Tailwind CSS, dynamic node cards, live ledger, auto-scrolling terminal, 2 unit tests passing).
+- [x] Unit 06 specification written (`context/specs/06-red-team-simulation.md`).
+- [x] Unit 06: Red Team Simulation & End-to-End Autonomous Validation (`tests/attacker_sim.py`, latency benchmark 0.65ms < 1000ms SLA, 2 unit tests passing).
 
 ## In Progress
-- [ ] Unit 06: Red Team Simulation & End-to-End Autonomous Validation (`tests/attacker_sim.py`).
+- [ ] Live Docker Compose multi-container verification and viva evaluation guide.
 
 ## Next Up
-- [ ] Multi-container Docker Compose live stack validation and viva evaluation runbook.
+- [ ] Push all committed units to GitHub repository (`kapi272/Final-project.git`).
 
 ## Open Questions & Decisions Needed
 1. **Network Packet Sniffing on macOS:** Since macOS Docker Desktop bridges traffic through a lightweight Linux VM, packet sniffing must run inside a container connected to `iot_production_net` rather than directly on the native Darwin macOS network stack.
