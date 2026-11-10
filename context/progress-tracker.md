@@ -3,10 +3,10 @@
 Update this file after every meaningful implementation change.
 
 ## Current Phase
-Phase 9: Milestone v1.2.0 — Threat Intelligence Panel & External Analytics Tool (COMPLETE)
+Phase 10: Milestone v1.3.0 — General Multi-Stream Console & UI De-duplication (IN PROGRESS)
 
 ## Current Goal
-The entire Autonomous IoT Cyber Defense Testbed, including Phase 8 interactive simulation controls and Phase 9 Threat Intelligence & External SIEM Analytics Console, is operational, tested with 35 tests, and deployed.
+Bumping version to v1.3.0 (SOC Terminal v1.3-SOC), removing the duplicate Reset DB button from the ledger header, integrating an auto-clear and manual clear button for the terminal feed, and upgrading the console into a General Multi-Stream System & Network Activity Console with category filter tabs.
 
 ## Completed
 - [x] Context foundation files established and verified at root.
