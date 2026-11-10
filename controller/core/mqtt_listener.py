@@ -92,3 +92,4 @@ class IoTTelemetryListener:
                 pass
             self.client = None
         logger.info("IoT Telemetry MQTT subscriber stopped.")
+
