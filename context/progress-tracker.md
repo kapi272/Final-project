@@ -3,10 +3,10 @@
 Update this file after every meaningful implementation change.
 
 ## Current Phase
-Phase 4: FastAPI Telemetry Engine & SSE Streaming API
+Phase 5: Single-Page Real-Time SOC Dashboard
 
 ## Current Goal
-Implement Unit 04: Build the FastAPI async web application, non-buffering Server-Sent Events endpoint (`GET /api/stream`), manual unban APIs (`POST /api/defense/unban`, `POST /api/defense/reset-bans`), and node compromise test trigger (`POST /api/simulate/infect/{node_id}`).
+Implement Unit 05: Build the real-time SOC dashboard UI adhering to `context/ui-context.md` (slate-900 surface, dark SOC aesthetic, emerald node health, amber deception traps, rose firewall drop badges), dynamic topology status cards, unban/reset controls, infection simulator triggers, and auto-scrolling honeypot console.
 
 ## Completed
 - [x] Context foundation files established and verified at root.
@@ -17,12 +17,13 @@ Implement Unit 04: Build the FastAPI async web application, non-buffering Server
 - [x] Unit 02: Mitigation Engine (firewall netfilter driver, Docker SDK quarantine controller, allowlist protection, 11 unit tests passing).
 - [x] Unit 03 specification written (`context/specs/03-honeypot-ingestion-engine.md`).
 - [x] Unit 03: Honeypot Ingestion Engine & Detection Core (async log tailer, in-memory sliding window, SQLite audit store, 7 unit tests passing).
+- [x] Unit 04 specification written (`context/specs/04-fastapi-telemetry-engine.md`).
+- [x] Unit 04: FastAPI Telemetry Engine & SSE Streaming API (non-buffering SSE stream, REST unban/reset/infect endpoints, 7 unit tests passing).
 
 ## In Progress
-- [ ] Unit 04: FastAPI Telemetry Engine & SSE Streaming API (`controller/api/`).
+- [ ] Unit 05: Single-Page Real-Time SOC Dashboard (`controller/templates/index.html`, `controller/static/`).
 
 ## Next Up
-- [ ] Unit 05: Single-Page Real-Time SOC Dashboard (`controller/templates/`, `controller/static/`).
 - [ ] Unit 06: Red Team Simulation & End-to-End Autonomous Validation (`tests/attacker_sim.py`).
 
 ## Open Questions & Decisions Needed
