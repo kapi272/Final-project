@@ -15,6 +15,7 @@ from controller.core.db import DefenseDatabase
 from controller.core.detector import IntrusionDetector
 from controller.core.log_tailer import HoneypotLogTailer
 from controller.core.models import CowrieEvent, MitigationRecord
+from controller.core.mqtt_listener import IoTTelemetryListener
 from controller.mitigation.allowlist import AllowlistManager
 from controller.mitigation.firewall import FirewallController
 from controller.mitigation.quarantine import QuarantineManager
@@ -27,7 +28,10 @@ def create_app(
     quarantine_manager: Optional[QuarantineManager] = None,
     broadcaster: Optional[SSEBroadcaster] = None,
     enable_tailer: bool = True,
+    enable_mqtt: bool = False,
     log_path: Optional[str] = None,
+    mqtt_host: Optional[str] = None,
+    mqtt_port: Optional[int] = None,
 ) -> FastAPI:
     """Factory function creating and configuring the FastAPI SOC defense server."""
 
@@ -60,21 +64,44 @@ def create_app(
         on_event_callback=on_honeypot_event,
     )
 
+    async def on_iot_telemetry(topic: str, payload: str, ts: float) -> None:
+        """Broadcasts IoT node sensor and actuator MQTT messages over SSE."""
+        await sse_broadcaster.broadcast("iot_telemetry", {
+            "topic": topic,
+            "payload": payload,
+            "timestamp": ts,
+        })
+
+    mqtt_instance = None
+    if enable_mqtt:
+        mqtt_instance = IoTTelemetryListener(
+            broker_host=mqtt_host or os.getenv("MQTT_BROKER_HOST", "172.20.0.10"),
+            broker_port=mqtt_port or int(os.getenv("MQTT_BROKER_PORT", "1883")),
+            topic="home/#",
+            on_message_callback=on_iot_telemetry,
+        )
+
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.info("Initializing Autonomous IoT Defense Controller backend...")
         # Initialize netfilter chain
         detector_instance.firewall.initialize_chains()
 
+        loop = asyncio.get_running_loop()
         tailer_task = None
         if enable_tailer:
             tailer_task = asyncio.create_task(tailer_instance.start())
             logger.info("Honeypot background log tailer task launched.")
 
+        if mqtt_instance:
+            mqtt_instance.start(loop=loop)
+
         yield
 
         logger.info("Shutting down Autonomous IoT Defense Controller backend...")
         tailer_instance.stop()
+        if mqtt_instance:
+            mqtt_instance.stop()
         if tailer_task:
             tailer_task.cancel()
             try:

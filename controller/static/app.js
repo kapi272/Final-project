@@ -10,6 +10,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let totalTraps = 0;
     let activeBansCount = 0;
+    let currentLogFilter = 'all';
 
     // Helper: Safely append text to an element to prevent DOM XSS
     function createSafeElement(tag, text, classes = "") {
@@ -26,32 +27,84 @@ document.addEventListener("DOMContentLoaded", () => {
         return d.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
     }
 
-    // Append log line to terminal feed console
-    function appendTerminalLog(prefix, message, type = "info") {
+    // Append log line to general activity terminal feed console
+    function appendTerminalLog(prefix, message, type = "info", category = "system") {
         const line = document.createElement("div");
+        line.dataset.category = category;
         line.className = "flex items-start space-x-2 py-0.5 border-b border-slate-900/60";
 
-        const timeSpan = createSafeElement("span", `[${formatTime(Date.now() / 1000)}]`, "text-slate-500 select-none");
+        // Filter visibility logic
+        if (currentLogFilter !== "all" && currentLogFilter !== category) {
+            line.style.display = "none";
+        } else {
+            line.style.display = "flex";
+        }
+
+        const timeSpan = createSafeElement("span", `[${formatTime(Date.now() / 1000)}]`, "text-slate-500 select-none text-[10px] pt-0.5");
+        
         let badgeColor = "text-sky-400";
-        if (type === "threat") badgeColor = "text-rose-400 font-bold";
-        else if (type === "warning") badgeColor = "text-amber-400";
-        else if (type === "success") badgeColor = "text-emerald-400";
+        if (category === "honeypot") {
+            badgeColor = type === "threat" ? "text-rose-400 font-bold" : "text-amber-400 font-bold";
+        } else if (category === "mitigation") {
+            badgeColor = "text-rose-400 font-bold";
+        } else if (category === "iot") {
+            badgeColor = type === "threat" ? "text-rose-400 font-bold" : "text-emerald-400 font-bold";
+        } else if (category === "system") {
+            badgeColor = type === "success" ? "text-emerald-400 font-bold" : "text-sky-400";
+        }
 
         const prefixSpan = createSafeElement("span", `[${prefix}]`, badgeColor);
-        const msgSpan = createSafeElement("span", message, "text-slate-300 break-all");
+        const msgSpan = createSafeElement("span", message, "text-slate-300 break-all flex-1");
 
         line.appendChild(timeSpan);
         line.appendChild(prefixSpan);
         line.appendChild(msgSpan);
 
         terminalFeed.appendChild(line);
-        terminalFeed.scrollTop = terminalFeed.scrollHeight;
 
-        // Cap terminal lines at 150 to keep browser memory lightweight
-        while (terminalFeed.childNodes.length > 150) {
+        if (line.style.display !== "none") {
+            terminalFeed.scrollTop = terminalFeed.scrollHeight;
+        }
+
+        // Cap terminal lines at 250 to keep browser memory lightweight
+        while (terminalFeed.childNodes.length > 250) {
             terminalFeed.removeChild(terminalFeed.firstChild);
         }
     }
+
+    // Filter switching handler
+    window.setLogFilter = function(filter) {
+        currentLogFilter = filter;
+        const categories = ["all", "honeypot", "mitigation", "iot", "system"];
+        
+        categories.forEach(cat => {
+            const btn = document.getElementById(`filter-btn-${cat}`);
+            if (!btn) return;
+            if (cat === filter) {
+                btn.className = "px-2 py-0.5 rounded font-bold bg-sky-950/80 border border-sky-700 text-sky-300 transition-all";
+            } else {
+                btn.className = "px-2 py-0.5 rounded font-semibold bg-slate-800/50 hover:bg-slate-800 border border-transparent hover:border-slate-700 text-slate-400 hover:text-slate-200 transition-all";
+            }
+        });
+
+        // Toggle visibility of each log line in DOM
+        const lines = terminalFeed.querySelectorAll("div[data-category]");
+        lines.forEach(line => {
+            if (filter === "all" || line.dataset.category === filter) {
+                line.style.display = "flex";
+            } else {
+                line.style.display = "none";
+            }
+        });
+
+        terminalFeed.scrollTop = terminalFeed.scrollHeight;
+    };
+
+    // Manual console clear
+    window.clearConsole = function() {
+        terminalFeed.innerHTML = "";
+        appendTerminalLog("SYSTEM", "Console buffer cleared. Session stream active.", "info", "system");
+    };
 
     // Add or update row in live mitigation table
     function addMitigationRow(record, prepend = true) {
@@ -159,24 +212,24 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             }
         } catch (e) {
-            appendTerminalLog("SYSTEM", `Failed to load initial status: ${e}`, "threat");
+            appendTerminalLog("SYSTEM", `Failed to load initial status: ${e}`, "threat", "system");
         }
     }
 
     // Connect SSE Stream
     function connectSSE() {
-        appendTerminalLog("STREAM", "Connecting to telemetry event stream /api/stream...", "info");
+        appendTerminalLog("STREAM", "Connecting to telemetry event stream /api/stream...", "info", "system");
         const eventSource = new EventSource("/api/stream");
 
         eventSource.addEventListener("open", () => {
             sseIndicator.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse";
             ssePill.className = "inline-flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-950/40 border border-emerald-800 text-emerald-400";
             document.getElementById("sse-text").textContent = "STREAM LIVE";
-            appendTerminalLog("STREAM", "Connected to realtime security bus.", "success");
+            appendTerminalLog("STREAM", "Connected to realtime security bus.", "success", "system");
         });
 
         eventSource.addEventListener("connected", (e) => {
-            appendTerminalLog("STREAM", "Session handshake synchronized.", "success");
+            appendTerminalLog("STREAM", "Session handshake synchronized.", "success", "system");
         });
 
         eventSource.addEventListener("heartbeat", () => {
@@ -193,9 +246,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 const user = ev.username || "";
                 const pwd = ev.password ? `(pwd: ${ev.password})` : "";
                 const cmd = ev.input_command ? `cmd: "${ev.input_command}"` : "";
-                appendTerminalLog("HONEYPOT", `Trap hit from ${src} -> ${ev.eventid} ${user} ${pwd} ${cmd}`.trim(), "warning");
+                appendTerminalLog("HONEYPOT", `Trap hit from ${src} -> ${ev.eventid} ${user} ${pwd} ${cmd}`.trim(), "warning", "honeypot");
             } catch (err) {
-                appendTerminalLog("HONEYPOT", "Raw hit received.", "warning");
+                appendTerminalLog("HONEYPOT", "Raw hit received.", "warning", "honeypot");
             }
             // Refresh Threat Intelligence
             loadAnalytics();
@@ -208,9 +261,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 activeBansCount++;
                 bannedCountEl.textContent = activeBansCount;
                 addMitigationRow(rec);
-                appendTerminalLog("MITIGATION", `AUTONOMOUS BAN ENFORCED: ${rec.src_ip} -> ${rec.reason}`, "threat");
+                appendTerminalLog("MITIGATION", `AUTONOMOUS BAN ENFORCED: ${rec.src_ip} -> ${rec.reason}`, "threat", "mitigation");
             } catch (err) {
-                appendTerminalLog("MITIGATION", "Mitigation alert received.", "threat");
+                appendTerminalLog("MITIGATION", "Mitigation alert received.", "threat", "mitigation");
             }
             // Refresh Threat Intelligence
             loadAnalytics();
@@ -224,7 +277,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (row) row.remove();
                 if (activeBansCount > 0) activeBansCount--;
                 bannedCountEl.textContent = activeBansCount;
-                appendTerminalLog("ADMIN", `Manual unban executed for IP: ${ip}`, "info");
+                appendTerminalLog("MITIGATION", `Manual unban executed for IP: ${ip}`, "info", "mitigation");
             } catch (err) {
                 console.error(err);
             }
@@ -234,7 +287,7 @@ document.addEventListener("DOMContentLoaded", () => {
             activeBansCount = 0;
             bannedCountEl.textContent = "0";
             mitigationTableBody.innerHTML = "";
-            appendTerminalLog("ADMIN", "All firewall drop rules have been reset.", "info");
+            appendTerminalLog("MITIGATION", "All firewall drop rules have been reset.", "info", "mitigation");
         });
 
         eventSource.addEventListener("database_reset_alert", () => {
@@ -243,15 +296,16 @@ document.addEventListener("DOMContentLoaded", () => {
             totalTraps = 0;
             trapsCountEl.textContent = "0";
             mitigationTableBody.innerHTML = "";
+            window.clearConsole();
             loadAnalytics();
-            appendTerminalLog("ADMIN", "Database audit history and analytics wiped clean by admin.", "success");
+            appendTerminalLog("ADMIN", "Database audit history and analytics wiped clean by admin.", "success", "system");
         });
 
         eventSource.addEventListener("node_quarantined", (e) => {
             try {
                 const payload = JSON.parse(e.data);
                 updateNodeStatus(payload.data.node_id, "quarantined");
-                appendTerminalLog("QUARANTINE", `Dynamic containment triggered: ${payload.data.node_id} isolated to iot_quarantine_net.`, "threat");
+                appendTerminalLog("QUARANTINE", `Dynamic containment triggered: ${payload.data.node_id} isolated to iot_quarantine_net.`, "threat", "iot");
             } catch (err) {
                 console.error(err);
             }
@@ -261,9 +315,21 @@ document.addEventListener("DOMContentLoaded", () => {
             try {
                 const payload = JSON.parse(e.data);
                 updateNodeStatus(payload.data.node_id, "production");
-                appendTerminalLog("QUARANTINE", `Container restored: ${payload.data.node_id} reconnected to iot_production_net.`, "success");
+                appendTerminalLog("QUARANTINE", `Container restored: ${payload.data.node_id} reconnected to iot_production_net.`, "success", "iot");
             } catch (err) {
                 console.error(err);
+            }
+        });
+
+        eventSource.addEventListener("iot_telemetry", (e) => {
+            try {
+                const payload = JSON.parse(e.data);
+                const data = payload.data || {};
+                const topic = data.topic || "home/iot";
+                const val = data.payload || "";
+                appendTerminalLog("IOT MESH", `${topic} :: ${val}`, "info", "iot");
+            } catch (err) {
+                appendTerminalLog("IOT MESH", "Telemetry packet received.", "info", "iot");
             }
         });
 
@@ -315,8 +381,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 bannedCountEl.textContent = "0";
                 totalTraps = 0;
                 trapsCountEl.textContent = "0";
+                window.clearConsole();
                 loadAnalytics();
-                appendTerminalLog("ADMIN", "Database and audit ledger completely wiped clean.", "success");
+                appendTerminalLog("ADMIN", "Database and audit ledger completely wiped clean.", "success", "system");
             } else {
                 alert(`Reset failed: ${data.message}`);
             }
@@ -354,7 +421,7 @@ document.addEventListener("DOMContentLoaded", () => {
             btn.classList.add("opacity-75");
         }
 
-        appendTerminalLog("ADVERSARY", `Initiating ${attackType.toUpperCase()} intrusion attack simulation...`, "warning");
+        appendTerminalLog("ADVERSARY", `Initiating ${attackType.toUpperCase()} intrusion attack simulation...`, "warning", "honeypot");
 
         try {
             const res = await fetch(`/api/simulate/attack/${attackType}`, {
@@ -363,12 +430,12 @@ document.addEventListener("DOMContentLoaded", () => {
             });
             const data = await res.json();
             if (data.status === "success") {
-                appendTerminalLog("ADVERSARY", `Simulation payload delivered: ${data.message}`, "threat");
+                appendTerminalLog("ADVERSARY", `Simulation payload delivered: ${data.message}`, "threat", "honeypot");
             } else {
-                appendTerminalLog("ADVERSARY", `Simulation request error: ${data.message}`, "warning");
+                appendTerminalLog("ADVERSARY", `Simulation request error: ${data.message}`, "warning", "honeypot");
             }
         } catch (err) {
-            appendTerminalLog("ADVERSARY", `Network error triggering simulation: ${err}`, "threat");
+            appendTerminalLog("ADVERSARY", `Network error triggering simulation: ${err}`, "threat", "honeypot");
         } finally {
             setTimeout(() => {
                 if (btn) {
@@ -568,7 +635,7 @@ document.addEventListener("DOMContentLoaded", () => {
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            appendTerminalLog("AUDIT", "SOC Forensic Audit Report downloaded successfully.", "success");
+            appendTerminalLog("AUDIT", "SOC Forensic Audit Report downloaded successfully.", "success", "system");
         } catch (e) {
             alert(`Error downloading report: ${e}`);
         }

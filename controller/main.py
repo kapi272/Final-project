@@ -8,7 +8,7 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] [DefenseController] %(message)s"
 )
 
-app = create_app()
+app = create_app(enable_mqtt=os.getenv("ENABLE_MQTT", "true").lower() == "true")
 
 if __name__ == "__main__":
     host = os.getenv("HOST", "0.0.0.0")

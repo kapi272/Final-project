@@ -3,10 +3,10 @@
 Update this file after every meaningful implementation change.
 
 ## Current Phase
-Phase 10: Milestone v1.3.0 — General Multi-Stream Console & UI De-duplication (IN PROGRESS)
+Phase 10: Milestone v1.3.0 — General Multi-Stream Console & UI De-duplication (COMPLETE)
 
 ## Current Goal
-Bumping version to v1.3.0 (SOC Terminal v1.3-SOC), removing the duplicate Reset DB button from the ledger header, integrating an auto-clear and manual clear button for the terminal feed, and upgrading the console into a General Multi-Stream System & Network Activity Console with category filter tabs.
+The entire Autonomous IoT Cyber Defense Testbed is running on release v1.3.0 (SOC Terminal v1.3-SOC) with a de-duplicated reset workflow, auto and manual console clear capability, and a General Multi-Stream System & Network Activity Console with category filter tabs and real-time MQTT mesh telemetry ingestion. 37/37 tests passing.
 
 ## Completed
 - [x] Context foundation files established and verified at root.
@@ -21,6 +21,7 @@ Bumping version to v1.3.0 (SOC Terminal v1.3-SOC), removing the duplicate Reset 
 - [x] Live Honeypot Telemetry & Autonomous Mitigation Ledger Synchronization: Fixed Cowrie log path mount, added Docker Desktop gateway allowlist protection (`192.168.65.0/24`), Netfilter fallback to `INPUT`, mounted live `./controller:/app/controller`, and verified real-time drops and ledger population.
 - [x] Phase 8: Milestone v1.1.0 — Option A Interactive Adversary Simulation Toolbar added to dashboard with 1-click attack triggers (`/api/simulate/attack/brute-force`, `/api/simulate/attack/exploit`, `/api/simulate/attack/port-sweep`), live SSE feedback, and 32 passing unit tests.
 - [x] Phase 9: Milestone v1.2.0 — Threat Intelligence Panel & External Log Analytics Console: Added real-time attack distribution bars, top credential analytics, deception port breakdown, dedicated External Analytics & SIEM Forensics modal (separate button in header), deep IP dossier inspection, and 1-click JSON report export. 35/35 tests passing.
+- [x] Phase 10: Milestone v1.3.0 — General Multi-Stream Console & UI De-duplication: Removed redundant "Reset DB" button from ledger header, unified database wipe with console clear, added dedicated manual "Clear" button for the terminal feed, implemented General Activity Logs with category filter tabs (`[ ALL ]`, `[ HONEYPOT ]`, `[ MITIGATION ]`, `[ IOT MESH ]`, `[ SYSTEM ]`), and added background `IoTTelemetryListener` streaming live MQTT mesh telemetry over SSE. 37/37 tests passing.
 
 ## In Progress
 - [ ] Live evaluation demonstration and evaluator walkthrough.
