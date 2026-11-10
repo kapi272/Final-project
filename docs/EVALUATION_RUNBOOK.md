@@ -1,4 +1,4 @@
-# Autonomous IoT Cyber Defense System — Evaluation & Viva Runbook (v1.6-SOC)
+# Autonomous IoT Cyber Defense System — Evaluation & Viva Runbook (v1.7-SOC)
 
 This guide is designed for live project demonstrations, evaluator walkthroughs, and viva examinations. It provides step-by-step presentation commands, architectural justifications, and answers to expected evaluator questions.
 
@@ -40,9 +40,9 @@ python3 controller/main.py
 1. Open **`http://localhost:8050`**.
 2. Point out:
    * The pulsing green **`STREAM LIVE`** badge (demonstrating non-buffering unidirectional Server-Sent Events).
-   * The system version badge: **`v1.3-SOC`**.
+   * The system version badge: **`v1.7-SOC`**.
    * The **Virtual IoT Network Topology** cards showing 4 online devices in `iot_production_net` (`172.20.0.0/24`).
-   * The **General Activity Logs** console streaming multi-category system and IoT mesh telemetry.
+   * The **General Activity Logs** console streaming multi-category system and IoT mesh telemetry with full calendar date and time in Indian Standard Time (IST).
 
 ### Step 2: Demonstrate Autonomous Attack Mitigation (< 1,000 ms)
 You can demonstrate detection and mitigation using **either** the web UI or the terminal:
@@ -80,7 +80,7 @@ python3 tests/attacker_sim.py --all
 ### Step 3: Demonstrate Multi-Stream Filtering & 6-Column SIEM Activity Logs
 1. Locate the **General Activity Logs** console in the lower-right quadrant.
 2. Highlight the **6-Column SIEM Data Grid**:
-   * **`TIME`**: Event timestamp.
+   * **`DATE & TIME (IST)`**: Calendar date and timestamp formatted according to Indian Date and Time Standards (`DD/MM/YYYY, HH:mm:ss` in `Asia/Kolkata` / UTC+05:30).
    * **`STREAM`**: Category pill (`HONEYPOT`, `MITIGATION`, `QUARANTINE`, `IOT MESH`, `SYSTEM`, `ADVERSARY`).
    * **`SEV`**: Severity rating badge (`CRIT`, `HIGH`, `WARN`, `INFO`).
    * **`SOURCE/NODE`**: Offending IP or virtual IoT device ID (`198.51.100.99`, `temp_sensor_01`, `soc_admin`).
