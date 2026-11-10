@@ -69,18 +69,26 @@ class FirewallController:
         else:
             logger.debug("Netfilter chain '%s' already exists or creation returned: %s", CHAIN_NAME, check_chain.stderr.strip())
 
-        # 2. Check if custom chain is jumped to from DOCKER-USER
-        check_jump = self._run_cmd(["iptables", "-C", PARENT_CHAIN, "-j", CHAIN_NAME])
+        # 2. Check if custom chain is jumped to from DOCKER-USER (or INPUT fallback)
+        parent = PARENT_CHAIN
+        check_jump = self._run_cmd(["iptables", "-C", parent, "-j", CHAIN_NAME])
         if check_jump.returncode != 0:
-            # Insert jump at position 1 in DOCKER-USER
-            insert_jump = self._run_cmd(["iptables", "-I", PARENT_CHAIN, "1", "-j", CHAIN_NAME])
-            if insert_jump.returncode == 0:
-                logger.info("Hooked '%s' into '%s' at position 1.", CHAIN_NAME, PARENT_CHAIN)
+            insert_jump = self._run_cmd(["iptables", "-I", parent, "1", "-j", CHAIN_NAME])
+            if insert_jump.returncode != 0:
+                logger.info("Parent chain '%s' not available; falling back to 'INPUT'.", parent)
+                parent = "INPUT"
+                check_input = self._run_cmd(["iptables", "-C", parent, "-j", CHAIN_NAME])
+                if check_input.returncode != 0:
+                    insert_input = self._run_cmd(["iptables", "-I", parent, "1", "-j", CHAIN_NAME])
+                    if insert_input.returncode == 0:
+                        logger.info("Hooked '%s' into '%s' at position 1.", CHAIN_NAME, parent)
+                    else:
+                        logger.error("Failed to hook '%s' into '%s': %s", CHAIN_NAME, parent, insert_input.stderr.strip())
+                        return False
             else:
-                logger.error("Failed to hook '%s' into '%s': %s", CHAIN_NAME, PARENT_CHAIN, insert_jump.stderr.strip())
-                return False
+                logger.info("Hooked '%s' into '%s' at position 1.", CHAIN_NAME, parent)
         else:
-            logger.debug("Jump from '%s' to '%s' already exists.", PARENT_CHAIN, CHAIN_NAME)
+            logger.debug("Jump from '%s' to '%s' already exists.", parent, CHAIN_NAME)
 
         return True
 

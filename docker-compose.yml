@@ -55,7 +55,7 @@ services:
       - "2222:2222"
       - "2223:2223"
     volumes:
-      - ./honeypot/logs:/cowrie/var/log/cowrie
+      - ./honeypot/logs:/cowrie/cowrie-git/var/log/cowrie
     networks:
       iot_production_net:
         ipv4_address: 172.20.0.50
@@ -72,6 +72,7 @@ services:
       - "8050:8000"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - ./controller:/app/controller
       - ./honeypot/logs:/app/honeypot/logs:ro
       - ./data:/app/data
     environment:

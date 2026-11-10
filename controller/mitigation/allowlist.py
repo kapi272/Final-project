@@ -10,6 +10,7 @@ DEFAULT_PROTECTED_NETWORKS: List[str] = [
     "::1/128",           # IPv6 Loopback
     "172.20.0.1/32",     # IoT Production Network Gateway
     "172.21.0.1/32",     # IoT Quarantine Network Gateway
+    "192.168.65.0/24",   # Docker Desktop Host Gateway (macOS / Windows VM)
     "169.254.0.0/16",    # Link-local
 ]
 
@@ -18,6 +19,7 @@ DEFAULT_PROTECTED_IPS: List[str] = [
     "::1",
     "172.20.0.1",
     "172.21.0.1",
+    "192.168.65.1",
 ]
 
 

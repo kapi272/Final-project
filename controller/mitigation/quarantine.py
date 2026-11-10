@@ -16,21 +16,28 @@ except ImportError:
     _DOCKER_AVAILABLE = False
 
 
+_DEFAULT_CLIENT = object()
+
+
 class QuarantineManager:
     """
     Manages dynamic network quarantine and restoration for virtual IoT containers
     using the Docker Engine API via /var/run/docker.sock.
     """
 
-    def __init__(self, docker_client: Optional[Any] = None) -> None:
-        self.client: Optional[Any] = docker_client
-        if self.client is None and _DOCKER_AVAILABLE and docker is not None:
-            try:
-                self.client = docker.from_env()
-                logger.info("QuarantineManager connected to Docker daemon successfully.")
-            except Exception as e:
-                logger.warning("Docker daemon connection failed (%s). Operating in fallback mode.", e)
+    def __init__(self, docker_client: Any = _DEFAULT_CLIENT) -> None:
+        if docker_client is _DEFAULT_CLIENT:
+            if _DOCKER_AVAILABLE and docker is not None:
+                try:
+                    self.client = docker.from_env()
+                    logger.info("QuarantineManager connected to Docker daemon successfully.")
+                except Exception as e:
+                    logger.warning("Docker daemon connection failed (%s). Operating in fallback mode.", e)
+                    self.client = None
+            else:
                 self.client = None
+        else:
+            self.client = docker_client
 
     def get_container_network_status(self, container_name_or_id: str) -> str:
         """

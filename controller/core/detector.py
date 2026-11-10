@@ -77,8 +77,8 @@ class IntrusionDetector:
         now = time.time()
         mitigation: Optional[MitigationRecord] = None
 
-        # 1. Evaluate Failed Logins (Brute-Force Detection)
-        if event.eventid == "cowrie.login.failed":
+        # 1. Evaluate Failed Logins & Rapid Reconnaissance Probes
+        if event.eventid in ["cowrie.login.failed", "cowrie.client.version", "cowrie.session.connect"]:
             if src_ip not in self._failed_attempts:
                 self._failed_attempts[src_ip] = deque()
 
@@ -86,17 +86,23 @@ class IntrusionDetector:
             self._prune_expired_attempts(src_ip, now)
 
             attempts_count = len(self._failed_attempts.get(src_ip, []))
+            is_login = event.eventid == "cowrie.login.failed"
+            label = "authentication failure" if is_login else "reconnaissance probe"
+
             logger.info(
-                "Failed authentication from %s (user: '%s', attempt %d/%d in window).",
+                "Honeypot %s from %s (attempt %d/%d in window).",
+                label,
                 src_ip,
-                event.username or "unknown",
                 attempts_count,
                 self.failed_login_threshold,
             )
 
             if attempts_count >= self.failed_login_threshold:
                 if not self.firewall.is_ip_banned(src_ip):
-                    reason = f"Brute-force attack: {attempts_count} failed logins in {self.time_window_seconds:.0f}s"
+                    if is_login:
+                        reason = f"Brute-force attack: {attempts_count} failed logins in {self.time_window_seconds:.0f}s"
+                    else:
+                        reason = f"Reconnaissance sweep: {attempts_count} rapid probes in {self.time_window_seconds:.0f}s"
                     mitigation = self._execute_ban(src_ip, reason=reason, severity="HIGH")
 
         # 2. Evaluate Command Execution (Exploitation & Payload Ingestion)
