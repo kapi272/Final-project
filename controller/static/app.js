@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let totalTraps = 0;
     let activeBansCount = 0;
     let currentLogFilter = 'all';
+    const terminalLogsBuffer = [];
 
     // Helper: Safely append text to an element to prevent DOM XSS
     function createSafeElement(tag, text, classes = "") {
@@ -71,8 +72,26 @@ document.addEventListener("DOMContentLoaded", () => {
             line.style.display = "flex";
         }
 
+        const nowEpoch = Date.now() / 1000;
+        const nowIst = formatDateTime(nowEpoch);
+
+        // Store structured record in in-memory export buffer
+        terminalLogsBuffer.push({
+            timestamp_ist: nowIst,
+            timestamp_epoch: nowEpoch,
+            stream: stream,
+            severity: severity,
+            source: source,
+            protocol: protocol,
+            message: message,
+            category: category
+        });
+        if (terminalLogsBuffer.length > 2000) {
+            terminalLogsBuffer.shift();
+        }
+
         // 1. Date & Time Column (Indian Standard IST: DD/MM/YYYY, HH:mm:ss)
-        const timeSpan = createSafeElement("span", formatDateTime(Date.now() / 1000), "w-[145px] shrink-0 text-slate-400 select-none text-[10px] font-mono tracking-tight");
+        const timeSpan = createSafeElement("span", nowIst, "w-[145px] shrink-0 text-slate-400 select-none text-[10px] font-mono tracking-tight");
 
         // 2. Stream Badge Column
         let streamStyle = "text-sky-400 bg-sky-950/40 border-sky-800/40";
@@ -174,6 +193,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Manual console clear
     window.clearConsole = function() {
         terminalFeed.innerHTML = "";
+        terminalLogsBuffer.length = 0;
         appendTerminalLog({
             stream: "SYSTEM",
             category: "system",
@@ -181,6 +201,121 @@ document.addEventListener("DOMContentLoaded", () => {
             source: "soc_admin",
             protocol: "HTTP:8050",
             message: "Console buffer cleared. Session stream active."
+        });
+    };
+
+    // Open General Activity Logs export modal
+    window.openExportLogsModal = function() {
+        const modal = document.getElementById("export-logs-modal");
+        if (!modal) return;
+        modal.classList.remove("hidden");
+
+        // Automatically match the current active log category tab
+        const scopeRadios = document.querySelectorAll('input[name="export-scope"]');
+        scopeRadios.forEach(radio => {
+            radio.checked = (radio.value === currentLogFilter);
+        });
+
+        window.updateExportPreviewCount();
+    };
+
+    // Close General Activity Logs export modal
+    window.closeExportLogsModal = function() {
+        const modal = document.getElementById("export-logs-modal");
+        if (modal) modal.classList.add("hidden");
+    };
+
+    // Update real-time matching count in modal
+    window.updateExportPreviewCount = function() {
+        const selectedRadio = document.querySelector('input[name="export-scope"]:checked');
+        const scope = selectedRadio ? selectedRadio.value : "all";
+        const count = scope === "all" 
+            ? terminalLogsBuffer.length 
+            : terminalLogsBuffer.filter(l => l.category === scope).length;
+
+        const countEl = document.getElementById("export-match-count");
+        if (countEl) {
+            countEl.textContent = `${count} ${count === 1 ? 'record' : 'records'} ready`;
+        }
+    };
+
+    // Download filtered logs in JSON, CSV, or LOG format
+    window.downloadActivityLogs = function() {
+        const selectedScopeRadio = document.querySelector('input[name="export-scope"]:checked');
+        const scope = selectedScopeRadio ? selectedScopeRadio.value : "all";
+
+        const selectedFormatRadio = document.querySelector('input[name="export-format"]:checked');
+        const format = selectedFormatRadio ? selectedFormatRadio.value : "json";
+
+        const filteredLogs = scope === "all"
+            ? [...terminalLogsBuffer]
+            : terminalLogsBuffer.filter(l => l.category === scope);
+
+        if (filteredLogs.length === 0) {
+            alert(`No logs currently recorded in category "${scope.toUpperCase()}".`);
+            return;
+        }
+
+        let content = "";
+        let mimeType = "application/json;charset=utf-8;";
+        let fileExt = "json";
+
+        if (format === "csv") {
+            mimeType = "text/csv;charset=utf-8;";
+            fileExt = "csv";
+            const headers = ["Timestamp (IST)", "Timestamp (Epoch)", "Stream", "Severity", "Source/Node", "Protocol", "Payload & Event Data", "Category"];
+            const escapeCsv = (val) => {
+                if (val === null || val === undefined) return '""';
+                const str = String(val).replace(/"/g, '""');
+                return `"${str}"`;
+            };
+            const rows = filteredLogs.map(log => [
+                escapeCsv(log.timestamp_ist),
+                escapeCsv(log.timestamp_epoch),
+                escapeCsv(log.stream),
+                escapeCsv(log.severity),
+                escapeCsv(log.source),
+                escapeCsv(log.protocol),
+                escapeCsv(log.message),
+                escapeCsv(log.category)
+            ].join(","));
+            content = [headers.map(h => `"${h}"`).join(","), ...rows].join("\r\n");
+        } else if (format === "log") {
+            mimeType = "text/plain;charset=utf-8;";
+            fileExt = "log";
+            content = filteredLogs.map(log => 
+                `[${log.timestamp_ist}] [${log.stream}] [${log.severity}] [${log.source}] [${log.protocol}] ${log.message}`
+            ).join("\n");
+        } else {
+            mimeType = "application/json;charset=utf-8;";
+            fileExt = "json";
+            content = JSON.stringify(filteredLogs, null, 2);
+        }
+
+        const now = new Date();
+        const dateStamp = now.toISOString().slice(0, 10);
+        const timeStamp = now.toTimeString().slice(0, 8).replace(/:/g, "-");
+        const filename = `soc_activity_logs_${scope}_${dateStamp}_${timeStamp}.${fileExt}`;
+
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        window.closeExportLogsModal();
+
+        appendTerminalLog({
+            stream: "SYSTEM",
+            category: "system",
+            severity: "INFO",
+            source: "soc_admin",
+            protocol: "HTTP:8050",
+            message: `Exported ${filteredLogs.length} ${scope.toUpperCase()} log records as ${fileExt.toUpperCase()} (${filename}).`
         });
     };
 
@@ -867,6 +1002,14 @@ document.addEventListener("DOMContentLoaded", () => {
             alert(`Error downloading report: ${e}`);
         }
     };
+
+    // Keyboard shortcut to close modals
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+            window.closeExportLogsModal();
+            window.closeAnalyticsModal();
+        }
+    });
 
     // Initialize
     fetchInitialStatus();

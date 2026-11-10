@@ -93,7 +93,11 @@ python3 tests/attacker_sim.py --all
    * **`[ QUARANTINE ]`**: Displays only dynamic container network isolations and restorations.
    * **`[ IOT MESH ]`**: Shows live temperature telemetry published by `temp_sensor_01` (`home/sensors/temperature`) and actuator status.
    * **`[ SYSTEM ]`**: Shows SSE connections, stream handshakes, and database wipe events.
-4. Click the **`[ 🧹 Clear ]`** button to demonstrate on-demand terminal buffer clearing without affecting backend persistence.
+4. Click the **`[ 📥 Export ]`** button to demonstrate multi-format selective log export:
+   * Select specific streams (`ALL`, `HONEYPOT`, `MITIGATION`, `QUARANTINE`, `IOT MESH`, or `SYSTEM`).
+   * Choose the destination format: **JSON** (for SIEM connectors), **CSV** (for spreadsheet analysis), or **LOG / TXT** (raw terminal lines).
+   * Click **`⬇️ Download File`** to instantly trigger client-side export with IST timestamped filenames.
+5. Click the **`[ 🧹 Clear ]`** button to demonstrate on-demand terminal buffer clearing without affecting backend persistence.
 
 ---
 

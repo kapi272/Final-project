@@ -22,6 +22,8 @@ class TestDashboardUI(unittest.TestCase):
         self.assertIn("terminal-feed", body)
         self.assertIn("General Activity Logs", body)
         self.assertIn("btn-clear-console", body)
+        self.assertIn("btn-export-logs", body)
+        self.assertIn("export-logs-modal", body)
         self.assertIn("filter-btn-all", body)
         self.assertIn("filter-btn-honeypot", body)
         self.assertIn("filter-btn-quarantine", body)
@@ -55,6 +57,12 @@ class TestDashboardUI(unittest.TestCase):
         self.assertIn("en-IN", body)
         self.assertIn("w-[145px]", body)
         self.assertIn("min-w-[860px]", body)
+        # Verify Multi-format Activity Log Exporter
+        self.assertIn("openExportLogsModal", body)
+        self.assertIn("closeExportLogsModal", body)
+        self.assertIn("downloadActivityLogs", body)
+        self.assertIn("updateExportPreviewCount", body)
+        self.assertIn("terminalLogsBuffer", body)
 
     def test_quarantine_ui_category_integration(self) -> None:
         res = self.client.get("/static/app.js")

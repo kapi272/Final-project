@@ -364,6 +364,10 @@
                     </div>
                     <div class="flex items-center space-x-2">
                         <span class="text-[11px] font-mono text-slate-500 mr-1 hidden sm:inline">Multi-Stream SIEM</span>
+                        <button id="btn-export-logs" onclick="openExportLogsModal()" class="text-[11px] font-semibold text-sky-300 hover:text-white px-2 py-0.5 rounded border border-sky-800 bg-sky-950/60 hover:bg-sky-900 transition-colors flex items-center space-x-1" title="Export activity logs in JSON, CSV, or LOG format">
+                            <span>📥</span>
+                            <span>Export</span>
+                        </button>
                         <button id="btn-clear-console" onclick="clearConsole()" class="text-[11px] font-semibold text-slate-300 hover:text-white px-2 py-0.5 rounded border border-slate-700 bg-slate-800/80 hover:bg-slate-700 transition-colors flex items-center space-x-1" title="Clear terminal logs buffer">
                             <span>🧹</span>
                             <span>Clear</span>
@@ -473,6 +477,104 @@
                 <span>Autonomous IoT Cyber Defense System • Dedicated Log Analytics Subsystem</span>
                 <button onclick="closeAnalyticsModal()" class="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors">
                     Close Console
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- General Activity Logs Export Modal -->
+    <div id="export-logs-modal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4" onclick="if(event.target === this) closeExportLogsModal()">
+        <div class="bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl max-w-lg w-full flex flex-col overflow-hidden animate-in fade-in duration-150">
+            <!-- Modal Header -->
+            <div class="px-5 py-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-900/90">
+                <div class="flex items-center space-x-2.5">
+                    <span class="text-lg">📥</span>
+                    <div>
+                        <h3 class="text-sm font-bold text-white uppercase tracking-wider">Export Activity Logs</h3>
+                        <p class="text-[11px] text-slate-400">Download filtered SIEM logs in industry-standard formats</p>
+                    </div>
+                </div>
+                <button onclick="closeExportLogsModal()" class="text-slate-400 hover:text-white p-1 rounded hover:bg-slate-800 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-5 space-y-4 text-xs">
+                <!-- 1. Scope Selection -->
+                <div>
+                    <label class="block font-semibold text-slate-300 uppercase tracking-wider text-[11px] mb-1.5">Select Log Category / Stream:</label>
+                    <div class="grid grid-cols-3 gap-2 font-mono text-[11px]">
+                        <label class="flex items-center space-x-2 p-2 rounded bg-slate-950/80 border border-slate-800 hover:border-slate-700 cursor-pointer">
+                            <input type="radio" name="export-scope" value="all" checked onchange="updateExportPreviewCount()" class="text-sky-500 focus:ring-0">
+                            <span class="text-sky-400 font-bold">ALL</span>
+                        </label>
+                        <label class="flex items-center space-x-2 p-2 rounded bg-slate-950/80 border border-slate-800 hover:border-slate-700 cursor-pointer">
+                            <input type="radio" name="export-scope" value="honeypot" onchange="updateExportPreviewCount()" class="text-amber-500 focus:ring-0">
+                            <span class="text-amber-400 font-bold">HONEYPOT</span>
+                        </label>
+                        <label class="flex items-center space-x-2 p-2 rounded bg-slate-950/80 border border-slate-800 hover:border-slate-700 cursor-pointer">
+                            <input type="radio" name="export-scope" value="mitigation" onchange="updateExportPreviewCount()" class="text-rose-500 focus:ring-0">
+                            <span class="text-rose-400 font-bold">MITIGATION</span>
+                        </label>
+                        <label class="flex items-center space-x-2 p-2 rounded bg-slate-950/80 border border-slate-800 hover:border-slate-700 cursor-pointer">
+                            <input type="radio" name="export-scope" value="quarantine" onchange="updateExportPreviewCount()" class="text-red-500 focus:ring-0">
+                            <span class="text-red-400 font-bold">QUARANTINE</span>
+                        </label>
+                        <label class="flex items-center space-x-2 p-2 rounded bg-slate-950/80 border border-slate-800 hover:border-slate-700 cursor-pointer">
+                            <input type="radio" name="export-scope" value="iot" onchange="updateExportPreviewCount()" class="text-emerald-500 focus:ring-0">
+                            <span class="text-emerald-400 font-bold">IOT MESH</span>
+                        </label>
+                        <label class="flex items-center space-x-2 p-2 rounded bg-slate-950/80 border border-slate-800 hover:border-slate-700 cursor-pointer">
+                            <input type="radio" name="export-scope" value="system" onchange="updateExportPreviewCount()" class="text-slate-400 focus:ring-0">
+                            <span class="text-slate-300 font-bold">SYSTEM</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 2. Format Selection -->
+                <div>
+                    <label class="block font-semibold text-slate-300 uppercase tracking-wider text-[11px] mb-1.5">Select Export Format:</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <label class="flex flex-col p-2.5 rounded bg-slate-950/80 border border-slate-800 hover:border-sky-600/60 cursor-pointer">
+                            <div class="flex items-center space-x-2 mb-1">
+                                <input type="radio" name="export-format" value="json" checked class="text-sky-500 focus:ring-0">
+                                <span class="font-bold text-white font-mono">JSON</span>
+                            </div>
+                            <span class="text-[10px] text-slate-400">Structured array for SIEM & API</span>
+                        </label>
+                        <label class="flex flex-col p-2.5 rounded bg-slate-950/80 border border-slate-800 hover:border-sky-600/60 cursor-pointer">
+                            <div class="flex items-center space-x-2 mb-1">
+                                <input type="radio" name="export-format" value="csv" class="text-sky-500 focus:ring-0">
+                                <span class="font-bold text-white font-mono">CSV</span>
+                            </div>
+                            <span class="text-[10px] text-slate-400">Spreadsheet for Excel & Sheets</span>
+                        </label>
+                        <label class="flex flex-col p-2.5 rounded bg-slate-950/80 border border-slate-800 hover:border-sky-600/60 cursor-pointer">
+                            <div class="flex items-center space-x-2 mb-1">
+                                <input type="radio" name="export-format" value="log" class="text-sky-500 focus:ring-0">
+                                <span class="font-bold text-white font-mono">LOG / TXT</span>
+                            </div>
+                            <span class="text-[10px] text-slate-400">Monospace raw terminal logs</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 3. Preview Match Stats -->
+                <div class="p-2.5 rounded bg-slate-950 border border-slate-800/80 flex items-center justify-between font-mono text-[11px]">
+                    <span class="text-slate-400">Matching Records:</span>
+                    <span id="export-match-count" class="px-2 py-0.5 rounded bg-sky-950/80 border border-sky-800 text-sky-300 font-bold">0 records ready</span>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-5 py-3 border-t border-slate-800 bg-slate-900/60 flex items-center justify-end space-x-2.5">
+                <button onclick="closeExportLogsModal()" class="px-3 py-1.5 text-xs font-semibold rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors">
+                    Cancel
+                </button>
+                <button id="btn-confirm-export" onclick="downloadActivityLogs()" class="px-4 py-1.5 text-xs font-semibold rounded bg-sky-600 hover:bg-sky-500 text-white transition-all flex items-center space-x-1.5 shadow-sm">
+                    <span>⬇️</span>
+                    <span>Download File</span>
                 </button>
             </div>
         </div>
