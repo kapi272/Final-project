@@ -48,6 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
             stream = arg1.stream || "SYSTEM";
             category = arg1.category || "system";
             severity = arg1.severity || "INFO";
+            if (severity === "CRITICAL") severity = "CRIT";
             source = arg1.source || "--";
             protocol = arg1.protocol || "--";
             message = arg1.message || "";
@@ -329,6 +330,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const tr = document.createElement("tr");
         tr.id = rowKey;
+        if (record.src_ip) {
+            tr.dataset.srcIp = record.src_ip;
+        }
         tr.className = "border-b border-slate-800/80 hover:bg-slate-800/40 transition-colors";
 
         // Timestamp (Indian Standard IST: DD/MM/YYYY, HH:mm:ss)
@@ -510,8 +514,15 @@ document.addEventListener("DOMContentLoaded", () => {
             try {
                 const payload = JSON.parse(e.data);
                 const rec = payload.data || {};
-                activeBansCount++;
-                bannedCountEl.textContent = activeBansCount;
+                const rowKey = rec.id
+                    ? `row-id-${rec.id}`
+                    : (rec.src_ip ? `row-ip-${rec.src_ip.replace(/[^a-zA-Z0-9]/g, '_')}` : null);
+                const action = rec.action || "IPTABLES_DROP";
+                const alreadyRendered = Boolean(rowKey && document.getElementById(rowKey));
+                if (!alreadyRendered && (action === "IPTABLES_DROP" || action === "BLOCK")) {
+                    activeBansCount++;
+                    bannedCountEl.textContent = activeBansCount;
+                }
                 addMitigationRow(rec);
                 appendTerminalLog({
                     stream: "MITIGATION",
@@ -537,19 +548,28 @@ document.addEventListener("DOMContentLoaded", () => {
         eventSource.addEventListener("unban_alert", (e) => {
             try {
                 const payload = JSON.parse(e.data);
-                const ip = payload.data.ip;
-                const row = document.getElementById(`row-ip-${ip.replace(/[^a-zA-Z0-9]/g, '_')}`);
-                if (row) row.remove();
+                const ip = (payload.data && payload.data.ip) || "";
+                if (ip && mitigationTableBody) {
+                    const legacyRow = document.getElementById(`row-ip-${ip.replace(/[^a-zA-Z0-9]/g, '_')}`);
+                    if (legacyRow) legacyRow.remove();
+                    mitigationTableBody.querySelectorAll("tr").forEach((tr) => {
+                        if (tr.dataset.srcIp === ip) {
+                            tr.remove();
+                        }
+                    });
+                }
                 if (activeBansCount > 0) activeBansCount--;
                 bannedCountEl.textContent = activeBansCount;
                 appendTerminalLog({
                     stream: "MITIGATION",
                     category: "mitigation",
                     severity: "INFO",
-                    source: ip,
+                    source: ip || "unknown",
                     protocol: "NETFILTER",
-                    message: `Manual unban executed by ${payload.data.unbanned_by || 'soc_admin'}`
+                    message: `Manual unban executed by ${(payload.data && payload.data.unbanned_by) || 'soc_admin'}`
                 });
+                fetchInitialStatus();
+                loadAnalytics();
             } catch (err) {
                 console.error(err);
             }
@@ -830,6 +850,16 @@ document.addEventListener("DOMContentLoaded", () => {
                     protocol: proto,
                     message: `Simulation payload delivered: ${data.message}`
                 });
+                if (data.data && Array.isArray(data.data.already_banned) && data.data.already_banned.length > 0) {
+                    appendTerminalLog({
+                        stream: "MITIGATION",
+                        category: "mitigation",
+                        severity: "INFO",
+                        source: data.data.already_banned.join(", "),
+                        protocol: "NETFILTER",
+                        message: `Idempotent defense skip: IP(s) already actively banned in IOT_DEFENSE_BLOCKLIST (${data.data.already_banned.join(", ")}).`
+                    });
+                }
                 if (data.data && Array.isArray(data.data.allowlist_protected) && data.data.allowlist_protected.length > 0) {
                     appendTerminalLog({
                         stream: "SYSTEM",
@@ -840,6 +870,8 @@ document.addEventListener("DOMContentLoaded", () => {
                         message: `Safety Allowlist blocked ban on protected IP(s): ${data.data.allowlist_protected.join(", ")}.`
                     });
                 }
+                await fetchInitialStatus();
+                loadAnalytics();
             } else {
                 const errMsg = data.detail || data.message || `HTTP ${res.status}`;
                 appendTerminalLog({

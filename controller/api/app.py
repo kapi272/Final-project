@@ -130,6 +130,15 @@ def create_app(
         allow_headers=["*"],
     )
 
+    @app.middleware("http")
+    async def disable_ui_caching(request: Request, call_next):
+        """Prevents stale browser caching of dashboard HTML and JS assets across upgrades."""
+        response = await call_next(request)
+        if request.url.path == "/" or request.url.path.startswith("/static/"):
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            response.headers["Pragma"] = "no-cache"
+        return response
+
     # Include API routes
     app.include_router(router)
 

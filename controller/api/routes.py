@@ -3,7 +3,7 @@ import ipaddress
 import logging
 import random
 import time
-from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple
+from typing import Any, AsyncGenerator, Dict, List, Optional, Set, Tuple
 
 from fastapi import APIRouter, Body, HTTPException, Request, Response
 from fastapi.responses import StreamingResponse
@@ -325,6 +325,35 @@ async def _emit_threshold_attack(
     return events_triggered
 
 
+def _build_simulation_result(
+    detector: IntrusionDetector,
+    target_ips: List[str],
+    mode: str,
+    events_sent: int,
+    pre_banned: Set[str],
+    extra: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Builds standardized simulation telemetry metadata reporting newly banned vs already-banned IPs."""
+    protected = [ip for ip in target_ips if detector.allowlist.is_ip_protected(ip)]
+    already_banned = [ip for ip in target_ips if ip in pre_banned]
+    newly_banned = [
+        ip for ip in target_ips
+        if ip not in pre_banned and ip not in protected and detector.firewall.is_ip_banned(ip)
+    ]
+    data: Dict[str, Any] = {
+        "target_ip": target_ips[0],
+        "target_ips": target_ips,
+        "mode": mode,
+        "events_sent": events_sent,
+        "newly_banned": newly_banned,
+        "already_banned": already_banned,
+        "allowlist_protected": protected,
+    }
+    if extra:
+        data.update(extra)
+    return data
+
+
 @router.post("/simulate/attack/brute-force")
 async def trigger_simulated_bruteforce(
     request: Request,
@@ -334,6 +363,7 @@ async def trigger_simulated_bruteforce(
     detector = get_detector(request)
     broadcaster = get_broadcaster(request)
     target_ips, mode = _resolve_simulation_targets("brute-force", payload)
+    pre_banned = {ip for ip in target_ips if detector.firewall.is_ip_banned(ip)}
 
     events_triggered = await _emit_threshold_attack(
         detector=detector,
@@ -341,18 +371,10 @@ async def trigger_simulated_bruteforce(
         target_ips=target_ips,
         eventid="cowrie.login.failed",
     )
-    protected = [ip for ip in target_ips if detector.allowlist.is_ip_protected(ip)]
-    ip_summary = ", ".join(target_ips)
-
+    data = _build_simulation_result(detector, target_ips, mode, events_triggered, pre_banned)
     return make_response(
-        data={
-            "target_ip": target_ips[0],
-            "target_ips": target_ips,
-            "mode": mode,
-            "events_sent": events_triggered,
-            "allowlist_protected": protected,
-        },
-        message=f"Brute-force attack simulation ({mode}) completed for {ip_summary}.",
+        data=data,
+        message=f"Brute-force attack simulation ({mode}) completed for {', '.join(target_ips)}.",
     )
 
 
@@ -365,6 +387,7 @@ async def trigger_simulated_exploit(
     detector = get_detector(request)
     broadcaster = get_broadcaster(request)
     target_ips, mode = _resolve_simulation_targets("exploit", payload)
+    pre_banned = {ip for ip in target_ips if detector.firewall.is_ip_banned(ip)}
     commands_used: List[str] = []
 
     for idx, attacker_ip in enumerate(target_ips):
@@ -383,19 +406,17 @@ async def trigger_simulated_exploit(
         if len(target_ips) > 1:
             await asyncio.sleep(0.03)
 
-    protected = [ip for ip in target_ips if detector.allowlist.is_ip_protected(ip)]
-    ip_summary = ", ".join(target_ips)
-
+    data = _build_simulation_result(
+        detector,
+        target_ips,
+        mode,
+        len(target_ips),
+        pre_banned,
+        extra={"command": commands_used[0]},
+    )
     return make_response(
-        data={
-            "target_ip": target_ips[0],
-            "target_ips": target_ips,
-            "mode": mode,
-            "command": commands_used[0],
-            "events_sent": len(target_ips),
-            "allowlist_protected": protected,
-        },
-        message=f"Terminal exploit simulation ({mode}) completed for {ip_summary}.",
+        data=data,
+        message=f"Terminal exploit simulation ({mode}) completed for {', '.join(target_ips)}.",
     )
 
 
@@ -408,6 +429,7 @@ async def trigger_simulated_port_sweep(
     detector = get_detector(request)
     broadcaster = get_broadcaster(request)
     target_ips, mode = _resolve_simulation_targets("port-sweep", payload)
+    pre_banned = {ip for ip in target_ips if detector.firewall.is_ip_banned(ip)}
 
     events_triggered = await _emit_threshold_attack(
         detector=detector,
@@ -415,18 +437,10 @@ async def trigger_simulated_port_sweep(
         target_ips=target_ips,
         eventid="cowrie.client.version",
     )
-    protected = [ip for ip in target_ips if detector.allowlist.is_ip_protected(ip)]
-    ip_summary = ", ".join(target_ips)
-
+    data = _build_simulation_result(detector, target_ips, mode, events_triggered, pre_banned)
     return make_response(
-        data={
-            "target_ip": target_ips[0],
-            "target_ips": target_ips,
-            "mode": mode,
-            "events_sent": events_triggered,
-            "allowlist_protected": protected,
-        },
-        message=f"Reconnaissance sweep simulation ({mode}) completed for {ip_summary}.",
+        data=data,
+        message=f"Reconnaissance sweep simulation ({mode}) completed for {', '.join(target_ips)}.",
     )
 
 

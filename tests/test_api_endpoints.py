@@ -192,14 +192,27 @@ class TestAPIRoutes(unittest.TestCase):
             self.assertEqual(len(data[key]), 5)
 
     def test_simulate_attack_custom_ip_and_swarm(self) -> None:
-        # Custom explicit IP
+        # Custom explicit IP (newly banned)
         custom_res = self.client.post(
             "/api/simulate/attack/exploit",
             json={"src_ip": "192.0.2.150", "mode": "single"},
         )
         self.assertEqual(custom_res.status_code, 200)
-        self.assertEqual(custom_res.json()["data"]["target_ip"], "192.0.2.150")
+        custom_data = custom_res.json()["data"]
+        self.assertEqual(custom_data["target_ip"], "192.0.2.150")
+        self.assertIn("192.0.2.150", custom_data["newly_banned"])
+        self.assertEqual(custom_data["already_banned"], [])
         self.assertTrue(self.firewall.is_ip_banned("192.0.2.150"))
+
+        # Repeat exploit against same IP triggers idempotent skip reporting
+        repeat_res = self.client.post(
+            "/api/simulate/attack/exploit",
+            json={"src_ip": "192.0.2.150", "mode": "single"},
+        )
+        self.assertEqual(repeat_res.status_code, 200)
+        repeat_data = repeat_res.json()["data"]
+        self.assertEqual(repeat_data["newly_banned"], [])
+        self.assertIn("192.0.2.150", repeat_data["already_banned"])
 
         # Invalid IP rejected with 400
         bad_res = self.client.post(

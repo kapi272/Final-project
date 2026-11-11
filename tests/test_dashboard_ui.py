@@ -34,6 +34,8 @@ class TestDashboardUI(unittest.TestCase):
         self.assertIn("select-ip-exploit", body)
         self.assertIn("select-ip-portsweep", body)
         self.assertIn("custom-ip-bruteforce", body)
+        self.assertIn("/static/app.js?v=1.8.1", body)
+        self.assertIn("no-store", res.headers.get("cache-control", "").lower())
         self.assertIn("DATE & TIME (IST)", body)
         self.assertIn("w-[145px]", body)
         self.assertIn("min-w-[860px]", body)
@@ -47,6 +49,7 @@ class TestDashboardUI(unittest.TestCase):
         res = self.client.get("/static/app.js")
         self.assertEqual(res.status_code, 200)
         self.assertIn("javascript", res.headers["content-type"].lower())
+        self.assertIn("no-store", res.headers.get("cache-control", "").lower())
         body = res.text
         self.assertIn("EventSource", body)
         self.assertIn("textContent", body)
@@ -71,6 +74,8 @@ class TestDashboardUI(unittest.TestCase):
         self.assertIn("ATTACK_IP_POOLS", body)
         self.assertIn("toggleCustomAttackIp", body)
         self.assertIn("allowlist_protected", body)
+        self.assertIn("already_banned", body)
+        self.assertIn("dataset.srcIp", body)
 
     def test_quarantine_ui_category_integration(self) -> None:
         res = self.client.get("/static/app.js")
