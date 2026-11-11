@@ -183,6 +183,51 @@ class TestAPIRoutes(unittest.TestCase):
         self.assertIn("threat_intelligence", data["data"])
         self.assertIn("mitigation_audit_log", data["data"])
 
+    def test_attack_ip_pools_endpoint(self) -> None:
+        res = self.client.get("/api/simulate/attack/pools")
+        self.assertEqual(res.status_code, 200)
+        data = res.json()["data"]
+        for key in ("brute-force", "exploit", "port-sweep"):
+            self.assertIn(key, data)
+            self.assertEqual(len(data[key]), 5)
+
+    def test_simulate_attack_custom_ip_and_swarm(self) -> None:
+        # Custom explicit IP
+        custom_res = self.client.post(
+            "/api/simulate/attack/exploit",
+            json={"src_ip": "192.0.2.150", "mode": "single"},
+        )
+        self.assertEqual(custom_res.status_code, 200)
+        self.assertEqual(custom_res.json()["data"]["target_ip"], "192.0.2.150")
+        self.assertTrue(self.firewall.is_ip_banned("192.0.2.150"))
+
+        # Invalid IP rejected with 400
+        bad_res = self.client.post(
+            "/api/simulate/attack/exploit",
+            json={"src_ip": "not-an-ip", "mode": "single"},
+        )
+        self.assertEqual(bad_res.status_code, 400)
+
+        # Allowlisted IP skipped safely
+        safe_res = self.client.post(
+            "/api/simulate/attack/exploit",
+            json={"src_ip": "127.0.0.1", "mode": "single"},
+        )
+        self.assertEqual(safe_res.status_code, 200)
+        self.assertFalse(self.firewall.is_ip_banned("127.0.0.1"))
+        self.assertIn("127.0.0.1", safe_res.json()["data"]["allowlist_protected"])
+
+        # Swarm mode triggers and bans all 5 IPs in pool
+        swarm_res = self.client.post(
+            "/api/simulate/attack/port-sweep",
+            json={"mode": "swarm"},
+        )
+        self.assertEqual(swarm_res.status_code, 200)
+        swarm_ips = swarm_res.json()["data"]["target_ips"]
+        self.assertEqual(len(swarm_ips), 5)
+        for ip in swarm_ips:
+            self.assertTrue(self.firewall.is_ip_banned(ip))
+
 
 if __name__ == "__main__":
     unittest.main()

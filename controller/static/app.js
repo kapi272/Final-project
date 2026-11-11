@@ -733,53 +733,122 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
 
-    // Wire Option A: Red Team Adversary Simulation Triggers
-    window.triggerAttack = async function(attackType) {
-        const btnId = `btn-attack-${attackType.replace(/[^a-zA-Z0-9]/g, '')}`;
-        const btn = document.getElementById(btnId);
-        const originalContent = btn ? btn.innerHTML : "";
+    const ATTACK_IP_POOLS = {
+        "brute-force": ["198.51.100.99", "198.51.100.142", "198.51.100.205", "203.0.113.45", "192.0.2.81"],
+        "exploit": ["203.0.113.88", "203.0.113.154", "203.0.113.219", "198.51.100.175", "192.0.2.114"],
+        "port-sweep": ["198.51.100.77", "198.51.100.188", "192.0.2.63", "203.0.113.92", "192.0.2.199"]
+    };
+    const attackRotationIndex = { "brute-force": 0, "exploit": 0, "port-sweep": 0 };
 
+    // Show/hide inline custom IP input on Red Team simulation cards
+    window.toggleCustomAttackIp = function(cardKey) {
+        const selectEl = document.getElementById(`select-ip-${cardKey}`);
+        const customInputEl = document.getElementById(`custom-ip-${cardKey}`);
+        if (!selectEl || !customInputEl) return;
+
+        if (selectEl.value === "custom") {
+            customInputEl.classList.remove("hidden");
+            customInputEl.focus();
+        } else {
+            customInputEl.classList.add("hidden");
+        }
+    };
+
+    // Wire Option A: Multi-IP Red Team Adversary Simulation Triggers
+    window.triggerAttack = async function(attackType) {
+        const cardKey = attackType.replace(/[^a-zA-Z0-9]/g, '');
+        const btn = document.getElementById(`btn-attack-${cardKey}`);
+        const selectEl = document.getElementById(`select-ip-${cardKey}`);
+        const customInputEl = document.getElementById(`custom-ip-${cardKey}`);
+        const proto = attackType === "port-sweep" ? "TCP:SWEEP" : "SSH:2222";
+        const sev = attackType === "exploit" ? "CRIT" : "HIGH";
+
+        const selection = selectEl ? selectEl.value : "rotate";
+        let requestPayload = { mode: "single" };
+        let displaySource = "";
+
+        if (selection === "swarm") {
+            requestPayload = { mode: "swarm" };
+            displaySource = "SWARM (5 IPs)";
+        } else if (selection === "rotate") {
+            const pool = ATTACK_IP_POOLS[attackType] || ["198.51.100.99"];
+            const idx = attackRotationIndex[attackType] || 0;
+            const rotatedIp = pool[idx % pool.length];
+            attackRotationIndex[attackType] = idx + 1;
+            requestPayload = { src_ip: rotatedIp, mode: "single" };
+            displaySource = rotatedIp;
+        } else if (selection === "custom") {
+            const customIp = customInputEl ? customInputEl.value.trim() : "";
+            if (!customIp) {
+                appendTerminalLog({
+                    stream: "ADVERSARY",
+                    category: "honeypot",
+                    severity: "WARN",
+                    source: "CUSTOM_IP",
+                    protocol: proto,
+                    message: "Please enter a valid IPv4 or IPv6 address before launching custom simulation."
+                });
+                if (customInputEl) customInputEl.focus();
+                return;
+            }
+            requestPayload = { src_ip: customIp, mode: "single" };
+            displaySource = customIp;
+        } else {
+            requestPayload = { src_ip: selection, mode: "single" };
+            displaySource = selection;
+        }
+
+        const originalContent = btn ? btn.innerHTML : "";
         if (btn) {
             btn.disabled = true;
             btn.innerHTML = `<span class="animate-spin mr-1">⚙️</span> Launching ${attackType}...`;
             btn.classList.add("opacity-75");
         }
 
-        const attackerIp = attackType === "exploit" ? "203.0.113.88" : (attackType === "port-sweep" ? "198.51.100.77" : "198.51.100.99");
-        const proto = attackType === "exploit" ? "SSH:2222" : (attackType === "port-sweep" ? "TCP:SWEEP" : "SSH:2222");
-
         appendTerminalLog({
             stream: "ADVERSARY",
             category: "honeypot",
-            severity: attackType === "exploit" ? "CRIT" : "HIGH",
-            source: attackerIp,
+            severity: sev,
+            source: displaySource,
             protocol: proto,
-            message: `Initiating ${attackType.toUpperCase()} intrusion attack simulation...`
+            message: `Initiating ${attackType.toUpperCase()} intrusion simulation from ${displaySource}...`
         });
 
         try {
             const res = await fetch(`/api/simulate/attack/${attackType}`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" }
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(requestPayload)
             });
             const data = await res.json();
-            if (data.status === "success") {
+            if (res.ok && data.status === "success") {
                 appendTerminalLog({
                     stream: "ADVERSARY",
                     category: "honeypot",
-                    severity: attackType === "exploit" ? "CRIT" : "HIGH",
-                    source: attackerIp,
+                    severity: sev,
+                    source: displaySource,
                     protocol: proto,
                     message: `Simulation payload delivered: ${data.message}`
                 });
+                if (data.data && Array.isArray(data.data.allowlist_protected) && data.data.allowlist_protected.length > 0) {
+                    appendTerminalLog({
+                        stream: "SYSTEM",
+                        category: "mitigation",
+                        severity: "WARN",
+                        source: data.data.allowlist_protected.join(", "),
+                        protocol: "ALLOWLIST",
+                        message: `Safety Allowlist blocked ban on protected IP(s): ${data.data.allowlist_protected.join(", ")}.`
+                    });
+                }
             } else {
+                const errMsg = data.detail || data.message || `HTTP ${res.status}`;
                 appendTerminalLog({
                     stream: "ADVERSARY",
                     category: "honeypot",
                     severity: "WARN",
-                    source: attackerIp,
+                    source: displaySource,
                     protocol: proto,
-                    message: `Simulation request error: ${data.message}`
+                    message: `Simulation rejected: ${errMsg}`
                 });
             }
         } catch (err) {
@@ -787,7 +856,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 stream: "ADVERSARY",
                 category: "honeypot",
                 severity: "CRIT",
-                source: attackerIp,
+                source: displaySource,
                 protocol: proto,
                 message: `Network error triggering simulation: ${err}`
             });

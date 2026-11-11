@@ -53,9 +53,10 @@ Honeypot:     172.20.0.50 (Decoy)
 
 ## Auth and Access Model
 
-- **Dashboard Access:** Open local binding (`127.0.0.1:8000` or private management LAN) without external exposure.
+- **Dashboard Access:** Open local binding (`127.0.0.1:8000` / `:8050` or private management LAN) without external exposure.
 - **Honeypot Decoy Authentication:** Intentionally exposes weak/standard IoT credentials (e.g., `root:root`, `admin:admin`, `admin:123456`) to capture credential stuffing.
 - **Controller System Privileges:** The `defense_controller` container communicates with the Docker Engine via `/var/run/docker.sock` to orchestrate network attachments and disconnects. Firewall drop enforcement is executed with `NET_ADMIN` capabilities on the gateway interface.
+- **Red-Team Simulation API (`/api/simulate/attack/{type}`, `/api/simulate/attack/pools`):** Accepts single explicit IPs validated via Python's `ipaddress` module, randomized/rotated RFC 5737 TEST-NET pool IPs, or multi-IP distributed swarm bursts (`mode: "swarm"`), while enforcing allowlist rejection on protected addresses.
 
 ## Invariants
 

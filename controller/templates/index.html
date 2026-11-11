@@ -285,7 +285,20 @@
                             <span class="text-xs font-bold text-slate-200">Credential Brute-Force</span>
                             <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-950/60 border border-amber-800 text-amber-400">PORT 2222</span>
                         </div>
-                        <p class="text-[11px] text-slate-400 mb-3">5 rapid failed SSH logins from <code class="text-slate-300 font-mono">198.51.100.99</code>. Exceeds frequency threshold.</p>
+                        <p class="text-[11px] text-slate-400 mb-2.5">5 rapid failed SSH logins from selectable multi-IP pool. Exceeds threshold.</p>
+                        <div class="mb-3 space-y-1.5">
+                            <select id="select-ip-bruteforce" onchange="toggleCustomAttackIp('bruteforce')" class="w-full px-2 py-1 rounded bg-slate-900 border border-slate-700/80 text-[11px] font-mono text-amber-300 focus:outline-none focus:border-amber-500">
+                                <option value="rotate" selected>🔄 Auto-Rotate IP (5-IP Pool)</option>
+                                <option value="198.51.100.99">198.51.100.99 (Primary Bot)</option>
+                                <option value="198.51.100.142">198.51.100.142 (Mirai Node-B)</option>
+                                <option value="198.51.100.205">198.51.100.205 (Mirai Node-C)</option>
+                                <option value="203.0.113.45">203.0.113.45 (Dict Scanner)</option>
+                                <option value="192.0.2.81">192.0.2.81 (External Node)</option>
+                                <option value="swarm">🌐 Swarm Mode (All 5 IPs)</option>
+                                <option value="custom">✏️ Custom IP Address...</option>
+                            </select>
+                            <input id="custom-ip-bruteforce" type="text" placeholder="Enter custom IPv4 (e.g. 198.51.100.50)" class="hidden w-full px-2 py-1 rounded bg-slate-900 border border-slate-700 text-[11px] font-mono text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500" />
+                        </div>
                     </div>
                     <button id="btn-attack-bruteforce" onclick="triggerAttack('brute-force')" class="w-full py-1.5 px-3 text-xs font-semibold rounded bg-amber-950/40 hover:bg-amber-900 border border-amber-800 hover:border-amber-700 text-amber-300 transition-all flex items-center justify-center space-x-2">
                         <span>⚡ Trigger Brute-Force</span>
@@ -299,7 +312,20 @@
                             <span class="text-xs font-bold text-slate-200">Terminal Exploit Injection</span>
                             <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-950/60 border border-rose-800 text-rose-400">CRITICAL</span>
                         </div>
-                        <p class="text-[11px] text-slate-400 mb-3">Remote command injection (<code class="text-slate-300 font-mono">curl | sh</code>) from <code class="text-slate-300 font-mono">203.0.113.88</code>.</p>
+                        <p class="text-[11px] text-slate-400 mb-2.5">Remote shell injection (<code class="text-slate-300 font-mono">curl | sh</code>, <code class="text-slate-300 font-mono">wget</code>, <code class="text-slate-300 font-mono">nc</code>) across attacker IPs.</p>
+                        <div class="mb-3 space-y-1.5">
+                            <select id="select-ip-exploit" onchange="toggleCustomAttackIp('exploit')" class="w-full px-2 py-1 rounded bg-slate-900 border border-slate-700/80 text-[11px] font-mono text-rose-300 focus:outline-none focus:border-rose-500">
+                                <option value="rotate" selected>🔄 Auto-Rotate IP (5-IP Pool)</option>
+                                <option value="203.0.113.88">203.0.113.88 (Payload Dropper)</option>
+                                <option value="203.0.113.154">203.0.113.154 (C2 Injector)</option>
+                                <option value="203.0.113.219">203.0.113.219 (ARM7 Dropper)</option>
+                                <option value="198.51.100.175">198.51.100.175 (Loader Bot)</option>
+                                <option value="192.0.2.114">192.0.2.114 (Reverse Shell)</option>
+                                <option value="swarm">🌐 Swarm Mode (All 5 IPs)</option>
+                                <option value="custom">✏️ Custom IP Address...</option>
+                            </select>
+                            <input id="custom-ip-exploit" type="text" placeholder="Enter custom IPv4 (e.g. 203.0.113.100)" class="hidden w-full px-2 py-1 rounded bg-slate-900 border border-slate-700 text-[11px] font-mono text-slate-200 placeholder-slate-500 focus:outline-none focus:border-rose-500" />
+                        </div>
                     </div>
                     <button id="btn-attack-exploit" onclick="triggerAttack('exploit')" class="w-full py-1.5 px-3 text-xs font-semibold rounded bg-rose-950/40 hover:bg-rose-900 border border-rose-800 hover:border-rose-700 text-rose-300 transition-all flex items-center justify-center space-x-2">
                         <span>🔥 Trigger Terminal Exploit</span>
@@ -313,7 +339,20 @@
                             <span class="text-xs font-bold text-slate-200">Port Reconnaissance Sweep</span>
                             <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-sky-950/60 border border-sky-800 text-sky-400">PROBES</span>
                         </div>
-                        <p class="text-[11px] text-slate-400 mb-3">Rapid TCP reconnaissance sweep from <code class="text-slate-300 font-mono">198.51.100.77</code> across virtual subnet.</p>
+                        <p class="text-[11px] text-slate-400 mb-2.5">Rapid TCP reconnaissance probes from distributed subnet scanners.</p>
+                        <div class="mb-3 space-y-1.5">
+                            <select id="select-ip-portsweep" onchange="toggleCustomAttackIp('portsweep')" class="w-full px-2 py-1 rounded bg-slate-900 border border-slate-700/80 text-[11px] font-mono text-sky-300 focus:outline-none focus:border-sky-500">
+                                <option value="rotate" selected>🔄 Auto-Rotate IP (5-IP Pool)</option>
+                                <option value="198.51.100.77">198.51.100.77 (Subnet Scanner)</option>
+                                <option value="198.51.100.188">198.51.100.188 (SYN Prober)</option>
+                                <option value="192.0.2.63">192.0.2.63 (Masscan Enum)</option>
+                                <option value="203.0.113.92">203.0.113.92 (Banner Grab)</option>
+                                <option value="192.0.2.199">192.0.2.199 (Botnet Recon)</option>
+                                <option value="swarm">🌐 Swarm Mode (All 5 IPs)</option>
+                                <option value="custom">✏️ Custom IP Address...</option>
+                            </select>
+                            <input id="custom-ip-portsweep" type="text" placeholder="Enter custom IPv4 (e.g. 192.0.2.77)" class="hidden w-full px-2 py-1 rounded bg-slate-900 border border-slate-700 text-[11px] font-mono text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sky-500" />
+                        </div>
                     </div>
                     <button id="btn-attack-portsweep" onclick="triggerAttack('port-sweep')" class="w-full py-1.5 px-3 text-xs font-semibold rounded bg-sky-950/40 hover:bg-sky-900 border border-sky-800 hover:border-sky-700 text-sky-300 transition-all flex items-center justify-center space-x-2">
                         <span>📡 Trigger Port Sweep</span>

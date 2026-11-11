@@ -30,6 +30,10 @@ class TestDashboardUI(unittest.TestCase):
         self.assertIn("filter-btn-iot", body)
         self.assertIn("siem-grid-header", body)
         self.assertIn("v1.8-SOC", body)
+        self.assertIn("select-ip-bruteforce", body)
+        self.assertIn("select-ip-exploit", body)
+        self.assertIn("select-ip-portsweep", body)
+        self.assertIn("custom-ip-bruteforce", body)
         self.assertIn("DATE & TIME (IST)", body)
         self.assertIn("w-[145px]", body)
         self.assertIn("min-w-[860px]", body)
@@ -63,6 +67,10 @@ class TestDashboardUI(unittest.TestCase):
         self.assertIn("downloadActivityLogs", body)
         self.assertIn("updateExportPreviewCount", body)
         self.assertIn("terminalLogsBuffer", body)
+        # Verify Multi-IP Adversary Simulation Pools & Swarm Support
+        self.assertIn("ATTACK_IP_POOLS", body)
+        self.assertIn("toggleCustomAttackIp", body)
+        self.assertIn("allowlist_protected", body)
 
     def test_quarantine_ui_category_integration(self) -> None:
         res = self.client.get("/static/app.js")

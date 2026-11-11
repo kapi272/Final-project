@@ -6,7 +6,7 @@ Update this file after every meaningful implementation change.
 Phase 15: Milestone v1.8.0 — Multi-IP Adversary Simulation Pools, Custom IP & Botnet Swarm Mode
 
 ## Current Goal
-The Autonomous IoT Cyber Defense Testbed is running on release v1.8.0 (SOC Terminal v1.8-SOC) supporting multi-IP attack simulations (5 distinct RFC 5737 test IPs per attack vector, auto-rotation, custom IP validation, and simultaneous Swarm attacks) in the Red Team Controls toolbar. 38/38 tests passing.
+The Autonomous IoT Cyber Defense Testbed is running on release v1.8.0 (SOC Terminal v1.8-SOC) supporting multi-IP attack simulations (5 distinct RFC 5737 test IPs per attack vector, auto-rotation, custom IP validation, and simultaneous Swarm attacks) in the Red Team Controls toolbar. 40/40 tests passing.
 
 ## Completed
 - [x] Context foundation files established and verified at root.
@@ -27,6 +27,7 @@ The Autonomous IoT Cyber Defense Testbed is running on release v1.8.0 (SOC Termi
 - [x] Phase 13: Milestone v1.6.0 — Indian Standard Date & Time (IST) Formatting: Configured `formatDateTime` using `Asia/Kolkata` and `en-IN` (`DD/MM/YYYY, HH:mm:ss`), updated the first column of the 6-column SIEM grid and the Autonomous Mitigation Ledger to display the calendar date preceding the time, adjusted the time column width to `w-[145px] shrink-0`, and widened the horizontal scroll wrapper to `min-w-[860px]` for smooth rendering. 38/38 unit tests passing.
 - [x] Phase 14: Milestone v1.7.0 — Multi-Format Activity Logs Export Engine: Added dedicated `[ 📥 Export ]` button in the General Activity Logs header opening a modal for selective log export. Operators can filter by scope (ALL, HONEYPOT, MITIGATION, QUARANTINE, IOT MESH, SYSTEM) and choose between industry-standard formats (JSON, CSV, Raw LOG/TXT) with live matching record counters and IST timestamp formatting. 38/38 unit tests passing.
 - [x] Phase 15: Milestone v1.8.0 Version Bump — System version incremented to v1.8.0 (SOC Terminal v1.8-SOC) across app, docs, and configurations.
+- [x] Phase 15: Multi-IP Adversary Simulation Pools, Custom IP & Swarm Engine: Added curated 5-IP RFC 5737 TEST-NET pools per attack vector (`brute-force`, `exploit`, `port-sweep`), exposed `GET /api/simulate/attack/pools`, updated `POST /api/simulate/attack/{type}` with `ipaddress` boundary validation and `"single"` / `"random"` / `"swarm"` modes, added UI selector dropdowns (`Auto-Rotate IP`, 5 pool IPs, `Swarm Mode`, `Custom IP`) on all 3 Red Team cards, and enforced allowlist safety checks. 40/40 unit tests passing.
 
 ## In Progress
 - [ ] Live evaluation demonstration and evaluator walkthrough.

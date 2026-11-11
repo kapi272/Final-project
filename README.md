@@ -7,7 +7,7 @@ An autonomous, containerized host-level IoT cyber defense testbed using virtual 
 [![Docker Compose](https://img.shields.io/badge/Docker-Compose%20v2+-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 [![Release: v1.8.0](https://img.shields.io/badge/Release-v1.8.0-blue)](./)
 [![Reaction SLA](https://img.shields.io/badge/Mitigation%20Latency-0.65%20ms-emerald)](./context/specs/06-red-team-simulation.md)
-[![Tests Passing](https://img.shields.io/badge/Tests-38%2F38%20Passing-brightgreen)](./tests/)
+[![Tests Passing](https://img.shields.io/badge/Tests-40%2F40%20Passing-brightgreen)](./tests/)
 
 ---
 
