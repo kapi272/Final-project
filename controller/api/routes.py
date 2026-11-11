@@ -1,15 +1,17 @@
 import asyncio
 import ipaddress
+import json
 import logging
 import random
 import time
 from typing import Any, AsyncGenerator, Dict, List, Optional, Set, Tuple
 
-from fastapi import APIRouter, Body, HTTPException, Request, Response
+from fastapi import APIRouter, Body, Header, HTTPException, Request, Response
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from controller.api.sse_broker import SSEBroadcaster
+from controller.core.device_manager import RealDeviceManager
 from controller.core.detector import IntrusionDetector
 from controller.core.models import CowrieEvent
 from controller.mitigation.quarantine import QuarantineManager
@@ -60,6 +62,30 @@ class UnbanRequest(BaseModel):
 class AttackSimulationRequest(BaseModel):
     src_ip: Optional[str] = Field(None, description="Optional explicit attacker IPv4 or IPv6 address")
     mode: str = Field("single", description="Simulation mode: 'single', 'random', or 'swarm'")
+
+
+class TrafficModeRequest(BaseModel):
+    mode: str = Field(..., description="Active telemetry mode: 'simulated' or 'live'")
+
+
+class DeviceCreateRequest(BaseModel):
+    device_id: str = Field(..., description="Unique alphanumeric device ID (e.g. cam_front_door)")
+    name: str = Field(..., description="Friendly display name (e.g. Front Gate CCTV)")
+    device_type: str = Field("cctv_camera", description="cctv_camera | iot_sensor | smart_actuator | edge_gateway")
+    protocol: str = Field("rtsp_http", description="mqtt | rtsp_http | http_webhook")
+    ip_address: str = Field(..., description="Device LAN/external IPv4 or IPv6 address")
+    port: int = Field(554, description="Primary reachable TCP port (e.g. 554 RTSP, 80 HTTP, 1883 MQTT)")
+    mqtt_topic: Optional[str] = Field("", description="Optional MQTT topic under home/#")
+    snapshot_url: Optional[str] = Field("", description="Optional HTTP/HTTPS CCTV snapshot or MJPEG URL")
+
+
+class DeviceBlockRequest(BaseModel):
+    reason: Optional[str] = Field("Operator logical quarantine", description="Reason for blocking device ingestion")
+    admin_user: Optional[str] = Field("soc_admin", description="Operator identity")
+
+
+class DeviceIngestRequest(BaseModel):
+    payload: Dict[str, Any] = Field(default_factory=dict, description="JSON telemetry/event payload from physical IoT device")
 
 
 def _resolve_simulation_targets(
@@ -117,6 +143,20 @@ def get_broadcaster(request: Request) -> SSEBroadcaster:
     return request.app.state.sse_broadcaster
 
 
+def get_device_manager(request: Request) -> RealDeviceManager:
+    return request.app.state.device_manager
+
+
+def _ensure_simulated_mode(request: Request) -> None:
+    """Rejects synthetic simulation calls when controller is running in strict Live Traffic mode."""
+    current_mode = getattr(request.app.state, "traffic_mode", "simulated")
+    if current_mode != "simulated":
+        raise HTTPException(
+            status_code=409,
+            detail="Simulation triggers are paused in Live Traffic mode. Switch to Simulated Traffic mode first.",
+        )
+
+
 @router.get("/health")
 async def health_check() -> Dict[str, Any]:
     """Basic health check and service status."""
@@ -141,14 +181,57 @@ async def get_defense_status(request: Request) -> Dict[str, Any]:
         "iot_cowrie_honeypot": quarantine.get_container_network_status("iot_cowrie_honeypot"),
     }
 
+    device_manager = get_device_manager(request)
+    traffic_mode = getattr(request.app.state, "traffic_mode", "simulated")
+
     return make_response(
         data={
+            "traffic_mode": traffic_mode,
             "banned_ips": banned_ips,
             "banned_count": len(banned_ips),
             "active_bans": active_bans,
             "recent_mitigations": recent_history,
             "node_states": node_states,
+            "registered_devices": device_manager.list_devices(),
         }
+    )
+
+
+# TODO(security): Require operator RBAC authentication on system mode & device registry mutations before exposing externally.
+@router.get("/system/mode")
+async def get_system_mode(request: Request) -> Dict[str, Any]:
+    """Returns the active telemetry operating mode ('simulated' or 'live') and live endpoints."""
+    current_mode = getattr(request.app.state, "traffic_mode", "simulated")
+    return make_response(
+        data={
+            "mode": current_mode,
+            "simulated_endpoints_enabled": current_mode == "simulated",
+            "live_endpoints": {
+                "mqtt_port": 1883,
+                "honeypot_ssh_port": 2222,
+                "webhook_template": "/api/devices/ingest/{device_id}",
+            },
+        }
+    )
+
+
+@router.post("/system/mode")
+async def set_system_mode(payload: TrafficModeRequest, request: Request) -> Dict[str, Any]:
+    """Switches strictly between Simulated Traffic and Live Traffic operational modes."""
+    target_mode = (payload.mode or "").strip().lower()
+    if target_mode not in {"simulated", "live"}:
+        raise HTTPException(status_code=400, detail="Mode must be either 'simulated' or 'live'.")
+
+    detector = get_detector(request)
+    broadcaster = get_broadcaster(request)
+
+    request.app.state.traffic_mode = target_mode
+    detector.db.set_setting("traffic_mode", target_mode)
+    await broadcaster.broadcast("mode_changed", {"mode": target_mode})
+
+    return make_response(
+        data={"mode": target_mode, "simulated_endpoints_enabled": target_mode == "simulated"},
+        message=f"Switched operational mode to {target_mode.upper()} traffic.",
     )
 
 
@@ -244,6 +327,7 @@ async def reset_database_endpoint(request: Request) -> Dict[str, Any]:
 @router.post("/simulate/infect/{node_id}")
 async def simulate_node_infection(node_id: str, request: Request) -> Dict[str, Any]:
     """Simulates internal compromise of a virtual IoT container, isolating it to quarantine."""
+    _ensure_simulated_mode(request)
     quarantine = get_quarantine_manager(request)
     broadcaster = get_broadcaster(request)
 
@@ -264,6 +348,7 @@ async def simulate_node_infection(node_id: str, request: Request) -> Dict[str, A
 @router.post("/simulate/restore/{node_id}")
 async def restore_node_container(node_id: str, request: Request) -> Dict[str, Any]:
     """Restores an isolated IoT container back to the production network."""
+    _ensure_simulated_mode(request)
     quarantine = get_quarantine_manager(request)
     broadcaster = get_broadcaster(request)
 
@@ -360,6 +445,7 @@ async def trigger_simulated_bruteforce(
     payload: Optional[AttackSimulationRequest] = Body(default=None),
 ) -> Dict[str, Any]:
     """Triggers a credential brute-force simulation for a selected, random, custom, or swarm IP set."""
+    _ensure_simulated_mode(request)
     detector = get_detector(request)
     broadcaster = get_broadcaster(request)
     target_ips, mode = _resolve_simulation_targets("brute-force", payload)
@@ -384,6 +470,7 @@ async def trigger_simulated_exploit(
     payload: Optional[AttackSimulationRequest] = Body(default=None),
 ) -> Dict[str, Any]:
     """Triggers a critical remote shell exploit simulation for a selected, random, custom, or swarm IP set."""
+    _ensure_simulated_mode(request)
     detector = get_detector(request)
     broadcaster = get_broadcaster(request)
     target_ips, mode = _resolve_simulation_targets("exploit", payload)
@@ -426,6 +513,7 @@ async def trigger_simulated_port_sweep(
     payload: Optional[AttackSimulationRequest] = Body(default=None),
 ) -> Dict[str, Any]:
     """Triggers a rapid port reconnaissance sweep simulation for a selected, random, custom, or swarm IP set."""
+    _ensure_simulated_mode(request)
     detector = get_detector(request)
     broadcaster = get_broadcaster(request)
     target_ips, mode = _resolve_simulation_targets("port-sweep", payload)
@@ -476,4 +564,189 @@ async def export_audit_report(request: Request) -> Dict[str, Any]:
         "mitigation_audit_log": history,
     }
     return make_response(data=export_payload, message="SOC Audit Report generated successfully.")
+
+
+# --- Real-World IoT & CCTV Device Registry / Live Ingestion Routes ---
+
+@router.get("/devices")
+async def list_registered_devices(request: Request) -> Dict[str, Any]:
+    """Lists all onboarded real-world IoT and CCTV devices (excluding secrets)."""
+    device_manager = get_device_manager(request)
+    return make_response(data={"devices": device_manager.list_devices()})
+
+
+@router.post("/devices")
+async def register_real_device(payload: DeviceCreateRequest, request: Request) -> Dict[str, Any]:
+    """Registers a physical IoT device or CCTV camera with strict SSRF and IP validation."""
+    device_manager = get_device_manager(request)
+    broadcaster = get_broadcaster(request)
+    try:
+        device = device_manager.register_device(
+            device_id=payload.device_id,
+            name=payload.name,
+            device_type=payload.device_type,
+            protocol=payload.protocol,
+            ip_address=payload.ip_address,
+            port=payload.port,
+            mqtt_topic=payload.mqtt_topic,
+            snapshot_url=payload.snapshot_url,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    public_device = {k: v for k, v in device.items() if k != "ingest_token"}
+    await broadcaster.broadcast("device_registered", public_device)
+    return make_response(
+        data={"device": device},
+        message=f"Device '{device['name']}' ({device['device_id']}) registered for Live Traffic monitoring.",
+    )
+
+
+@router.delete("/devices/{device_id}")
+async def delete_registered_device(device_id: str, request: Request) -> Dict[str, Any]:
+    """Removes a registered physical IoT device from monitoring."""
+    device_manager = get_device_manager(request)
+    broadcaster = get_broadcaster(request)
+    deleted = device_manager.delete_device(device_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Device '{device_id}' not found.")
+
+    await broadcaster.broadcast("device_deleted", {"device_id": device_id})
+    return make_response(data={"device_id": device_id}, message=f"Device '{device_id}' removed.")
+
+
+@router.post("/devices/{device_id}/probe")
+async def probe_real_device(device_id: str, request: Request) -> Dict[str, Any]:
+    """Tests TCP reachability for a registered real-world IoT/CCTV device."""
+    device_manager = get_device_manager(request)
+    broadcaster = get_broadcaster(request)
+    updated = await device_manager.probe_device(device_id)
+    if not updated:
+        raise HTTPException(status_code=404, detail=f"Device '{device_id}' not found.")
+
+    await broadcaster.broadcast("device_updated", updated)
+    return make_response(
+        data={"device": updated},
+        message=f"Reachability probe for {updated['name']} ({updated['ip_address']}:{updated['port']}): {updated['status']}.",
+    )
+
+
+@router.get("/devices/{device_id}/snapshot")
+async def proxy_camera_snapshot(device_id: str, request: Request) -> Response:
+    """Proxies a validated HTTP/HTTPS camera snapshot frame with strict SSRF & size checks."""
+    device_manager = get_device_manager(request)
+    try:
+        image_bytes, media_type = await asyncio.to_thread(device_manager.fetch_snapshot_sync, device_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    return Response(
+        content=image_bytes,
+        media_type=media_type,
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
+
+
+@router.post("/devices/{device_id}/block")
+async def block_real_device(
+    device_id: str,
+    request: Request,
+    payload: Optional[DeviceBlockRequest] = Body(default=None),
+) -> Dict[str, Any]:
+    """Logically quarantines a physical IoT device, blocking ingestion and logging audit mitigation."""
+    device_manager = get_device_manager(request)
+    detector = get_detector(request)
+    broadcaster = get_broadcaster(request)
+    reason = (payload.reason if payload and payload.reason else "Operator logical quarantine")
+    try:
+        result = device_manager.block_device(device_id, detector=detector, reason=reason)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    await broadcaster.broadcast("device_updated", result["device"])
+    await broadcaster.broadcast("mitigation_alert", result["mitigation"])
+    return make_response(
+        data=result,
+        message=f"Logical quarantine enforced on '{result['device']['name']}'. Ingestion blocked.",
+    )
+
+
+@router.post("/devices/{device_id}/unblock")
+async def unblock_real_device(
+    device_id: str,
+    request: Request,
+    payload: Optional[DeviceBlockRequest] = Body(default=None),
+) -> Dict[str, Any]:
+    """Restores a logically quarantined physical IoT device and resumes telemetry ingestion."""
+    device_manager = get_device_manager(request)
+    detector = get_detector(request)
+    broadcaster = get_broadcaster(request)
+    admin_user = (payload.admin_user if payload and payload.admin_user else "soc_admin")
+    try:
+        result = device_manager.unblock_device(device_id, detector=detector, admin_user=admin_user)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    await broadcaster.broadcast("device_updated", result["device"])
+    await broadcaster.broadcast("mitigation_alert", result["mitigation"])
+    return make_response(
+        data=result,
+        message=f"Device '{result['device']['name']}' restored to live monitoring.",
+    )
+
+
+@router.post("/devices/ingest/{device_id}")
+async def ingest_real_device_webhook(
+    device_id: str,
+    payload: DeviceIngestRequest,
+    request: Request,
+    x_device_token: Optional[str] = Header(default=None, alias="X-Device-Token"),
+) -> Dict[str, Any]:
+    """Authenticated HTTP webhook ingestion endpoint for external IoT hardware & NVR/camera alerts."""
+    device_manager = get_device_manager(request)
+    broadcaster = get_broadcaster(request)
+
+    existing = device_manager.get_device(device_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail=f"Registered device '{device_id}' not found.")
+
+    if not x_device_token or not device_manager.verify_ingest_token(device_id, x_device_token):
+        raise HTTPException(status_code=401, detail="Invalid or missing X-Device-Token authentication header.")
+
+    if existing.get("blocked"):
+        await broadcaster.broadcast("device_telemetry_blocked", {
+            "device_id": device_id,
+            "name": existing["name"],
+            "ip_address": existing["ip_address"],
+            "topic": f"http/webhook/{device_id}",
+            "channel": "HTTP_WEBHOOK",
+        })
+        raise HTTPException(
+            status_code=403,
+            detail=f"Device '{device_id}' is quarantined/blocked by SOC policy. Payload dropped.",
+        )
+
+    payload_str = json.dumps(payload.payload)
+    updated = device_manager.record_device_telemetry(device_id, payload_str)
+    if updated:
+        await broadcaster.broadcast("device_updated", updated)
+    await broadcaster.broadcast("iot_telemetry", {
+        "topic": f"http/webhook/{device_id}",
+        "payload": payload_str,
+        "timestamp": time.time(),
+        "device_id": device_id,
+        "device_name": existing["name"],
+        "mode": getattr(request.app.state, "traffic_mode", "simulated"),
+    })
+    return make_response(data={"device": updated}, message="Live device telemetry ingested.")
 

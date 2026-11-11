@@ -127,10 +127,24 @@ python3 tests/attacker_sim.py --all
 
 ### Step 6: Demonstrate Clean Demo Reset & Management Safety Allowlists
 1. Click **`Reset Database`** in the top navigation header:
-   * Confirms purge of all audit history, resets counters to 0, flushes active Netfilter bans, and automatically clears the console feed for a fresh presentation run.
+   * Confirms purge of all audit history, resets counters to 0, flushes active Netfilter bans, clears the console feed, and clears active quarantine flags while keeping registered live device definitions intact.
 2. Demonstrate safety allowlist:
    * Attempt to ban Docker gateway or localhost (`127.0.0.1` or `192.168.65.1`).
    * The system immediately rejects the ban: *"Target IP is protected by the management safety allowlist."*
+
+---
+
+### Step 7: Demonstrate Dual Simulated / Live Mode & Real IoT / CCTV Onboarding (`v2.0.0-SOC`)
+1. Toggle **`Live`** in the header traffic mode switch (`Simulated` / `Live`):
+   * Virtual simulator nodes pause on the UI and Red Team simulation triggers are locked (`HTTP 409 Conflict` if called while in Live mode).
+   * The **Real-World IoT & CCTV Device Registry** opens along with onboarding endpoint instructions (`MQTT :1883` and `/api/devices/ingest/{device_id}`).
+2. Click **`+ Register Real Device`**:
+   * Register a physical ESP32/Raspberry Pi sensor (`http_webhook` or `mqtt`) or a LAN IP/CCTV camera (`rtsp_http` with an optional HTTP/MJPEG snapshot URL).
+   * Copy the one-time `ingest_token` displayed on registration (stored server-side strictly as a SHA-256 hash).
+3. Test live ingestion, snapshot proxy, and logical quarantine:
+   * Probe TCP reachability (**`Probe`**), view a proxied camera snapshot (**`View Snapshot`**), or POST signed telemetry using `X-Device-Token`.
+   * Click **`Block / Quarantine`** to logically isolate the physical device: incoming MQTT/webhook payloads drop immediately (`HTTP 403`), any non-allowlisted public IP is banned at the firewall, and `DEVICE_BLOCKED` is recorded in the Mitigation Ledger. Click **`Restore / Unblock`** to re-enable ingestion (`DEVICE_RESTORED`).
+4. Toggle back to **`Simulated`** when resuming virtual red-team demonstrations.
 
 ---
 
@@ -157,14 +171,13 @@ python3 tests/attacker_sim.py --all
 ---
 
 ## 4. Test Suite Execution
-To prove system reliability during evaluation, run all 40 automated tests:
+To prove system reliability during evaluation, run all 47 automated tests:
 ```bash
 python3 -m unittest discover -s tests
 ```
 * **Mitigation Driver Tests:** 11 tests (allowlists, Netfilter idempotency, Docker SDK mocking)
 * **Detection Engine Tests:** 7 tests (sliding window, brute-force threshold, SQLite audit)
-* **FastAPI Backend Tests:** 12 tests (SSE stream headers, REST API schema validation, multi-IP / swarm / custom attack simulation triggers)
-* **SOC Dashboard & UI Tests:** 4 tests (HTML template serving, XSS-safe JavaScript rendering, 6-column SIEM grid, General Activity Logs multi-stream and Clear button validation)
-* **IoT Telemetry Listener Tests:** 1 test (MQTT listener lifecycle, non-blocking asynchronous message parsing)
+* **FastAPI Backend & Security Tests:** 16 tests (SSE stream headers & pub/sub, REST API schema validation, multi-IP / swarm / custom attack simulation triggers, threat intelligence analytics, IP forensics, audit export)
+* **SOC Dashboard & UI Tests:** 4 tests (HTML template serving, XSS-safe JavaScript rendering, 6-column SIEM grid, Live Mode toggle & device modals, MQTT telemetry listener lifecycle)
 * **End-to-End Benchmark:** 2 tests (closed-loop latency SLA validation < 1,000 ms)
-* **Security & IP Forensics Tests:** 3 tests (Threat intelligence aggregation, IP dossier timeline queries, SIEM JSON export)
+* **Live Mode, Real Device & Log Rotation Tests:** 7 tests (`POST /api/system/mode` persistence, `409` simulation guard, SSRF validation & credential masking, webhook token auth & logical quarantine, snapshot proxy validation, TCP probing, `live`/`simulated` MQTT filtering, and Cowrie log-rotation inode tailing)

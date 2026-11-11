@@ -46,18 +46,25 @@ This project is an autonomous, containerized host-level IoT cyber defense system
 - Push-based event delivery via SSE (`text/event-stream`).
 - Visual status tracking: active nodes, quarantined containers, live defense log table, and active `iptables` drop inventory.
 
+### 5. Dual Simulated / Live Traffic Mode & Real IoT/CCTV Integration (`v2.0.0`)
+- Header traffic mode toggle strictly separating **`Simulated Mode`** (virtual Docker nodes + Red Team simulator) from **`Live Mode`** (pauses mock feeds & returns `409 Conflict` on simulation routes while monitoring physical/external IoT hardware).
+- Persistent Real-World Device Registry supporting CCTV cameras (`rtsp_http`), MQTT nodes (`mqtt`), and HTTP webhooks (`http_webhook` with SHA-256 `X-Device-Token` auth).
+- Non-shell asyncio TCP reachability polling, SSRF-guarded HTTP/MJPEG snapshot proxy, and logical quarantine (`DEVICE_BLOCKED` / `DEVICE_RESTORED`) with ingestion drop and firewall enforcement.
+
 ## Scope
 
 ### In Scope
 - Containerized virtualization of IoT nodes and Mosquitto broker using Docker Compose.
-- Low-to-medium interaction honeypot integration (Cowrie).
+- Low-to-medium interaction honeypot integration (Cowrie) with log-rotation resilient tailing.
 - Host-level Linux `iptables` manipulation via custom chains for Docker forward traffic.
 - Container network dynamic isolation via Docker Engine API (`/var/run/docker.sock`).
+- Real-world LAN/external IoT device telemetry ingestion (MQTT/authenticated webhook), TCP reachability monitoring, HTTP/MJPEG snapshot proxying, and logical quarantine.
 - Server-Sent Events (SSE) telemetry delivery and Tailwind-styled dark UI.
-- Red-team Python simulation script for automated defense validation.
+- Red-team Python simulation script and UI toolbar for automated defense validation.
 
 ### Out of Scope
-- Physical embedded hardware deployment (Raspberry Pi, ESP32, Arduino).
+- Dedicated live RTSP H.264/H.265 video transcoding pipelines (e.g., FFmpeg / WebRTC media servers).
+- Flashing custom controller firmware onto microcontrollers (physical devices integrate via standard MQTT or HTTP webhooks).
 - Deep reinforcement learning or heavyweight neural network model training on the edge.
 - Full layer-7 deep packet inspection (DPI) of encrypted TLS payloads.
 - Multi-host Kubernetes orchestration (focused on single-host testbed capstone scope).

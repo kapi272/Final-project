@@ -3,10 +3,10 @@
 Update this file after every meaningful implementation change.
 
 ## Current Phase
-Phase 17: Milestone v2.0.0 Version Bump — Dual Simulated/Live Traffic Mode & Real-World IoT Device Onboarding
+Phase 17: Milestone v2.0.0 Completed — Dual Simulated/Live Traffic Mode & Real-World IoT/CCTV Device Onboarding
 
 ## Current Goal
-Bump system version to v2.0.0 first, then implement the strict Simulated vs Live traffic toggle, real-world IoT/CCTV device registry with SSRF-guarded HTTP/MJPEG snapshot & MQTT/webhook ingestion, logical device quarantine, and log-rotation resilient Cowrie tailing.
+Deliver production-verified v2.0.0 release with strict Simulated/Live toggle, SSRF-hardened Real Device Registry, authenticated HTTP/MQTT telemetry ingestion, snapshot proxy, logical device quarantine, and log-rotation resilient Cowrie tailing.
 
 ## Completed
 - [x] Context foundation files established and verified at root.
@@ -29,6 +29,7 @@ Bump system version to v2.0.0 first, then implement the strict Simulated vs Live
 - [x] Phase 15: Milestone v1.8.0 Version Bump — System version incremented to v1.8.0 (SOC Terminal v1.8-SOC) across app, docs, and configurations.
 - [x] Phase 15: Multi-IP Adversary Simulation Pools, Custom IP & Swarm Engine: Added curated 5-IP RFC 5737 TEST-NET pools per attack vector (`brute-force`, `exploit`, `port-sweep`), exposed `GET /api/simulate/attack/pools`, updated `POST /api/simulate/attack/{type}` with `ipaddress` boundary validation and `"single"` / `"random"` / `"swarm"` modes, added UI selector dropdowns (`Auto-Rotate IP`, 5 pool IPs, `Swarm Mode`, `Custom IP`) on all 3 Red Team cards, and enforced allowlist safety checks. 40/40 unit tests passing.
 - [x] Phase 16: Milestone v1.8.1 — Cache-Busting, Ledger/Console Unban Sync & Red Team Feedback Hardening: Added HTTP `Cache-Control: no-store` middleware (`disable_ui_caching`) on `/` and `/static/*` plus `?v=1.8.1` script cache-buster in `index.html`, added `newly_banned` / `already_banned` tracking in `_build_simulation_result` across all three simulation endpoints, normalized `CRITICAL` -> `CRIT` badge styling in `appendTerminalLog`, added `dataset.srcIp` + authoritative ledger sync (`fetchInitialStatus`) in `unban_alert` and `triggerAttack`, and surfaced idempotent skip messages (`already_banned`) in General Activity Logs. 40/40 unit tests passing.
+- [x] Phase 17: Milestone v2.0.0 — Dual Simulated/Live Traffic Mode & Real-World IoT/CCTV Integration: Extended SQLite schema (`system_settings`, `registered_devices`), implemented `RealDeviceManager` (`controller/core/device_manager.py`) with strict SSRF IP/DNS guards, credential masking, SHA-256 webhook token auth, asyncio TCP probe, HTTP/MJPEG snapshot proxy, and logical quarantine (`DEVICE_BLOCKED` / `DEVICE_RESTORED`); added `GET/POST /api/system/mode`, `/api/devices/*`, and `409 Conflict` guard on `/api/simulate/*` in live mode; fixed `HoneypotLogTailer` inode rotation handling; added header Simulated/Live toggle, Real Device Registry panel, safe DOM rendering (removed unsafe `innerHTML`), in-app confirm/snapshot/onboarding modals, and `tests/test_live_mode_and_devices.py`. 47/47 unit tests passing.
 
 ## In Progress
 - [ ] Live evaluation demonstration and evaluator walkthrough.

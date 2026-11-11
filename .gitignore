@@ -41,5 +41,6 @@ data/*.db
 # Logs & temp files
 *.log
 honeypot/logs/*.json
+honeypot/logs/*.json.*
 honeypot/downloads/
 

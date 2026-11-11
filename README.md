@@ -7,13 +7,13 @@ An autonomous, containerized host-level IoT cyber defense testbed using virtual 
 [![Docker Compose](https://img.shields.io/badge/Docker-Compose%20v2+-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 [![Release: v2.0.0](https://img.shields.io/badge/Release-v2.0.0-blue)](./)
 [![Reaction SLA](https://img.shields.io/badge/Mitigation%20Latency-0.65%20ms-emerald)](./context/specs/06-red-team-simulation.md)
-[![Tests Passing](https://img.shields.io/badge/Tests-40%2F40%20Passing-brightgreen)](./tests/)
+[![Tests Passing](https://img.shields.io/badge/Tests-47%2F47%20Passing-brightgreen)](./tests/)
 
 ---
 
 ## Overview
 
-This project simulates an enterprise and smart-home IoT ecosystem entirely within Docker containers. By embedding an instrumented deception layer alongside virtual IoT nodes, the system captures adversarial reconnaissance and credential brute-force attacks in real time. An integrated analytics engine evaluates honeypot triggers and dynamically executes kernel firewall (`iptables`) drop rules and Docker network quarantines in sub-second response times (< 1,000 ms).
+This project integrates an enterprise/smart-home IoT cyber defense testbed with dual **`Simulated` / `Live`** operating modes. In **`Simulated Mode`**, virtual IoT nodes and a Red Team simulation toolbar run safely inside Docker subnets alongside an instrumented Cowrie deception honeypot. In **`Live Mode`**, operators onboard physical/external IoT hardware and CCTV cameras (MQTT, authenticated HTTP webhooks, TCP reachability polling, SSRF-guarded HTTP/MJPEG snapshots) with sub-second kernel firewall (`iptables`) drop rules and logical device quarantine.
 
 Built following the **Six-File Context Methodology** for spec-driven, predictable AI-assisted development.
 
@@ -90,7 +90,7 @@ All architectural decisions, invariants, and build plans are organized in [`cont
 
 ## Automated Test Suite
 
-Run the full automated test suite (35 tests across all units):
+Run the full automated test suite (47 tests across all units):
 ```bash
 python3 -m unittest discover -s tests
 ```

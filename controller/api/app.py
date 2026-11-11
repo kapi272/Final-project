@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from controller.api.routes import router
 from controller.api.sse_broker import SSEBroadcaster
 from controller.core.db import DefenseDatabase
+from controller.core.device_manager import RealDeviceManager
 from controller.core.detector import IntrusionDetector
 from controller.core.log_tailer import HoneypotLogTailer
 from controller.core.models import CowrieEvent, MitigationRecord
@@ -53,6 +54,9 @@ def create_app(
     )
 
     quarantine_instance = quarantine_manager or QuarantineManager()
+    device_manager = RealDeviceManager(db=detector_instance.db)
+    saved_mode = detector_instance.db.get_setting("traffic_mode", "simulated")
+    initial_mode = saved_mode if saved_mode in {"simulated", "live"} else "simulated"
 
     async def on_honeypot_event(event: CowrieEvent) -> None:
         """Processes each event from the log tailer and broadcasts raw hit over SSE."""
@@ -65,11 +69,39 @@ def create_app(
     )
 
     async def on_iot_telemetry(topic: str, payload: str, ts: float) -> None:
-        """Broadcasts IoT node sensor and actuator MQTT messages over SSE."""
+        """Broadcasts IoT node sensor and actuator MQTT messages filtered by active traffic mode."""
+        mode = getattr(app.state, "traffic_mode", "simulated")
+        matched_dev, is_sim_default = device_manager.match_mqtt_message(topic, payload)
+
+        if mode == "simulated":
+            # In Simulated Mode, stream virtual mesh telemetry only; ignore live registered devices
+            if matched_dev is not None:
+                return
+        else:
+            # Strict Live Mode: silence mock container heartbeats and drop quarantined live devices
+            if is_sim_default:
+                return
+            if matched_dev is not None:
+                if matched_dev.get("blocked"):
+                    await sse_broadcaster.broadcast("device_telemetry_blocked", {
+                        "device_id": matched_dev["device_id"],
+                        "name": matched_dev["name"],
+                        "ip_address": matched_dev["ip_address"],
+                        "topic": topic,
+                        "channel": "MQTT",
+                    })
+                    return
+                updated = device_manager.record_device_telemetry(matched_dev["device_id"], payload)
+                if updated:
+                    await sse_broadcaster.broadcast("device_updated", updated)
+
         await sse_broadcaster.broadcast("iot_telemetry", {
             "topic": topic,
             "payload": payload,
             "timestamp": ts,
+            "device_id": matched_dev["device_id"] if matched_dev else None,
+            "device_name": matched_dev["name"] if matched_dev else None,
+            "mode": mode,
         })
 
     mqtt_instance = None
@@ -89,9 +121,31 @@ def create_app(
 
         loop = asyncio.get_running_loop()
         tailer_task = None
+        health_task = None
         if enable_tailer:
             tailer_task = asyncio.create_task(tailer_instance.start())
             logger.info("Honeypot background log tailer task launched.")
+
+        async def poll_live_devices() -> None:
+            while True:
+                try:
+                    await asyncio.sleep(15.0)
+                    if getattr(app.state, "traffic_mode", "simulated") != "live":
+                        continue
+                    for dev in device_manager.list_devices():
+                        if dev.get("blocked"):
+                            continue
+                        prev_status = dev.get("status")
+                        updated = await device_manager.probe_device(dev["device_id"])
+                        if updated and updated.get("status") != prev_status:
+                            await sse_broadcaster.broadcast("device_updated", updated)
+                except asyncio.CancelledError:
+                    break
+                except Exception as exc:
+                    logger.warning("Background live device probe cycle encountered error: %s", exc)
+
+        if enable_tailer or enable_mqtt:
+            health_task = asyncio.create_task(poll_live_devices())
 
         if mqtt_instance:
             mqtt_instance.start(loop=loop)
@@ -102,12 +156,13 @@ def create_app(
         tailer_instance.stop()
         if mqtt_instance:
             mqtt_instance.stop()
-        if tailer_task:
-            tailer_task.cancel()
-            try:
-                await tailer_task
-            except asyncio.CancelledError:
-                pass
+        for task in (tailer_task, health_task):
+            if task:
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
 
     app = FastAPI(
         title="Autonomous IoT Cyber Defense System",
@@ -120,21 +175,32 @@ def create_app(
     app.state.detector = detector_instance
     app.state.quarantine_manager = quarantine_instance
     app.state.sse_broadcaster = sse_broadcaster
+    app.state.device_manager = device_manager
+    app.state.traffic_mode = initial_mode
 
-    # CORS configuration
+    # CORS configuration scoped to local management origins (same-origin UI does not require wildcard)
+    # TODO(security): Enforce HTTPS origins and operator authentication before exposing port 8050 externally.
+    allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "http://localhost:8050,http://127.0.0.1:8050,http://localhost:8000,http://127.0.0.1:8000")
+    allowed_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_origins=allowed_origins,
+        allow_credentials=False,
+        allow_methods=["GET", "POST", "DELETE"],
+        allow_headers=["Content-Type", "X-Device-Token"],
     )
 
     @app.middleware("http")
     async def disable_ui_caching(request: Request, call_next):
-        """Prevents stale browser caching of dashboard HTML and JS assets across upgrades."""
+        """Prevents stale browser caching and enforces defensive response headers."""
         response = await call_next(request)
-        if request.url.path == "/" or request.url.path.startswith("/static/"):
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        if (
+            request.url.path == "/"
+            or request.url.path.startswith("/static/")
+            or request.url.path.endswith("/snapshot")
+        ):
             response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
             response.headers["Pragma"] = "no-cache"
         return response

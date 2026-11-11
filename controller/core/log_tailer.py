@@ -41,8 +41,10 @@ class HoneypotLogTailer:
             return
 
         try:
-            with open(self.log_path, "r", encoding="utf-8") as f:
-                # Seek to end of file to tail only new events
+            f = open(self.log_path, "r", encoding="utf-8")
+            try:
+                current_inode = os.stat(self.log_path).st_ino
+                # Seek to end of file to tail only new events on initial attach
                 f.seek(0, os.SEEK_END)
                 logger.info("HoneypotLogTailer attached to %s (seeking to EOF).", self.log_path)
 
@@ -62,8 +64,24 @@ class HoneypotLogTailer:
                         except Exception as e:
                             logger.error("Error processing honeypot event: %s", e)
                     else:
+                        # Handle daily Cowrie log rotation (new inode) or truncation
+                        try:
+                            stat_info = os.stat(self.log_path)
+                            if stat_info.st_ino != current_inode or stat_info.st_size < f.tell():
+                                logger.info(
+                                    "Detected rotation or truncation on %s; reattaching at offset 0.",
+                                    self.log_path,
+                                )
+                                f.close()
+                                f = open(self.log_path, "r", encoding="utf-8")
+                                current_inode = stat_info.st_ino
+                                continue
+                        except FileNotFoundError:
+                            pass
                         # Non-blocking pause before polling next line
                         await asyncio.sleep(0.2)
+            finally:
+                f.close()
         except asyncio.CancelledError:
             logger.info("HoneypotLogTailer task cancelled.")
         except Exception as e:

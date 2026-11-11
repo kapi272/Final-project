@@ -55,6 +55,30 @@ class DefenseDatabase:
                     severity TEXT NOT NULL
                 )
             """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS system_settings (
+                    key TEXT PRIMARY KEY,
+                    value TEXT NOT NULL
+                )
+            """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS registered_devices (
+                    device_id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    device_type TEXT NOT NULL,
+                    protocol TEXT NOT NULL,
+                    ip_address TEXT NOT NULL,
+                    port INTEGER NOT NULL,
+                    mqtt_topic TEXT NOT NULL,
+                    snapshot_url TEXT NOT NULL,
+                    token_hash TEXT NOT NULL,
+                    blocked INTEGER NOT NULL DEFAULT 0,
+                    status TEXT NOT NULL DEFAULT 'MONITORING',
+                    last_seen REAL,
+                    last_payload TEXT NOT NULL DEFAULT '',
+                    created_at REAL NOT NULL
+                )
+            """)
             conn.commit()
             logger.info("DefenseDatabase initialized at %s", self.db_path)
 
@@ -126,6 +150,7 @@ class DefenseDatabase:
             cursor = conn.cursor()
             cursor.execute("DELETE FROM mitigation_history")
             cursor.execute("DELETE FROM active_bans")
+            cursor.execute("UPDATE registered_devices SET blocked = 0, status = 'MONITORING' WHERE blocked = 1")
             try:
                 cursor.execute("DELETE FROM sqlite_sequence WHERE name IN ('mitigation_history')")
             except Exception:
@@ -133,4 +158,141 @@ class DefenseDatabase:
             conn.commit()
             logger.info("Database reset: All mitigation history and active bans cleared.")
             return True
+
+    def get_setting(self, key: str, default: str = "") -> str:
+        """Retrieves a persisted configuration value by key."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT value FROM system_settings WHERE key = ?", (key,))
+            row = cursor.fetchone()
+            return str(row["value"]) if row else default
+
+    def set_setting(self, key: str, value: str) -> None:
+        """Persists a configuration setting using parameterized SQL."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT OR REPLACE INTO system_settings (key, value) VALUES (?, ?)",
+                (key, value),
+            )
+            conn.commit()
+
+    def upsert_device(self, device: Dict[str, Any]) -> None:
+        """Inserts or updates a real-world registered IoT device."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO registered_devices (
+                    device_id, name, device_type, protocol, ip_address, port,
+                    mqtt_topic, snapshot_url, token_hash, blocked, status,
+                    last_seen, last_payload, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(device_id) DO UPDATE SET
+                    name = excluded.name,
+                    device_type = excluded.device_type,
+                    protocol = excluded.protocol,
+                    ip_address = excluded.ip_address,
+                    port = excluded.port,
+                    mqtt_topic = excluded.mqtt_topic,
+                    snapshot_url = excluded.snapshot_url,
+                    status = excluded.status
+                """,
+                (
+                    device["device_id"],
+                    device["name"],
+                    device["device_type"],
+                    device["protocol"],
+                    device["ip_address"],
+                    int(device["port"]),
+                    device["mqtt_topic"],
+                    device["snapshot_url"],
+                    device["token_hash"],
+                    int(bool(device.get("blocked", False))),
+                    device.get("status", "MONITORING"),
+                    device.get("last_seen"),
+                    device.get("last_payload", ""),
+                    float(device.get("created_at", time.time())),
+                ),
+            )
+            conn.commit()
+
+    def list_devices(self) -> List[Dict[str, Any]]:
+        """Lists registered real-world IoT devices ordered by creation time descending."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT device_id, name, device_type, protocol, ip_address, port,
+                       mqtt_topic, snapshot_url, blocked, status, last_seen,
+                       last_payload, created_at
+                FROM registered_devices
+                ORDER BY created_at DESC
+                """
+            )
+            return [dict(row) for row in cursor.fetchall()]
+
+    def get_device(self, device_id: str, include_secret: bool = False) -> Optional[Dict[str, Any]]:
+        """Retrieves a registered IoT device record."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT device_id, name, device_type, protocol, ip_address, port,
+                       mqtt_topic, snapshot_url, token_hash, blocked, status, last_seen,
+                       last_payload, created_at
+                FROM registered_devices
+                WHERE device_id = ?
+                """,
+                (device_id,),
+            )
+            row = cursor.fetchone()
+            if not row:
+                return None
+            rec = dict(row)
+            if not include_secret:
+                rec.pop("token_hash", None)
+            return rec
+
+    def update_device_telemetry(
+        self,
+        device_id: str,
+        status: Optional[str] = None,
+        last_seen: Optional[float] = None,
+        last_payload: Optional[str] = None,
+    ) -> bool:
+        """Updates runtime health status and latest telemetry metadata for a device."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                UPDATE registered_devices
+                SET status = COALESCE(?, status),
+                    last_seen = COALESCE(?, last_seen),
+                    last_payload = COALESCE(?, last_payload)
+                WHERE device_id = ?
+                """,
+                (status, last_seen, last_payload, device_id),
+            )
+            conn.commit()
+            return cursor.rowcount > 0
+
+    def set_device_blocked(self, device_id: str, blocked: bool, status: str) -> bool:
+        """Updates the logical quarantine flag and operational status for a device."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE registered_devices SET blocked = ?, status = ? WHERE device_id = ?",
+                (1 if blocked else 0, status, device_id),
+            )
+            conn.commit()
+            return cursor.rowcount > 0
+
+    def delete_device(self, device_id: str) -> bool:
+        """Deletes a registered IoT device record."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM registered_devices WHERE device_id = ?", (device_id,))
+            conn.commit()
+            return cursor.rowcount > 0
 

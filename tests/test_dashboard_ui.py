@@ -77,6 +77,30 @@ class TestDashboardUI(unittest.TestCase):
         self.assertIn("already_banned", body)
         self.assertIn("dataset.srcIp", body)
 
+        # Verify v2.0.0 Traffic Mode Toggle & Real IoT/CCTV Device Manager JS symbols
+        for symbol in (
+            "setTrafficMode",
+            "applyTrafficModeUI",
+            "submitAddDevice",
+            "blockLiveDevice",
+            "openSnapshotModal",
+        ):
+            self.assertIn(symbol, body)
+
+        # Verify v2.0.0 Traffic Mode Toggle & Live Device Registry HTML containers
+        html_res = self.client.get("/")
+        self.assertEqual(html_res.status_code, 200)
+        for element_id in (
+            "traffic-mode-toggle",
+            "mode-btn-simulated",
+            "mode-btn-live",
+            "section-live-devices",
+            "add-device-modal",
+            "snapshot-modal",
+            "confirm-modal",
+        ):
+            self.assertIn(element_id, html_res.text)
+
     def test_quarantine_ui_category_integration(self) -> None:
         res = self.client.get("/static/app.js")
         self.assertIn("quarantine", res.text)
