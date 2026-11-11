@@ -29,6 +29,19 @@ document.addEventListener("DOMContentLoaded", () => {
         return el;
     }
 
+    function syncWorkspaceBadges() {
+        const mitBadge = document.getElementById("tab-badge-mitigations");
+        if (mitBadge) mitBadge.textContent = String(activeBansCount);
+        const logBadge = document.getElementById("tab-badge-logs");
+        if (logBadge) logBadge.textContent = String(terminalLogsBuffer.length);
+    }
+
+    function updateBannedCountDisplay(nextCount) {
+        activeBansCount = Math.max(0, Number(nextCount) || 0);
+        if (bannedCountEl) bannedCountEl.textContent = String(activeBansCount);
+        syncWorkspaceBadges();
+    }
+
     // Format UNIX timestamp according to Indian Date & Time Standards (IST / Asia/Kolkata: DD/MM/YYYY, HH:mm:ss)
     function formatDateTime(ts) {
         if (!ts) return "--/--/----, --:--:--";
@@ -98,6 +111,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (terminalLogsBuffer.length > 2000) {
             terminalLogsBuffer.shift();
         }
+        syncWorkspaceBadges();
 
         // 1. Date & Time Column (Indian Standard IST: DD/MM/YYYY, HH:mm:ss)
         const timeSpan = createSafeElement("span", nowIst, "w-[145px] shrink-0 text-slate-400 select-none text-[10px] font-mono tracking-tight");
@@ -171,18 +185,18 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!btn) return;
             if (cat === filter) {
                 if (filter === "quarantine") {
-                    btn.className = "px-2 py-0.5 rounded font-bold bg-red-950/80 border border-red-700 text-red-300 transition-all";
+                    btn.className = "px-2.5 py-1 rounded font-bold bg-red-950/80 border border-red-700 text-red-300 transition-all";
                 } else if (filter === "mitigation") {
-                    btn.className = "px-2 py-0.5 rounded font-bold bg-rose-950/80 border border-rose-700 text-rose-300 transition-all";
+                    btn.className = "px-2.5 py-1 rounded font-bold bg-rose-950/80 border border-rose-700 text-rose-300 transition-all";
                 } else if (filter === "honeypot") {
-                    btn.className = "px-2 py-0.5 rounded font-bold bg-amber-950/80 border border-amber-700 text-amber-300 transition-all";
+                    btn.className = "px-2.5 py-1 rounded font-bold bg-amber-950/80 border border-amber-700 text-amber-300 transition-all";
                 } else if (filter === "iot") {
-                    btn.className = "px-2 py-0.5 rounded font-bold bg-emerald-950/80 border border-emerald-700 text-emerald-300 transition-all";
+                    btn.className = "px-2.5 py-1 rounded font-bold bg-emerald-950/80 border border-emerald-700 text-emerald-300 transition-all";
                 } else {
-                    btn.className = "px-2 py-0.5 rounded font-bold bg-sky-950/80 border border-sky-700 text-sky-300 transition-all";
+                    btn.className = "px-2.5 py-1 rounded font-bold bg-sky-950/80 border border-sky-700 text-sky-300 transition-all";
                 }
             } else {
-                btn.className = "px-2 py-0.5 rounded font-semibold bg-slate-800/50 hover:bg-slate-800 border border-transparent hover:border-slate-700 text-slate-400 hover:text-slate-200 transition-all";
+                btn.className = "px-2.5 py-1 rounded font-semibold bg-slate-800/50 hover:bg-slate-800 border border-transparent hover:border-slate-700 text-slate-400 hover:text-slate-200 transition-all";
             }
         });
 
@@ -201,8 +215,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Manual console clear
     window.clearConsole = function() {
-        terminalFeed.innerHTML = "";
+        terminalFeed.replaceChildren();
         terminalLogsBuffer.length = 0;
+        syncWorkspaceBadges();
         appendTerminalLog({
             stream: "SYSTEM",
             category: "system",
@@ -420,8 +435,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const data = await res.json();
             if (data.status === "success") {
                 const payload = data.data;
-                activeBansCount = payload.banned_count || 0;
-                bannedCountEl.textContent = activeBansCount;
+                updateBannedCountDisplay(payload.banned_count || 0);
                 registeredDevices = Array.isArray(payload.registered_devices) ? payload.registered_devices : [];
                 currentTrafficMode = payload.traffic_mode === "live" ? "live" : "simulated";
 
@@ -540,8 +554,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const action = rec.action || "IPTABLES_DROP";
                 const alreadyRendered = Boolean(rowKey && document.getElementById(rowKey));
                 if (!alreadyRendered && (action === "IPTABLES_DROP" || action === "BLOCK")) {
-                    activeBansCount++;
-                    bannedCountEl.textContent = activeBansCount;
+                    updateBannedCountDisplay(activeBansCount + 1);
                 }
                 addMitigationRow(rec);
                 if (action === "DEVICE_BLOCKED" || action === "DEVICE_RESTORED") {
@@ -586,8 +599,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         }
                     });
                 }
-                if (activeBansCount > 0) activeBansCount--;
-                bannedCountEl.textContent = activeBansCount;
+                updateBannedCountDisplay(activeBansCount - 1);
                 appendTerminalLog({
                     stream: "MITIGATION",
                     category: "mitigation",
@@ -604,9 +616,8 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         eventSource.addEventListener("reset_alert", () => {
-            activeBansCount = 0;
-            bannedCountEl.textContent = "0";
-            mitigationTableBody.innerHTML = "";
+            updateBannedCountDisplay(0);
+            mitigationTableBody.replaceChildren();
             appendTerminalLog({
                 stream: "MITIGATION",
                 category: "mitigation",
@@ -618,8 +629,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         eventSource.addEventListener("database_reset_alert", () => {
-            activeBansCount = 0;
-            bannedCountEl.textContent = "0";
+            updateBannedCountDisplay(0);
             totalTraps = 0;
             trapsCountEl.textContent = "0";
             mitigationTableBody.replaceChildren();
@@ -846,9 +856,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const res = await fetch("/api/defense/reset-database", { method: "POST" });
             const data = await res.json();
             if (data.status === "success") {
-                mitigationTableBody.innerHTML = "";
-                activeBansCount = 0;
-                bannedCountEl.textContent = "0";
+                mitigationTableBody.replaceChildren();
+                updateBannedCountDisplay(0);
                 totalTraps = 0;
                 trapsCountEl.textContent = "0";
                 window.clearConsole();
@@ -1919,27 +1928,34 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     window.setWorkspaceTab = function(tabName) {
-        const target = tabName === "about" ? "about" : "soc";
-        const socPanel = document.getElementById("workspace-panel-soc");
-        const aboutPanel = document.getElementById("workspace-panel-about");
-        const socTabBtn = document.getElementById("tab-btn-soc");
-        const aboutTabBtn = document.getElementById("btn-open-about");
-
-        if (socPanel) socPanel.classList.toggle("hidden", target !== "soc");
-        if (aboutPanel) aboutPanel.classList.toggle("hidden", target !== "about");
+        const tabs = {
+            soc: { panelId: "workspace-panel-soc", btnId: "tab-btn-soc", iconClass: "" },
+            mitigations: { panelId: "workspace-panel-mitigations", btnId: "tab-btn-mitigations", iconClass: "text-rose-400" },
+            logs: { panelId: "workspace-panel-logs", btnId: "tab-btn-logs", iconClass: "text-sky-400" },
+            about: { panelId: "workspace-panel-about", btnId: "btn-open-about", iconClass: "text-cyan-400" }
+        };
+        const target = Object.prototype.hasOwnProperty.call(tabs, tabName) ? tabName : "soc";
 
         const activeTabCls = "px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-sky-600 text-white shadow-sm flex items-center space-x-1.5 transition-all solid-accent-btn";
         const inactiveTabCls = "px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700/80 text-slate-300 flex items-center space-x-1.5 transition-all";
 
-        if (socTabBtn) {
-            socTabBtn.className = target === "soc" ? activeTabCls : inactiveTabCls;
-            socTabBtn.setAttribute("aria-selected", target === "soc" ? "true" : "false");
-        }
-        if (aboutTabBtn) {
-            aboutTabBtn.className = target === "about" ? activeTabCls : inactiveTabCls;
-            aboutTabBtn.setAttribute("aria-selected", target === "about" ? "true" : "false");
-            const aboutIcon = aboutTabBtn.querySelector("svg");
-            if (aboutIcon) aboutIcon.classList.toggle("text-cyan-400", target !== "about");
+        Object.entries(tabs).forEach(([key, cfg]) => {
+            const isActive = key === target;
+            const panel = document.getElementById(cfg.panelId);
+            const btn = document.getElementById(cfg.btnId);
+            if (panel) panel.classList.toggle("hidden", !isActive);
+            if (btn) {
+                btn.className = isActive ? activeTabCls : inactiveTabCls;
+                btn.setAttribute("aria-selected", isActive ? "true" : "false");
+                const icon = btn.querySelector("svg");
+                if (icon && cfg.iconClass) {
+                    icon.classList.toggle(cfg.iconClass, !isActive);
+                }
+            }
+        });
+
+        if (target === "logs" && terminalFeed) {
+            terminalFeed.scrollTop = terminalFeed.scrollHeight;
         }
         window.scrollTo({ top: 0, behavior: "smooth" });
     };
@@ -2001,6 +2017,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     applyThemeUI(savedTheme);
     window.setAboutChapter("all");
+    syncWorkspaceBadges();
     fetchInitialStatus();
     loadAnalytics();
     connectSSE();

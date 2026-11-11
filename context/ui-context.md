@@ -3,9 +3,11 @@
 ## Theme & Layout Architecture
 Dual-theme SOC interface supporting persistent **Dark Mode** (`html.dark`, default obsidian terminal theme) and **Light Mode** (`html.light`, crisp Slate-50/White editorial operations view persisted in `localStorage` under `soc_theme`).
 
-Top navigation houses global toggles (`Simulated | Live` traffic switch, `Dark | Light` theme switch, and `#sse-status-pill`). Below the header, `#workspace-subnav` cleanly separates workspace tabs (`#tab-btn-soc` **Live Operations** vs `#btn-open-about` **About & Architecture**) from utility actions (**Analytics & Forensics**, **Reset All Bans**, **Reset Database**).
+Top navigation houses global toggles (`Simulated | Live` traffic switch, `Dark | Light` theme switch, and `#sse-status-pill`). Below the header, `#workspace-subnav` cleanly separates four full-width workspace tabs (**Live Operations** `#tab-btn-soc`, **Mitigation Ledger** `#tab-btn-mitigations` with `#tab-badge-mitigations`, **Activity Logs** `#tab-btn-logs` with `#tab-badge-logs`, and **About & Architecture** `#btn-open-about`) from utility actions (**Analytics & Forensics**, **Reset All Bans**, **Reset Database**).
 
-- **Live Operations Workspace (`#workspace-panel-soc`):** Ordered by operational priority — 4 KPI cards → Active Asset Mesh (`#section-simulated-topology` in Simulated / `#section-live-devices` in Live) → Split Telemetry View (**Autonomous Mitigation Ledger** + **General Activity Logs**) → **Adversary Intrusion Simulation** (`#section-simulated-redteam`) → **Honeypot Threat Intelligence & Log Analytics** (`#section-threat-intel`).
+- **Live Operations Workspace (`#workspace-panel-soc`):** Focused dashboard view ordered by KPI cards → Active Asset Mesh (`#section-simulated-topology` in Simulated / `#section-live-devices` in Live) → **Adversary Intrusion Simulation** (`#section-simulated-redteam`) → **Honeypot Threat Intelligence & Log Analytics** (`#section-threat-intel`).
+- **Mitigation Ledger Workspace (`#workspace-panel-mitigations`):** Dedicated full-width Netfilter blocklist & quarantined hardware audit table (`#mitigation-table-body`, up to `600px` scrollable table body) eliminating horizontal crowding.
+- **Activity Logs Workspace (`#workspace-panel-logs`):** Dedicated full-width 6-column SIEM console (`#terminal-feed`, `540px` height) with stream filter pills (`ALL`, `HONEYPOT`, `MITIGATION`, `QUARANTINE`, `IOT MESH`, `SYSTEM`) and selective export triggers.
 - **About & Architecture Workspace (`#workspace-panel-about`):** Chapter-filtered documentation tabs (`#about-chapter-tabs`: Full Guide, How It Works, Simulated vs Live, Differences & Advantages) with `.diagram-showcase-frame` containers preserving obsidian framing around dark-HUD diagrams across themes.
 
 ## Colors

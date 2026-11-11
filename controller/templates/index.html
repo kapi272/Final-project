@@ -58,7 +58,8 @@
         html.light .bg-slate-950\/90,
         html.light .bg-slate-950\/85,
         html.light .bg-slate-950\/80,
-        html.light .bg-slate-950\/70 {
+        html.light .bg-slate-950\/70,
+        html.light .bg-slate-950\/40 {
             background-color: #f8fafc;
         }
         html.light .bg-slate-800,
@@ -260,6 +261,27 @@
         html.light .bg-rose-700:hover {
             color: #ffffff;
         }
+        /* Workspace Tab Live Count Pills */
+        .tab-count-badge {
+            background-color: rgba(15, 23, 42, 0.55);
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            color: #cbd5e1;
+        }
+        .solid-accent-btn .tab-count-badge {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.35);
+            color: #ffffff;
+        }
+        html.light .tab-count-badge {
+            background-color: #e2e8f0;
+            border-color: #cbd5e1;
+            color: #334155;
+        }
+        html.light .solid-accent-btn .tab-count-badge {
+            background-color: rgba(255, 255, 255, 0.22);
+            border-color: rgba(255, 255, 255, 0.4);
+            color: #ffffff;
+        }
     </style>
 </head>
 <body class="bg-darkBase text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-rose-900 selection:text-white transition-colors duration-200">
@@ -315,12 +337,26 @@
         <!-- Workspace Navigation & Quick Operations Toolbar -->
         <div id="workspace-subnav" class="bg-slate-900/80 border border-slate-800 rounded-xl px-4 py-2.5 shadow-sm flex flex-wrap items-center justify-between gap-3">
             <!-- Primary Workspace Tabs -->
-            <div class="flex items-center space-x-1.5" role="tablist" aria-label="Workspace Sections">
+            <div class="flex flex-wrap items-center gap-1.5" role="tablist" aria-label="Workspace Sections">
                 <button id="tab-btn-soc" type="button" role="tab" aria-selected="true" onclick="setWorkspaceTab('soc')" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-sky-600 text-white shadow-sm flex items-center space-x-1.5 transition-all solid-accent-btn">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
                     </svg>
                     <span>Live Operations</span>
+                </button>
+                <button id="tab-btn-mitigations" type="button" role="tab" aria-selected="false" onclick="setWorkspaceTab('mitigations')" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700/80 text-slate-300 flex items-center space-x-1.5 transition-all">
+                    <svg class="w-3.5 h-3.5 text-rose-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                    </svg>
+                    <span>Mitigation Ledger</span>
+                    <span id="tab-badge-mitigations" class="tab-count-badge ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-mono leading-none">0</span>
+                </button>
+                <button id="tab-btn-logs" type="button" role="tab" aria-selected="false" onclick="setWorkspaceTab('logs')" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700/80 text-slate-300 flex items-center space-x-1.5 transition-all">
+                    <svg class="w-3.5 h-3.5 text-sky-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                    </svg>
+                    <span>Activity Logs</span>
+                    <span id="tab-badge-logs" class="tab-count-badge ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-mono leading-none">0</span>
                 </button>
                 <button id="btn-open-about" type="button" role="tab" aria-selected="false" onclick="openAboutSection()" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700/80 text-slate-300 flex items-center space-x-1.5 transition-all" title="View platform overview, architecture, educational Simulated mode, and Live operations documentation">
                     <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
@@ -503,90 +539,7 @@
                 </div>
             </section>
 
-            <!-- Tier 3: Split View: Autonomous Mitigation Ledger & Multi-Stream Activity Console -->
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-                <!-- Left: Autonomous Mitigation History Table (5 cols) -->
-                <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-lg p-5 shadow-sm flex flex-col">
-                    <div class="flex items-center justify-between pb-3 border-b border-slate-800">
-                        <div class="flex items-center space-x-2">
-                            <span class="w-2 h-2 rounded-full bg-rose-500"></span>
-                            <h2 class="text-sm font-bold text-white uppercase tracking-wider">Autonomous Mitigation Ledger</h2>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                            <span class="text-xs font-mono text-slate-500">Sub-second Netfilter Drops</span>
-                        </div>
-                    </div>
-
-                    <div class="flex-1 overflow-x-auto mt-3 max-h-[360px] overflow-y-auto">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="border-b border-slate-800 text-[11px] text-slate-400 uppercase tracking-wider font-semibold">
-                                    <th class="px-4 py-2 whitespace-nowrap">Date & Time (IST)</th>
-                                    <th class="px-4 py-2">Offending IP</th>
-                                    <th class="px-4 py-2">Mitigation</th>
-                                    <th class="px-4 py-2">Trigger Reason</th>
-                                    <th class="px-4 py-2 text-right">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="mitigation-table-body" class="divide-y divide-slate-800/40">
-                                <!-- Populated dynamically via SSE & JS -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Right: Real-time Multi-Stream Activity Console (7 cols) -->
-                <div class="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-lg p-5 shadow-sm flex flex-col">
-                    <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-                        <div class="flex items-center space-x-2">
-                            <span class="w-2 h-2 rounded-full bg-sky-400 animate-pulse"></span>
-                            <h2 class="text-sm font-bold text-white uppercase tracking-wider">General Activity Logs</h2>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                            <span class="text-[11px] font-mono text-slate-500 mr-1 hidden sm:inline">Multi-Stream SIEM</span>
-                            <button id="btn-export-logs" onclick="openExportLogsModal()" class="text-[11px] font-semibold text-sky-300 hover:text-white px-2 py-0.5 rounded border border-sky-800 bg-sky-950/60 hover:bg-sky-900 transition-colors flex items-center space-x-1" title="Export activity logs in JSON, CSV, or LOG format">
-                                <span>📥</span>
-                                <span>Export</span>
-                            </button>
-                            <button id="btn-clear-console" onclick="clearConsole()" class="text-[11px] font-semibold text-slate-300 hover:text-white px-2 py-0.5 rounded border border-slate-700 bg-slate-800/80 hover:bg-slate-700 transition-colors flex items-center space-x-1" title="Clear terminal logs buffer">
-                                <span>🧹</span>
-                                <span>Clear</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Stream Category Filters -->
-                    <div class="flex items-center space-x-1 py-1.5 border-b border-slate-800/60 text-[10px] font-mono overflow-x-auto">
-                        <button id="filter-btn-all" onclick="setLogFilter('all')" class="px-2 py-0.5 rounded font-bold bg-sky-950/80 border border-sky-700 text-sky-300 transition-all">ALL</button>
-                        <button id="filter-btn-honeypot" onclick="setLogFilter('honeypot')" class="px-2 py-0.5 rounded font-semibold bg-slate-800/50 hover:bg-slate-800 border border-transparent hover:border-slate-700 text-slate-400 hover:text-amber-300 transition-all">HONEYPOT</button>
-                        <button id="filter-btn-mitigation" onclick="setLogFilter('mitigation')" class="px-2 py-0.5 rounded font-semibold bg-slate-800/50 hover:bg-slate-800 border border-transparent hover:border-slate-700 text-slate-400 hover:text-rose-300 transition-all">MITIGATION</button>
-                        <button id="filter-btn-quarantine" onclick="setLogFilter('quarantine')" class="px-2 py-0.5 rounded font-semibold bg-slate-800/50 hover:bg-slate-800 border border-transparent hover:border-slate-700 text-slate-400 hover:text-red-400 transition-all">QUARANTINE</button>
-                        <button id="filter-btn-iot" onclick="setLogFilter('iot')" class="px-2 py-0.5 rounded font-semibold bg-slate-800/50 hover:bg-slate-800 border border-transparent hover:border-slate-700 text-slate-400 hover:text-emerald-300 transition-all">IOT MESH</button>
-                        <button id="filter-btn-system" onclick="setLogFilter('system')" class="px-2 py-0.5 rounded font-semibold bg-slate-800/50 hover:bg-slate-800 border border-transparent hover:border-slate-700 text-slate-400 hover:text-slate-200 transition-all">SYSTEM</button>
-                    </div>
-
-                    <!-- Unified Horizontal Scroll Wrapper for Header & Rows -->
-                    <div class="flex-1 overflow-x-auto mt-2 rounded bg-slate-950 border border-slate-800 flex flex-col">
-                        <!-- 6-Column SIEM Grid Header Bar -->
-                        <div id="siem-grid-header" class="flex items-center space-x-2 px-3 py-1.5 bg-slate-900/90 border-b border-slate-800 text-[10px] font-mono uppercase font-bold text-slate-400 select-none min-w-[860px] sticky top-0 z-10">
-                            <span class="w-[145px] shrink-0 text-slate-500">DATE & TIME (IST)</span>
-                            <span class="w-[88px] shrink-0 text-slate-400 text-center">STREAM</span>
-                            <span class="w-[56px] shrink-0 text-center text-slate-400">SEV</span>
-                            <span class="w-[115px] shrink-0 text-slate-400 text-center">SOURCE/NODE</span>
-                            <span class="w-[85px] shrink-0 text-center text-slate-400">PROTOCOL</span>
-                            <span class="flex-1 min-w-[300px] text-slate-400">PAYLOAD & EVENT DATA</span>
-                        </div>
-
-                        <div id="terminal-feed" class="flex-1 p-0 font-mono text-[11px] h-[330px] overflow-y-auto min-w-[860px] space-y-0.5">
-                            <!-- Stream logs will auto-scroll here -->
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
-            <!-- Tier 4: Adversary Intrusion Simulation Controls (Red Team Trigger Toolbar - Simulated Mode) -->
+            <!-- Tier 3: Adversary Intrusion Simulation Controls (Red Team Trigger Toolbar - Simulated Mode) -->
             <section id="section-simulated-redteam" class="bg-slate-900/90 border border-slate-800 rounded-lg p-5 shadow-sm space-y-3">
                 <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-800/80">
                     <div class="flex items-center space-x-2">
@@ -781,7 +734,100 @@
 
         </div><!-- /#workspace-panel-soc -->
 
-        <!-- PANEL 2: About, Architecture & Platform Documentation -->
+        <!-- PANEL 2: Full-Width Autonomous Mitigation Ledger Tab -->
+        <div id="workspace-panel-mitigations" class="hidden space-y-6">
+            <section class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-sm flex flex-col">
+                <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-800">
+                    <div class="flex items-center space-x-2.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                        <div>
+                            <h2 class="text-sm font-bold text-white uppercase tracking-wider">Autonomous Mitigation Ledger</h2>
+                            <p class="text-xs text-slate-400">Real-time Netfilter kernel drops, quarantined hardware records, and IP forensic links</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs font-mono text-slate-500">Sub-second Netfilter Drops</span>
+                        <button type="button" onclick="setWorkspaceTab('soc')" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-slate-200 transition-all">
+                            ← Back to Operations
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex-1 overflow-x-auto mt-4 max-h-[600px] overflow-y-auto rounded-lg border border-slate-800/80 bg-slate-950/40">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="sticky top-0 bg-slate-900/95 z-10">
+                            <tr class="border-b border-slate-800 text-[11px] text-slate-400 uppercase tracking-wider font-semibold">
+                                <th class="px-4 py-3 whitespace-nowrap">Date & Time (IST)</th>
+                                <th class="px-4 py-3">Offending IP</th>
+                                <th class="px-4 py-3">Mitigation</th>
+                                <th class="px-4 py-3">Trigger Reason</th>
+                                <th class="px-4 py-3 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mitigation-table-body" class="divide-y divide-slate-800/40">
+                            <!-- Populated dynamically via SSE & JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div><!-- /#workspace-panel-mitigations -->
+
+        <!-- PANEL 3: Full-Width Multi-Stream SIEM Activity Logs Tab -->
+        <div id="workspace-panel-logs" class="hidden space-y-6">
+            <section class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-sm flex flex-col">
+                <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+                    <div class="flex items-center space-x-2.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse"></span>
+                        <div>
+                            <h2 class="text-sm font-bold text-white uppercase tracking-wider">General Activity Logs</h2>
+                            <p class="text-xs text-slate-400">6-Column Structured Multi-Stream SIEM Feed (Honeypot, Mitigation, Quarantine, IoT Mesh, System)</p>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button id="btn-export-logs" onclick="openExportLogsModal()" class="text-xs font-semibold text-sky-300 hover:text-white px-3 py-1.5 rounded-lg border border-sky-800 bg-sky-950/60 hover:bg-sky-900 transition-colors flex items-center space-x-1.5" title="Export activity logs in JSON, CSV, or LOG format">
+                            <span>📥</span>
+                            <span>Export Logs</span>
+                        </button>
+                        <button id="btn-clear-console" onclick="clearConsole()" class="text-xs font-semibold text-slate-300 hover:text-white px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800/80 hover:bg-slate-700 transition-colors flex items-center space-x-1.5" title="Clear terminal logs buffer">
+                            <span>🧹</span>
+                            <span>Clear</span>
+                        </button>
+                        <button type="button" onclick="setWorkspaceTab('soc')" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-slate-200 transition-all">
+                            ← Back to Operations
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Stream Category Filters -->
+                <div class="flex items-center space-x-1.5 py-2.5 border-b border-slate-800/60 text-[11px] font-mono overflow-x-auto">
+                    <button id="filter-btn-all" onclick="setLogFilter('all')" class="px-2.5 py-1 rounded font-bold bg-sky-950/80 border border-sky-700 text-sky-300 transition-all">ALL</button>
+                    <button id="filter-btn-honeypot" onclick="setLogFilter('honeypot')" class="px-2.5 py-1 rounded font-semibold bg-slate-800/50 hover:bg-slate-800 border border-transparent hover:border-slate-700 text-slate-400 hover:text-amber-300 transition-all">HONEYPOT</button>
+                    <button id="filter-btn-mitigation" onclick="setLogFilter('mitigation')" class="px-2.5 py-1 rounded font-semibold bg-slate-800/50 hover:bg-slate-800 border border-transparent hover:border-slate-700 text-slate-400 hover:text-rose-300 transition-all">MITIGATION</button>
+                    <button id="filter-btn-quarantine" onclick="setLogFilter('quarantine')" class="px-2.5 py-1 rounded font-semibold bg-slate-800/50 hover:bg-slate-800 border border-transparent hover:border-slate-700 text-slate-400 hover:text-red-400 transition-all">QUARANTINE</button>
+                    <button id="filter-btn-iot" onclick="setLogFilter('iot')" class="px-2.5 py-1 rounded font-semibold bg-slate-800/50 hover:bg-slate-800 border border-transparent hover:border-slate-700 text-slate-400 hover:text-emerald-300 transition-all">IOT MESH</button>
+                    <button id="filter-btn-system" onclick="setLogFilter('system')" class="px-2.5 py-1 rounded font-semibold bg-slate-800/50 hover:bg-slate-800 border border-transparent hover:border-slate-700 text-slate-400 hover:text-slate-200 transition-all">SYSTEM</button>
+                </div>
+
+                <!-- Unified Full-Width Container for Header & Rows -->
+                <div class="flex-1 overflow-x-auto mt-3 rounded-lg bg-slate-950 border border-slate-800 flex flex-col">
+                    <!-- 6-Column SIEM Grid Header Bar -->
+                    <div id="siem-grid-header" class="flex items-center space-x-2 px-3 py-2 bg-slate-900/90 border-b border-slate-800 text-[10px] font-mono uppercase font-bold text-slate-400 select-none min-w-[860px] sticky top-0 z-10">
+                        <span class="w-[145px] shrink-0 text-slate-500">DATE & TIME (IST)</span>
+                        <span class="w-[88px] shrink-0 text-slate-400 text-center">STREAM</span>
+                        <span class="w-[56px] shrink-0 text-center text-slate-400">SEV</span>
+                        <span class="w-[115px] shrink-0 text-slate-400 text-center">SOURCE/NODE</span>
+                        <span class="w-[85px] shrink-0 text-center text-slate-400">PROTOCOL</span>
+                        <span class="flex-1 min-w-[300px] text-slate-400">PAYLOAD & EVENT DATA</span>
+                    </div>
+
+                    <div id="terminal-feed" class="flex-1 p-0 font-mono text-[11px] h-[540px] overflow-y-auto min-w-[860px] space-y-0.5">
+                        <!-- Stream logs will auto-scroll here -->
+                    </div>
+                </div>
+            </section>
+        </div><!-- /#workspace-panel-logs -->
+
+        <!-- PANEL 4: About, Architecture & Platform Documentation -->
         <div id="workspace-panel-about" class="hidden space-y-6">
         <section id="section-about-system" class="space-y-6 scroll-mt-24">
             <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-lg space-y-6">
@@ -1379,7 +1425,7 @@
     </div>
 
     <!-- SOC Terminal JS Client -->
-    <script src="/static/app.js?v=2.0.2"></script>
+    <script src="/static/app.js?v=2.0.3"></script>
 </body>
 </html>
 

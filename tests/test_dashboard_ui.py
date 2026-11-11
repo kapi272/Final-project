@@ -34,7 +34,7 @@ class TestDashboardUI(unittest.TestCase):
         self.assertIn("select-ip-exploit", body)
         self.assertIn("select-ip-portsweep", body)
         self.assertIn("custom-ip-bruteforce", body)
-        self.assertIn("/static/app.js?v=2.0.2", body)
+        self.assertIn("/static/app.js?v=2.0.3", body)
         self.assertIn("no-store", res.headers.get("cache-control", "").lower())
         self.assertIn("DATE & TIME (IST)", body)
         self.assertIn("w-[145px]", body)
@@ -88,6 +88,8 @@ class TestDashboardUI(unittest.TestCase):
             "setTheme",
             "setWorkspaceTab",
             "setAboutChapter",
+            "syncWorkspaceBadges",
+            "updateBannedCountDisplay",
         ):
             self.assertIn(symbol, body)
 
@@ -104,7 +106,13 @@ class TestDashboardUI(unittest.TestCase):
             "theme-overrides",
             "workspace-subnav",
             "tab-btn-soc",
+            "tab-btn-mitigations",
+            "tab-btn-logs",
+            "tab-badge-mitigations",
+            "tab-badge-logs",
             "workspace-panel-soc",
+            "workspace-panel-mitigations",
+            "workspace-panel-logs",
             "workspace-panel-about",
             "about-chapter-tabs",
             "section-live-devices",
