@@ -44,12 +44,12 @@ This project is an autonomous, containerized host-level IoT cyber defense system
 ### 4. Real-Time Telemetry Dashboard
 - Single-page application served via FastAPI.
 - Push-based event delivery via SSE (`text/event-stream`).
-- Visual status tracking: active nodes, quarantined containers, live defense log table, and active `iptables` drop inventory.
+- Visual status tracking: active nodes, quarantined containers, live defense log table, active `iptables` drop inventory, and an integrated **About & Architecture** showcase (`#section-about-system`) detailing educational (`Simulated`) vs real-world (`Live`) usage, differentiation, and visual diagrams.
 
 ### 5. Dual Simulated / Live Traffic Mode & Real IoT/CCTV Integration (`v2.0.0`)
 - Header traffic mode toggle strictly separating **`Simulated Mode`** (virtual Docker nodes + Red Team simulator) from **`Live Mode`** (pauses mock feeds & returns `409 Conflict` on simulation routes while monitoring physical/external IoT hardware).
 - Persistent Real-World Device Registry supporting CCTV cameras (`rtsp_http`), MQTT nodes (`mqtt`), and HTTP webhooks (`http_webhook` with SHA-256 `X-Device-Token` auth).
-- Non-shell asyncio TCP reachability polling, SSRF-guarded HTTP/MJPEG snapshot proxy, and logical quarantine (`DEVICE_BLOCKED` / `DEVICE_RESTORED`) with ingestion drop and firewall enforcement.
+- Non-shell asyncio TCP reachability polling, SSRF-guarded HTTP/MJPEG snapshot proxy with double-buffered **Live Video** playback (`▶ Live Video` / `⏸ Pause Video`), and logical quarantine (`DEVICE_BLOCKED` / `DEVICE_RESTORED`) with ingestion drop and firewall enforcement.
 
 ## Scope
 
