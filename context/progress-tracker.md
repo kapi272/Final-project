@@ -3,10 +3,10 @@
 Update this file after every meaningful implementation change.
 
 ## Current Phase
-Phase 15: Milestone v1.8.0 — Multi-IP Adversary Simulation Pools, Custom IP & Botnet Swarm Mode
+Phase 16: Milestone v1.8.1 — Cache-Busting, Ledger/Console Unban Sync & Red Team Feedback Hardening
 
 ## Current Goal
-The Autonomous IoT Cyber Defense Testbed is running on release v1.8.0 (SOC Terminal v1.8-SOC) supporting multi-IP attack simulations (5 distinct RFC 5737 test IPs per attack vector, auto-rotation, custom IP validation, and simultaneous Swarm attacks) in the Red Team Controls toolbar. 40/40 tests passing.
+Ensure browsers never load stale cached `/static/app.js`, keep Autonomous Mitigation Ledger and General Activity Logs 100% synchronized across multi-IP attacks, unbans, and idempotent re-bans, and normalize `CRITICAL`/`CRIT` severity styling.
 
 ## Completed
 - [x] Context foundation files established and verified at root.

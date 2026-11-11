@@ -1,7 +1,7 @@
 # Autonomous IoT Cyber Defense System Using Virtual IoT Nodes and Honeypot Technology
 
 ## Overview
-**Current Release:** v1.8.0 (SOC Terminal `v1.8-SOC`)
+**Current Release:** v1.8.1 (SOC Terminal `v1.8.1-SOC`)
 
 This project is an autonomous, containerized host-level IoT cyber defense system. It simulates an enterprise/smart-home IoT environment (sensors, actuators, MQTT broker) on a single physical workstation using isolated virtual networks. By deploying an instrumented deception layer (Cowrie medium-interaction honeypot) directly alongside virtual IoT nodes, the system attracts and analyzes adversarial reconnaissance, brute-force intrusions, and botnet infections without risking physical hardware. An integrated analytics engine evaluates honeypot events and sniffs subnet traffic to autonomously execute closed-loop mitigations—injecting dynamic kernel firewall (`iptables`) drop rules into Docker routing chains and isolating rogue containers into a quarantine bridge network via the Docker Engine API.
 

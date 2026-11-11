@@ -29,7 +29,7 @@ class TestDashboardUI(unittest.TestCase):
         self.assertIn("filter-btn-quarantine", body)
         self.assertIn("filter-btn-iot", body)
         self.assertIn("siem-grid-header", body)
-        self.assertIn("v1.8-SOC", body)
+        self.assertIn("v1.8.1-SOC", body)
         self.assertIn("select-ip-bruteforce", body)
         self.assertIn("select-ip-exploit", body)
         self.assertIn("select-ip-portsweep", body)
