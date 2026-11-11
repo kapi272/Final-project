@@ -34,7 +34,7 @@ class TestDashboardUI(unittest.TestCase):
         self.assertIn("select-ip-exploit", body)
         self.assertIn("select-ip-portsweep", body)
         self.assertIn("custom-ip-bruteforce", body)
-        self.assertIn("/static/app.js?v=2.0.0", body)
+        self.assertIn("/static/app.js?v=2.0.1", body)
         self.assertIn("no-store", res.headers.get("cache-control", "").lower())
         self.assertIn("DATE & TIME (IST)", body)
         self.assertIn("w-[145px]", body)
@@ -84,10 +84,11 @@ class TestDashboardUI(unittest.TestCase):
             "submitAddDevice",
             "blockLiveDevice",
             "openSnapshotModal",
+            "toggleLiveSnapshotStream",
         ):
             self.assertIn(symbol, body)
 
-        # Verify v2.0.0 Traffic Mode Toggle & Live Device Registry HTML containers
+        # Verify v2.0.0 Traffic Mode Toggle, Live Device Registry & About Section HTML containers
         html_res = self.client.get("/")
         self.assertEqual(html_res.status_code, 200)
         for element_id in (
@@ -95,11 +96,25 @@ class TestDashboardUI(unittest.TestCase):
             "mode-btn-simulated",
             "mode-btn-live",
             "section-live-devices",
+            "section-about-system",
+            "btn-open-about",
+            "btn-toggle-live-stream",
+            "/static/images/architecture_overview.jpg",
+            "/static/images/dual_mode_comparison.jpg",
             "add-device-modal",
             "snapshot-modal",
             "confirm-modal",
         ):
             self.assertIn(element_id, html_res.text)
+
+        # Verify generated static illustration assets are served cleanly
+        for img_path in (
+            "/static/images/architecture_overview.jpg",
+            "/static/images/dual_mode_comparison.jpg",
+        ):
+            img_res = self.client.get(img_path)
+            self.assertEqual(img_res.status_code, 200)
+            self.assertIn("image/jpeg", img_res.headers.get("content-type", ""))
 
     def test_quarantine_ui_category_integration(self) -> None:
         res = self.client.get("/static/app.js")

@@ -15,6 +15,10 @@ document.addEventListener("DOMContentLoaded", () => {
     let registeredDevices = [];
     let activeSnapshotDevice = null;
     let currentSnapshotObjectUrl = null;
+    let liveSnapshotActive = false;
+    let liveSnapshotTimer = null;
+    let liveSnapshotSession = 0;
+    let liveSnapshotLastFrameTs = 0;
     const terminalLogsBuffer = [];
 
     // Helper: Safely append text to an element to prevent DOM XSS
@@ -674,6 +678,25 @@ document.addEventListener("DOMContentLoaded", () => {
                 const payload = JSON.parse(e.data);
                 if (payload.data) {
                     upsertDeviceLocal(payload.data);
+                    if (activeSnapshotDevice && payload.data.device_id === activeSnapshotDevice && payload.data.blocked) {
+                        stopLiveSnapshotStream();
+                        const imgEl = document.getElementById("snapshot-preview-img");
+                        const fallbackEl = document.getElementById("snapshot-fallback-msg");
+                        const statusText = document.getElementById("snapshot-status-text");
+                        if (imgEl) {
+                            imgEl.removeAttribute("src");
+                            imgEl.classList.add("hidden");
+                        }
+                        if (currentSnapshotObjectUrl) {
+                            URL.revokeObjectURL(currentSnapshotObjectUrl);
+                            currentSnapshotObjectUrl = null;
+                        }
+                        if (fallbackEl) {
+                            fallbackEl.textContent = "Camera stream halted: Device quarantined by SOC policy.";
+                            fallbackEl.classList.remove("hidden");
+                        }
+                        if (statusText) statusText.textContent = "Stream blocked (403 Quarantined)";
+                    }
                 }
             } catch (err) {
                 console.error(err);
@@ -685,6 +708,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 const payload = JSON.parse(e.data);
                 const devId = payload.data && payload.data.device_id;
                 if (devId) {
+                    if (activeSnapshotDevice === devId) {
+                        window.closeSnapshotModal();
+                    }
                     registeredDevices = registeredDevices.filter(d => d.device_id !== devId);
                     renderLiveDevices();
                     updateModeMetrics();
@@ -1590,63 +1616,172 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
 
-    async function loadSnapshotIntoModal(deviceId) {
+    function updateLiveStreamButtonUI() {
+        const btn = document.getElementById("btn-toggle-live-stream");
+        if (!btn) return;
+        if (liveSnapshotActive) {
+            btn.textContent = "⏸ Pause Video";
+            btn.className = "px-3 py-1 text-xs font-semibold rounded bg-rose-950/80 hover:bg-rose-900 border border-rose-700 text-rose-300 transition-colors";
+        } else {
+            btn.textContent = "▶ Live Video";
+            btn.className = "px-3 py-1 text-xs font-semibold rounded bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700 text-emerald-300 transition-colors";
+        }
+    }
+
+    function stopLiveSnapshotStream() {
+        liveSnapshotActive = false;
+        liveSnapshotSession += 1;
+        if (liveSnapshotTimer) {
+            clearTimeout(liveSnapshotTimer);
+            liveSnapshotTimer = null;
+        }
+        updateLiveStreamButtonUI();
+    }
+
+    async function loadSnapshotIntoModal(deviceId, sessionToken) {
         const statusText = document.getElementById("snapshot-status-text");
         const imgEl = document.getElementById("snapshot-preview-img");
         const fallbackEl = document.getElementById("snapshot-fallback-msg");
-        if (currentSnapshotObjectUrl) {
-            URL.revokeObjectURL(currentSnapshotObjectUrl);
-            currentSnapshotObjectUrl = null;
+        const isFirstFrame = !imgEl || imgEl.classList.contains("hidden");
+
+        if (isFirstFrame) {
+            if (fallbackEl) {
+                fallbackEl.textContent = "Fetching camera frame via SSRF-guarded proxy...";
+                fallbackEl.classList.remove("hidden");
+            }
+            if (statusText) statusText.textContent = `Requesting frame for ${deviceId}...`;
         }
-        if (imgEl) imgEl.classList.add("hidden");
-        if (fallbackEl) {
-            fallbackEl.textContent = "Fetching camera frame via SSRF-guarded proxy...";
-            fallbackEl.classList.remove("hidden");
-        }
-        if (statusText) statusText.textContent = `Requesting frame for ${deviceId}...`;
 
         try {
             const res = await fetch(`/api/devices/${encodeURIComponent(deviceId)}/snapshot?t=${Date.now()}`);
+            if (sessionToken !== liveSnapshotSession || activeSnapshotDevice !== deviceId) {
+                return;
+            }
             if (!res.ok) {
                 let errDetail = `HTTP ${res.status}`;
                 try {
                     const errJson = await res.json();
                     errDetail = errJson.detail || errJson.message || errDetail;
                 } catch (_) {}
-                if (fallbackEl) fallbackEl.textContent = `Snapshot unavailable: ${errDetail}`;
+                stopLiveSnapshotStream();
+                if (imgEl) {
+                    imgEl.removeAttribute("src");
+                    imgEl.classList.add("hidden");
+                }
+                if (currentSnapshotObjectUrl) {
+                    URL.revokeObjectURL(currentSnapshotObjectUrl);
+                    currentSnapshotObjectUrl = null;
+                }
+                if (fallbackEl) {
+                    fallbackEl.textContent = `Snapshot unavailable: ${errDetail}`;
+                    fallbackEl.classList.remove("hidden");
+                }
                 if (statusText) statusText.textContent = `Snapshot error (${res.status})`;
                 return;
             }
             const blob = await res.blob();
-            currentSnapshotObjectUrl = URL.createObjectURL(blob);
+            if (sessionToken !== liveSnapshotSession || activeSnapshotDevice !== deviceId) {
+                return;
+            }
+            const nextUrl = URL.createObjectURL(blob);
+            const oldUrl = currentSnapshotObjectUrl;
+            currentSnapshotObjectUrl = nextUrl;
+
             if (imgEl) {
-                imgEl.src = currentSnapshotObjectUrl;
+                imgEl.src = nextUrl;
                 imgEl.classList.remove("hidden");
             }
+            if (oldUrl) {
+                URL.revokeObjectURL(oldUrl);
+            }
             if (fallbackEl) fallbackEl.classList.add("hidden");
-            if (statusText) statusText.textContent = `Captured via SSRF proxy at ${formatDateTime(Date.now() / 1000)} IST`;
+
+            const nowMs = Date.now();
+            let fpsLabel = "";
+            if (liveSnapshotActive && liveSnapshotLastFrameTs > 0) {
+                const deltaSec = Math.max(0.05, (nowMs - liveSnapshotLastFrameTs) / 1000);
+                const fps = Math.min(30, 1 / deltaSec).toFixed(1);
+                fpsLabel = `LIVE VIDEO (${fps} fps) • `;
+            }
+            liveSnapshotLastFrameTs = nowMs;
+
+            if (statusText) {
+                statusText.textContent = `${fpsLabel}Captured via SSRF proxy at ${formatDateTime(nowMs / 1000)} IST`;
+            }
+
+            if (liveSnapshotActive && sessionToken === liveSnapshotSession && activeSnapshotDevice === deviceId) {
+                liveSnapshotTimer = setTimeout(() => {
+                    if (liveSnapshotActive && sessionToken === liveSnapshotSession && activeSnapshotDevice === deviceId) {
+                        loadSnapshotIntoModal(deviceId, sessionToken);
+                    }
+                }, 120);
+            }
         } catch (err) {
-            if (fallbackEl) fallbackEl.textContent = `Snapshot request failed: ${err}`;
+            if (sessionToken !== liveSnapshotSession) return;
+            stopLiveSnapshotStream();
+            if (fallbackEl) {
+                fallbackEl.textContent = `Snapshot request failed: ${err}`;
+                fallbackEl.classList.remove("hidden");
+            }
             if (statusText) statusText.textContent = "Network error";
         }
     }
 
+    window.toggleLiveSnapshotStream = function() {
+        if (!activeSnapshotDevice) return;
+        if (liveSnapshotActive) {
+            stopLiveSnapshotStream();
+            const statusText = document.getElementById("snapshot-status-text");
+            if (statusText) statusText.textContent = `Paused live video at ${formatDateTime(Date.now() / 1000)} IST`;
+        } else {
+            liveSnapshotActive = true;
+            liveSnapshotSession += 1;
+            liveSnapshotLastFrameTs = 0;
+            updateLiveStreamButtonUI();
+            loadSnapshotIntoModal(activeSnapshotDevice, liveSnapshotSession);
+        }
+    };
+
     window.openSnapshotModal = function(deviceId, deviceName) {
+        stopLiveSnapshotStream();
         activeSnapshotDevice = deviceId;
+        liveSnapshotSession += 1;
+        liveSnapshotLastFrameTs = 0;
+
+        const dev = registeredDevices.find(d => d.device_id === deviceId);
+        const isVideoUrl = dev && dev.snapshot_url && /(\/video\b|\/stream\b|mjpeg)/i.test(dev.snapshot_url);
+        liveSnapshotActive = Boolean(isVideoUrl);
+        updateLiveStreamButtonUI();
+
         const modal = document.getElementById("snapshot-modal");
         const titleEl = document.getElementById("snapshot-modal-title");
+        const imgEl = document.getElementById("snapshot-preview-img");
+        if (imgEl) {
+            imgEl.removeAttribute("src");
+            imgEl.classList.add("hidden");
+        }
+        if (currentSnapshotObjectUrl) {
+            URL.revokeObjectURL(currentSnapshotObjectUrl);
+            currentSnapshotObjectUrl = null;
+        }
         if (titleEl) titleEl.textContent = `CCTV Snapshot — ${deviceName || deviceId}`;
         if (modal) modal.classList.remove("hidden");
-        loadSnapshotIntoModal(deviceId);
+        loadSnapshotIntoModal(deviceId, liveSnapshotSession);
     };
 
     window.refreshCurrentSnapshot = function() {
         if (activeSnapshotDevice) {
-            loadSnapshotIntoModal(activeSnapshotDevice);
+            if (liveSnapshotTimer) {
+                clearTimeout(liveSnapshotTimer);
+                liveSnapshotTimer = null;
+            }
+            liveSnapshotSession += 1;
+            loadSnapshotIntoModal(activeSnapshotDevice, liveSnapshotSession);
         }
     };
 
     window.closeSnapshotModal = function() {
+        stopLiveSnapshotStream();
         const modal = document.getElementById("snapshot-modal");
         const imgEl = document.getElementById("snapshot-preview-img");
         if (imgEl) {

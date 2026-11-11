@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en" class="dark scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -51,6 +51,14 @@
                     <span id="sse-indicator" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
                     <span id="sse-text">CONNECTING...</span>
                 </div>
+
+                <!-- Quick Jump to About & Architecture Documentation -->
+                <a id="btn-open-about" href="#section-about-system" class="px-3 py-1 text-xs font-semibold rounded bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-slate-200 transition-all flex items-center space-x-1.5 shadow-sm" title="View platform overview, architecture, educational Simulated mode, and Live operations documentation">
+                    <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>About &amp; Docs</span>
+                </a>
 
                 <!-- Separate External Analytics Tool Button -->
                 <button id="btn-open-analytics" onclick="openAnalyticsModal()" class="px-3 py-1 text-xs font-semibold rounded bg-sky-950/60 hover:bg-sky-900/80 border border-sky-700/80 text-sky-300 transition-all flex items-center space-x-1.5 shadow-sm">
@@ -498,6 +506,294 @@
 
         </div>
 
+        <!-- About, Architecture & Platform Documentation Section -->
+        <section id="section-about-system" class="pt-4 space-y-6 scroll-mt-24">
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-lg space-y-8">
+                <!-- Section Banner -->
+                <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-800">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-lg bg-cyan-950/80 border border-cyan-700/70 flex items-center justify-center shrink-0">
+                            <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 class="text-base font-bold text-white uppercase tracking-wider">About the Platform &amp; How It Works</h2>
+                            <p class="text-xs text-slate-400">Closed-Loop IoT Deception, Autonomous Kernel Mitigation &amp; Dual-Mode Cyber Defense Operations</p>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2 text-[11px] font-mono">
+                        <span class="px-2.5 py-1 rounded-full bg-amber-950/60 border border-amber-800/80 text-amber-300">Deception-First Decoy</span>
+                        <span class="px-2.5 py-1 rounded-full bg-rose-950/60 border border-rose-800/80 text-rose-300">&lt; 1 ms Auto-Mitigation</span>
+                        <span class="px-2.5 py-1 rounded-full bg-emerald-950/60 border border-emerald-800/80 text-emerald-300">Education &amp; Real Hardware</span>
+                    </div>
+                </div>
+
+                <!-- 1. Overview & Closed-Loop Architecture Diagram -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                    <div class="lg:col-span-6 space-y-4">
+                        <div class="inline-flex items-center space-x-2 text-xs font-semibold uppercase tracking-wider text-sky-400">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                            </svg>
+                            <span>What This Website Is About</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-white leading-snug">
+                            Active Deception Meets Sub-Second Autonomous IoT Containment
+                        </h3>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            The <strong class="text-white">Autonomous IoT Cyber Defense System</strong> is a unified Security Operations Center (SOC) engineered to protect smart-home and industrial IoT networks—such as smart sensors, actuators, MQTT brokers, and IP/CCTV cameras—without relying on sluggish manual intervention. Instead of waiting passively for production hardware to be breached, the platform embeds an interactive <strong class="text-amber-300">Cowrie SSH/Telnet deception honeypot</strong> inside the network perimeter to attract, fingerprint, and neutralize attackers automatically.
+                        </p>
+                        <p class="text-xs text-slate-400 leading-relaxed">
+                            Every intrusion signal and telemetry packet flows through a real-time analytics engine into an instant SIEM console, giving operators and learners live visibility into attacker credentials, shell exploit commands, firewall drops, and node isolation events over unidirectional Server-Sent Events (SSE).
+                        </p>
+
+                        <!-- 4-Step Defense Pipeline Cards -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                            <div class="p-3 rounded-lg bg-slate-950/80 border border-slate-800 space-y-1">
+                                <div class="flex items-center space-x-2 text-amber-400 text-xs font-bold">
+                                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                                    </svg>
+                                    <span>1. Honeypot Bait &amp; Telemetry</span>
+                                </div>
+                                <p class="text-[11px] text-slate-400">Cowrie captures unauthorized SSH/Telnet sweeps and brute-force logins while Mosquitto &amp; webhooks ingest sensor status.</p>
+                            </div>
+                            <div class="p-3 rounded-lg bg-slate-950/80 border border-slate-800 space-y-1">
+                                <div class="flex items-center space-x-2 text-sky-400 text-xs font-bold">
+                                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 002.25-2.25V6.75a2.25 2.25 0 00-2.25-2.25H6.75A2.25 2.25 0 004.5 6.75v10.5a2.25 2.25 0 002.25 2.25z" />
+                                    </svg>
+                                    <span>2. Sliding-Window Engine</span>
+                                </div>
+                                <p class="text-[11px] text-slate-400">In-memory <code class="font-mono text-slate-300">O(1)</code> rolling queues classify brute-force spikes, port scans, and shell payloads in under 1 ms.</p>
+                            </div>
+                            <div class="p-3 rounded-lg bg-slate-950/80 border border-slate-800 space-y-1">
+                                <div class="flex items-center space-x-2 text-rose-400 text-xs font-bold">
+                                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                    </svg>
+                                    <span>3. Kernel Drop &amp; Quarantine</span>
+                                </div>
+                                <p class="text-[11px] text-slate-400">Injects <code class="font-mono text-slate-300">IPTABLES_DROP</code> rules into <code class="font-mono text-slate-300">IOT_DEFENSE_BLOCKLIST</code> and isolates compromised nodes.</p>
+                            </div>
+                            <div class="p-3 rounded-lg bg-slate-950/80 border border-slate-800 space-y-1">
+                                <div class="flex items-center space-x-2 text-emerald-400 text-xs font-bold">
+                                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z" />
+                                    </svg>
+                                    <span>4. Forensic SOC Stream</span>
+                                </div>
+                                <p class="text-[11px] text-slate-400">Streams live IST-timestamped events, threat intel charts, IP dossiers, and multi-format audit exports.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Architecture Visual Diagram -->
+                    <div class="lg:col-span-6 space-y-2">
+                        <div class="rounded-xl overflow-hidden border border-slate-800 bg-slate-950 shadow-inner">
+                            <img src="/static/images/architecture_overview.jpg" alt="Closed-Loop Autonomous IoT Defense & Dual-Bridge Isolation Architecture" class="w-full h-auto object-cover" />
+                        </div>
+                        <div class="flex flex-wrap items-center justify-between gap-2 px-1 text-[10px] font-mono text-slate-400">
+                            <span>Amber: Cowrie Deception Honeypot • Cyan: Sub-ms Defense Core</span>
+                            <span>Emerald: Protected Mesh • Red Ring: Isolated Quarantine Subnet</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Educational Use (Simulated Mode) vs Real-World Operations (Live Mode) -->
+                <div class="pt-6 border-t border-slate-800/90 space-y-5">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                            <div class="text-xs font-semibold uppercase tracking-wider text-emerald-400">Two Dedicated Operating Modes</div>
+                            <h3 class="text-lg font-bold text-white">From Classroom Cyber-Range Training to Real-World IoT Protection</h3>
+                        </div>
+                        <span class="text-[11px] font-mono text-slate-400 bg-slate-950 border border-slate-800 px-3 py-1 rounded-full">Switchable in Top Navigation Bar</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                        <!-- Dual Mode Visual Concept -->
+                        <div class="lg:col-span-5 space-y-2">
+                            <div class="rounded-xl overflow-hidden border border-slate-800 bg-slate-950 shadow-inner">
+                                <img src="/static/images/dual_mode_comparison.jpg" alt="Simulated Educational Cyber Range vs Real-World Live Hardware Mode" class="w-full h-auto object-cover" />
+                            </div>
+                            <div class="flex items-center justify-between px-1 text-[10px] font-mono text-slate-400">
+                                <span class="text-sky-400">Left: Isolated Educational Cyber Range</span>
+                                <span class="text-emerald-400">Right: Live Physical IoT &amp; CCTV Shield</span>
+                            </div>
+                        </div>
+
+                        <!-- Side-by-Side Educational vs Real-World Cards -->
+                        <div class="lg:col-span-7 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Simulated Mode Card -->
+                            <div class="p-4 rounded-xl bg-slate-950/90 border border-sky-800/60 space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-2">
+                                        <span class="w-8 h-8 rounded-lg bg-sky-950/90 border border-sky-700/70 flex items-center justify-center text-sky-400">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5" />
+                                            </svg>
+                                        </span>
+                                        <div>
+                                            <h4 class="text-xs font-bold text-white uppercase tracking-wide">Simulated Mode</h4>
+                                            <span class="text-[10px] font-mono text-sky-400">Educational Cyber Range</span>
+                                        </div>
+                                    </div>
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-sky-950 text-sky-300 border border-sky-800">Zero Risk</span>
+                                </div>
+                                <p class="text-[11px] text-slate-300 leading-relaxed">
+                                    Designed for universities, labs, and security learners to study real cyber-attack mechanics safely without touching physical routers or live cameras.
+                                </p>
+                                <ul class="space-y-1.5 text-[11px] text-slate-400">
+                                    <li class="flex items-start space-x-2"><span class="text-sky-400 font-bold">•</span><span><strong class="text-slate-200">Safe Attack Drills:</strong> Trigger Brute-Force, Remote Shell (<code class="font-mono text-slate-300">curl | sh</code>), Port Sweeps, and Multi-IP Botnet Swarms in 1 click.</span></li>
+                                    <li class="flex items-start space-x-2"><span class="text-sky-400 font-bold">•</span><span><strong class="text-slate-200">Interactive Forensics:</strong> Inspect captured attacker passwords, usernames, timelines, and allowlist safety rejections live.</span></li>
+                                    <li class="flex items-start space-x-2"><span class="text-sky-400 font-bold">•</span><span><strong class="text-slate-200">Quarantine Lab:</strong> Simulate node infection to watch Docker dual-bridge isolation move a container off the production bus.</span></li>
+                                </ul>
+                            </div>
+
+                            <!-- Live Mode Card -->
+                            <div class="p-4 rounded-xl bg-slate-950/90 border border-emerald-800/60 space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-2">
+                                        <span class="w-8 h-8 rounded-lg bg-emerald-950/90 border border-emerald-700/70 flex items-center justify-center text-emerald-400">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
+                                            </svg>
+                                        </span>
+                                        <div>
+                                            <h4 class="text-xs font-bold text-white uppercase tracking-wide">Live Mode</h4>
+                                            <span class="text-[10px] font-mono text-emerald-400">Real-World Hardware Shield</span>
+                                        </div>
+                                    </div>
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-950 text-emerald-300 border border-emerald-800">Production Ready</span>
+                                </div>
+                                <p class="text-[11px] text-slate-300 leading-relaxed">
+                                    Mutes synthetic demo nodes and locks simulation triggers so security teams and builders can monitor genuine LAN devices and external attacks.
+                                </p>
+                                <ul class="space-y-1.5 text-[11px] text-slate-400">
+                                    <li class="flex items-start space-x-2"><span class="text-emerald-400 font-bold">•</span><span><strong class="text-slate-200">Physical CCTV &amp; Cameras:</strong> Periodic TCP reachability polling and an SSRF-guarded HTTP/MJPEG snapshot &amp; live frame viewer.</span></li>
+                                    <li class="flex items-start space-x-2"><span class="text-emerald-400 font-bold">•</span><span><strong class="text-slate-200">ESP32 / RPi Integration:</strong> Live ingestion over MQTT (<code class="font-mono text-slate-300">home/#</code>) and SHA-256 token-authenticated JSON webhooks.</span></li>
+                                    <li class="flex items-start space-x-2"><span class="text-emerald-400 font-bold">•</span><span><strong class="text-slate-200">Instant Device Quarantine:</strong> Drops compromised telemetry (<code class="font-mono text-slate-300">HTTP 403</code>) and blocks untrusted IPs in the ledger.</span></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. How This Website Is Different From Other Security Tools -->
+                <div class="pt-6 border-t border-slate-800/90 space-y-4">
+                    <div>
+                        <div class="text-xs font-semibold uppercase tracking-wider text-amber-400">Architectural Differentiation</div>
+                        <h3 class="text-lg font-bold text-white">How Our Platform Differs From Traditional IoT Security Tools</h3>
+                    </div>
+
+                    <div class="overflow-x-auto rounded-lg border border-slate-800 bg-slate-950/70">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="border-b border-slate-800 bg-slate-900/90 text-[11px] font-mono uppercase text-slate-400">
+                                    <th class="px-4 py-3">Capability</th>
+                                    <th class="px-4 py-3 text-slate-500">Conventional Firewalls / Alert-Only SIEMs</th>
+                                    <th class="px-4 py-3 text-emerald-400">Our Autonomous IoT Defense SOC</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-800/70 text-[11px]">
+                                <tr>
+                                    <td class="px-4 py-3 font-semibold text-slate-200">Threat Detection Strategy</td>
+                                    <td class="px-4 py-3 text-slate-400">Passive signature matching after real sensors are probed or breached.</td>
+                                    <td class="px-4 py-3 text-slate-200"><strong class="text-amber-300">Active Cowrie Deception Decoy</strong> baits attackers on the subnet before real IoT nodes are touched.</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-4 py-3 font-semibold text-slate-200">Response &amp; Containment</td>
+                                    <td class="px-4 py-3 text-slate-400">Sends passive alerts requiring manual admin review minutes or hours later.</td>
+                                    <td class="px-4 py-3 text-slate-200"><strong class="text-rose-300">Autonomous Sub-Millisecond Mitigation</strong> injects Netfilter drops automatically in &lt; 1 ms.</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-4 py-3 font-semibold text-slate-200">Compromised Node Isolation</td>
+                                    <td class="px-4 py-3 text-slate-400">Powers off devices or cuts connectivity completely, destroying runtime evidence.</td>
+                                    <td class="px-4 py-3 text-slate-200"><strong class="text-sky-300">Dual-Bridge Forensic Quarantine</strong> isolates traffic (<code class="font-mono">internal: true</code>) while preserving live inspection.</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-4 py-3 font-semibold text-slate-200">Learning vs Production</td>
+                                    <td class="px-4 py-3 text-slate-400">Split between static classroom lab demos or complex hardware-only enterprise suites.</td>
+                                    <td class="px-4 py-3 text-slate-200"><strong class="text-emerald-300">Unified Simulated &amp; Live Modes</strong> bridge interactive teaching and physical IoT/CCTV defense cleanly.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 4. Core Advantages Grid -->
+                <div class="pt-6 border-t border-slate-800/90 space-y-4">
+                    <div>
+                        <div class="text-xs font-semibold uppercase tracking-wider text-indigo-400">Key Advantages</div>
+                        <h3 class="text-lg font-bold text-white">Built-In Security, Speed &amp; Operational Clarity</h3>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div class="p-4 rounded-lg bg-slate-950/80 border border-slate-800 space-y-2">
+                            <div class="flex items-center space-x-2 text-rose-400 font-bold text-xs">
+                                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span>Sub-Millisecond Reaction SLA</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400 leading-relaxed">Decoupled async log tailing and in-memory windowing block threats in under 1 ms without stalling telemetry streams.</p>
+                        </div>
+
+                        <div class="p-4 rounded-lg bg-slate-950/80 border border-slate-800 space-y-2">
+                            <div class="flex items-center space-x-2 text-sky-400 font-bold text-xs">
+                                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                                </svg>
+                                <span>Non-Negotiable Safety Allowlist</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400 leading-relaxed">Strict IP validation protects loopback, host gateways, and management interfaces so attackers can never spoof a self-lockout.</p>
+                        </div>
+
+                        <div class="p-4 rounded-lg bg-slate-950/80 border border-slate-800 space-y-2">
+                            <div class="flex items-center space-x-2 text-emerald-400 font-bold text-xs">
+                                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />
+                                </svg>
+                                <span>Hardened SSRF &amp; Token Security</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400 leading-relaxed">Blocks internal metadata/loopback probes, masks camera credentials, inspects image bytes, and hashes webhook keys with SHA-256.</p>
+                        </div>
+
+                        <div class="p-4 rounded-lg bg-slate-950/80 border border-slate-800 space-y-2">
+                            <div class="flex items-center space-x-2 text-amber-400 font-bold text-xs">
+                                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 00-1.883 2.542l.857 6a2.25 2.25 0 002.227 1.932H19.05a2.25 2.25 0 002.227-1.932l.857-6a2.25 2.25 0 00-1.883-2.542m-16.5 0V6A2.25 2.25 0 016 3.75h3.879a1.5 1.5 0 011.06.44l2.122 2.12a1.5 1.5 0 001.06.44H18A2.25 2.25 0 0120.25 9v.776" />
+                                </svg>
+                                <span>IST SIEM &amp; Selective Exports</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400 leading-relaxed">Organized 6-column IST logs separated by Honeypot, Mitigation, Quarantine, and IoT streams with filtered JSON, CSV, and LOG downloads.</p>
+                        </div>
+
+                        <div class="p-4 rounded-lg bg-slate-950/80 border border-slate-800 space-y-2">
+                            <div class="flex items-center space-x-2 text-indigo-400 font-bold text-xs">
+                                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9zm3.75 11.625a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+                                </svg>
+                                <span>Deep Attacker Forensics</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400 leading-relaxed">Click any offending IP to reconstruct chronological attack timelines, targeted passwords, deception port distribution, and raw payloads.</p>
+                        </div>
+
+                        <div class="p-4 rounded-lg bg-slate-950/80 border border-slate-800 space-y-2">
+                            <div class="flex items-center space-x-2 text-cyan-400 font-bold text-xs">
+                                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                                </svg>
+                                <span>Private Self-Hosted Operation</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400 leading-relaxed">Zero mandatory cloud SaaS lock-in—camera feeds, MQTT telemetry, and forensic audit logs stay entirely within your local perimeter.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
     </main>
 
     <!-- Footer -->
@@ -760,6 +1056,7 @@
                     <p id="snapshot-status-text" class="text-[11px] font-mono text-slate-400">Fetching validated frame...</p>
                 </div>
                 <div class="flex items-center space-x-2">
+                    <button id="btn-toggle-live-stream" onclick="toggleLiveSnapshotStream()" class="px-3 py-1 text-xs font-semibold rounded bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700 text-emerald-300 transition-colors">▶ Live Video</button>
                     <button id="btn-refresh-snapshot" onclick="refreshCurrentSnapshot()" class="px-3 py-1 text-xs font-semibold rounded bg-sky-950/80 hover:bg-sky-900 border border-sky-700 text-sky-300">↻ Refresh Frame</button>
                     <button onclick="closeSnapshotModal()" class="text-slate-400 hover:text-white px-2 py-1 rounded hover:bg-slate-800">✕</button>
                 </div>
@@ -784,7 +1081,7 @@
     </div>
 
     <!-- SOC Terminal JS Client -->
-    <script src="/static/app.js?v=2.0.0"></script>
+    <script src="/static/app.js?v=2.0.1"></script>
 </body>
 </html>
 
