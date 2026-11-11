@@ -3,10 +3,10 @@
 Update this file after every meaningful implementation change.
 
 ## Current Phase
-Phase 14: Milestone v1.7.0 — Multi-Format Activity Logs Export Engine (JSON, CSV, LOG)
+Phase 15: Milestone v1.8.0 — Multi-IP Adversary Simulation Pools, Custom IP & Botnet Swarm Mode
 
 ## Current Goal
-The Autonomous IoT Cyber Defense Testbed is running on release v1.7.0 (SOC Terminal v1.7-SOC) with a dedicated log export modal in General Activity Logs allowing SOC operators to download filtered activity logs (ALL, HONEYPOT, MITIGATION, QUARANTINE, IOT MESH, SYSTEM) in industry-standard formats (JSON, CSV, and Raw LOG) with IST timestamps. 38/38 tests passing.
+The Autonomous IoT Cyber Defense Testbed is running on release v1.8.0 (SOC Terminal v1.8-SOC) supporting multi-IP attack simulations (5 distinct RFC 5737 test IPs per attack vector, auto-rotation, custom IP validation, and simultaneous Swarm attacks) in the Red Team Controls toolbar. 38/38 tests passing.
 
 ## Completed
 - [x] Context foundation files established and verified at root.
@@ -25,8 +25,8 @@ The Autonomous IoT Cyber Defense Testbed is running on release v1.7.0 (SOC Termi
 - [x] Phase 11: Milestone v1.4.0 — Dedicated Quarantine Stream & Structured Console Log Columns: Added dedicated `[ QUARANTINE ]` filter tab in General Activity Logs, aligned terminal feed lines into structured columns (Time, Category Badge, Message Details), and integrated real-time dynamic container isolation and restoration events directly under the quarantine category. 38/38 tests passing.
 - [x] Phase 12: Milestone v1.5.0 — SIEM Multi-Column Structured Console & Payload Ingestion: Upgraded the General Activity Logs with Option B (6-column layout: TIME, STREAM, SEVERITY, SOURCE/NODE, PROTOCOL, PAYLOAD & EVENT DATA), rendered an aligned table grid header, and wired all telemetry, honeypot, mitigation, and quarantine events to display their protocol and payload data. 38/38 tests passing.
 - [x] Phase 13: Milestone v1.6.0 — Indian Standard Date & Time (IST) Formatting: Configured `formatDateTime` using `Asia/Kolkata` and `en-IN` (`DD/MM/YYYY, HH:mm:ss`), updated the first column of the 6-column SIEM grid and the Autonomous Mitigation Ledger to display the calendar date preceding the time, adjusted the time column width to `w-[145px] shrink-0`, and widened the horizontal scroll wrapper to `min-w-[860px]` for smooth rendering. 38/38 unit tests passing.
-- [x] Phase 14: Milestone v1.7.0 Version Bump — System version incremented to v1.7.0 (SOC Terminal v1.7-SOC) across app, docs, and configurations.
-- [x] Phase 14: Multi-Format Activity Logs Export Engine: Added dedicated `[ 📥 Export ]` button in the General Activity Logs header opening a modal for selective log export. Operators can filter by scope (ALL, HONEYPOT, MITIGATION, QUARANTINE, IOT MESH, SYSTEM) and choose between industry-standard formats (JSON, CSV, Raw LOG/TXT) with live matching record counters and IST timestamp formatting. 38/38 unit tests passing.
+- [x] Phase 14: Milestone v1.7.0 — Multi-Format Activity Logs Export Engine: Added dedicated `[ 📥 Export ]` button in the General Activity Logs header opening a modal for selective log export. Operators can filter by scope (ALL, HONEYPOT, MITIGATION, QUARANTINE, IOT MESH, SYSTEM) and choose between industry-standard formats (JSON, CSV, Raw LOG/TXT) with live matching record counters and IST timestamp formatting. 38/38 unit tests passing.
+- [x] Phase 15: Milestone v1.8.0 Version Bump — System version incremented to v1.8.0 (SOC Terminal v1.8-SOC) across app, docs, and configurations.
 
 ## In Progress
 - [ ] Live evaluation demonstration and evaluator walkthrough.

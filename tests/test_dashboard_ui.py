@@ -29,7 +29,7 @@ class TestDashboardUI(unittest.TestCase):
         self.assertIn("filter-btn-quarantine", body)
         self.assertIn("filter-btn-iot", body)
         self.assertIn("siem-grid-header", body)
-        self.assertIn("v1.7-SOC", body)
+        self.assertIn("v1.8-SOC", body)
         self.assertIn("DATE & TIME (IST)", body)
         self.assertIn("w-[145px]", body)
         self.assertIn("min-w-[860px]", body)
