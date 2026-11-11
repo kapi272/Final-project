@@ -85,14 +85,85 @@ def _detect_image_content_type(raw_bytes: bytes, declared_ct: str) -> Optional[s
 
 
 def _extract_first_jpeg_frame(stream_bytes: bytes) -> Optional[bytes]:
-    """Extracts the first complete JPEG SOI..EOI frame from an MJPEG HTTP response."""
+    """Extracts the first complete JPEG SOI..EOI frame from an MJPEG HTTP buffer."""
     start = stream_bytes.find(b"\xff\xd8\xff")
     if start < 0:
         return None
-    end = stream_bytes.find(b"\xff\xd9", start + 3)
+    end = stream_bytes.rfind(b"\xff\xd9", start + 3)
     if end < 0:
         return None
     return stream_bytes[start : end + 2]
+
+
+def _extract_mjpeg_boundary(declared_ct: str) -> Optional[bytes]:
+    """Extracts normalized multipart boundary marker bytes from a Content-Type header."""
+    for part in (declared_ct or "").split(";")[1:]:
+        key, sep, val = part.strip().partition("=")
+        if sep and key.strip().lower() == "boundary":
+            cleaned = val.strip().strip('"').strip("'")
+            if cleaned:
+                token = cleaned if cleaned.startswith("--") else f"--{cleaned}"
+                return token.encode("ascii", errors="ignore")
+    return None
+
+
+def _read_first_mjpeg_frame(resp: Any, declared_ct: str, timeout_seconds: float = 3.0) -> bytes:
+    """
+    Incrementally reads an active multipart/x-mixed-replace stream and stops
+    as soon as the first complete JPEG frame is received (bounded by MAX_SNAPSHOT_BYTES).
+    """
+    boundary = _extract_mjpeg_boundary(declared_ct)
+    deadline = time.monotonic() + timeout_seconds
+    buf = bytearray()
+    cl_regex = re.compile(rb"content-length\s*:\s*(\d{1,8})", re.IGNORECASE)
+
+    while len(buf) <= MAX_SNAPSHOT_BYTES:
+        if time.monotonic() > deadline:
+            raise RuntimeError("Camera MJPEG stream timed out before delivering a complete frame.")
+        chunk = resp.read(16384)
+        if not chunk:
+            break
+        buf.extend(chunk)
+        if len(buf) > MAX_SNAPSHOT_BYTES:
+            raise ValueError("Camera snapshot exceeded maximum 2 MB size limit.")
+
+        data = bytes(buf)
+        soi_idx = data.find(b"\xff\xd8\xff")
+        if soi_idx < 0:
+            continue
+
+        # 1. Exact Content-Length header immediately before JPEG SOI
+        header_slice = data[max(0, soi_idx - 512) : soi_idx]
+        cl_matches = cl_regex.findall(header_slice)
+        if cl_matches:
+            expected_len = int(cl_matches[-1])
+            if expected_len <= 0 or expected_len > MAX_SNAPSHOT_BYTES:
+                raise ValueError("Camera MJPEG frame header specifies an invalid Content-Length.")
+            if len(data) >= soi_idx + expected_len:
+                candidate = data[soi_idx : soi_idx + expected_len]
+                frame = _extract_first_jpeg_frame(candidate)
+                if frame:
+                    return frame
+            continue
+
+        # 2. Delimiter boundary terminating frame #1
+        if boundary:
+            next_boundary_idx = data.find(boundary, soi_idx + 3)
+            if next_boundary_idx > soi_idx:
+                frame = _extract_first_jpeg_frame(data[soi_idx:next_boundary_idx])
+                if frame:
+                    return frame
+            continue
+
+        # 3. Fallback: SOI..EOI present without boundary/Content-Length metadata
+        eoi_idx = data.find(b"\xff\xd9", soi_idx + 3)
+        if eoi_idx > soi_idx:
+            return data[soi_idx : eoi_idx + 2]
+
+    frame = _extract_first_jpeg_frame(bytes(buf))
+    if not frame:
+        raise ValueError("Camera MJPEG stream yielded no complete JPEG frame.")
+    return frame
 
 
 class RealDeviceManager:
@@ -368,6 +439,11 @@ class RealDeviceManager:
         try:
             with opener.open(req, timeout=3.0) as resp:
                 declared_ct = resp.headers.get("Content-Type", "")
+                lowered_ct = declared_ct.split(";")[0].strip().lower()
+                if "multipart/x-mixed-replace" in lowered_ct:
+                    frame = _read_first_mjpeg_frame(resp, declared_ct, timeout_seconds=3.0)
+                    return frame, "image/jpeg"
+
                 raw_bytes = resp.read(MAX_SNAPSHOT_BYTES + 1)
                 if len(raw_bytes) > MAX_SNAPSHOT_BYTES:
                     raise ValueError("Camera snapshot exceeded maximum 2 MB size limit.")
@@ -375,11 +451,6 @@ class RealDeviceManager:
             raise RuntimeError(f"Camera snapshot unreachable: {exc.reason}") from exc
 
         detected = _detect_image_content_type(raw_bytes, declared_ct)
-        if detected == "multipart/jpeg_stream":
-            frame = _extract_first_jpeg_frame(raw_bytes)
-            if not frame:
-                raise ValueError("Camera MJPEG stream yielded no complete JPEG frame.")
-            return frame, "image/jpeg"
         if not detected:
             raise ValueError("Camera endpoint did not return a valid image (JPEG/PNG/GIF/WEBP).")
         return raw_bytes, detected

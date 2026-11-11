@@ -376,6 +376,24 @@ class TestTrafficModeAndLiveDevices(unittest.TestCase):
         self.assertEqual(mj_res.status_code, 200)
         self.assertTrue(mj_res.content.startswith(b"\xff\xd8\xff"))
 
+        # Continuous multi-frame MJPEG stream (>2.5 MB total) stops at frame #1 cleanly
+        large_jpeg = b"\xff\xd8\xff\xe0" + b"X" * 24000 + b"\xff\xd9"
+        one_part = (
+            b"\r\n--Ba4oTvQMY8ew04N8dcnM\r\n"
+            b"Content-Type: image/jpeg\r\n"
+            + f"Content-Length: {len(large_jpeg)}\r\n\r\n".encode("ascii")
+            + large_jpeg
+        )
+        continuous_mjpeg = one_part * 120  # >2.8 MB total stream
+        fake_opener.open.return_value = _FakeHTTPResponse(
+            continuous_mjpeg, "multipart/x-mixed-replace;boundary=Ba4oTvQMY8ew04N8dcnM"
+        )
+        with patch("controller.core.device_manager.urllib.request.build_opener", return_value=fake_opener):
+            stream_res = self.client.get("/api/devices/cam_driveway/snapshot")
+        self.assertEqual(stream_res.status_code, 200)
+        self.assertEqual(stream_res.headers.get("content-type"), "image/jpeg")
+        self.assertEqual(len(stream_res.content), len(large_jpeg))
+
         # HTML / XSS payload rejected cleanly (400 validation error)
         fake_opener.open.return_value = _FakeHTTPResponse(
             b"<html><script>alert(1)</script></html>", "text/html"
