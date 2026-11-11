@@ -3,10 +3,10 @@
 Update this file after every meaningful implementation change.
 
 ## Current Phase
-Phase 16: Milestone v1.8.1 — Cache-Busting, Ledger/Console Unban Sync & Red Team Feedback Hardening
+Phase 17: Milestone v2.0.0 Version Bump — Dual Simulated/Live Traffic Mode & Real-World IoT Device Onboarding
 
 ## Current Goal
-Ensure browsers never load stale cached `/static/app.js`, keep Autonomous Mitigation Ledger and General Activity Logs 100% synchronized across multi-IP attacks, unbans, and idempotent re-bans, and normalize `CRITICAL`/`CRIT` severity styling.
+Bump system version to v2.0.0 first, then implement the strict Simulated vs Live traffic toggle, real-world IoT/CCTV device registry with SSRF-guarded HTTP/MJPEG snapshot & MQTT/webhook ingestion, logical device quarantine, and log-rotation resilient Cowrie tailing.
 
 ## Completed
 - [x] Context foundation files established and verified at root.

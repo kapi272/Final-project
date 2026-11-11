@@ -1,4 +1,4 @@
-# Autonomous IoT Cyber Defense System — Evaluation & Viva Runbook (v1.8.1-SOC)
+# Autonomous IoT Cyber Defense System — Evaluation & Viva Runbook (v2.0.0-SOC)
 
 This guide is designed for live project demonstrations, evaluator walkthroughs, and viva examinations. It provides step-by-step presentation commands, architectural justifications, and answers to expected evaluator questions.
 
@@ -40,7 +40,7 @@ python3 controller/main.py
 1. Open **`http://localhost:8050`**.
 2. Point out:
    * The pulsing green **`STREAM LIVE`** badge (demonstrating non-buffering unidirectional Server-Sent Events).
-   * The system version badge: **`v1.8.1-SOC`**.
+   * The system version badge: **`v2.0.0-SOC`**.
    * The **Virtual IoT Network Topology** cards showing 4 online devices in `iot_production_net` (`172.20.0.0/24`).
    * The **General Activity Logs** console streaming multi-category system and IoT mesh telemetry with full calendar date and time in Indian Standard Time (IST).
 
