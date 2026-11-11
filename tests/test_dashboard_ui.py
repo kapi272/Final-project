@@ -34,7 +34,7 @@ class TestDashboardUI(unittest.TestCase):
         self.assertIn("select-ip-exploit", body)
         self.assertIn("select-ip-portsweep", body)
         self.assertIn("custom-ip-bruteforce", body)
-        self.assertIn("/static/app.js?v=2.0.1", body)
+        self.assertIn("/static/app.js?v=2.0.2", body)
         self.assertIn("no-store", res.headers.get("cache-control", "").lower())
         self.assertIn("DATE & TIME (IST)", body)
         self.assertIn("w-[145px]", body)
@@ -77,7 +77,7 @@ class TestDashboardUI(unittest.TestCase):
         self.assertIn("already_banned", body)
         self.assertIn("dataset.srcIp", body)
 
-        # Verify v2.0.0 Traffic Mode Toggle & Real IoT/CCTV Device Manager JS symbols
+        # Verify v2.0.0 Traffic Mode Toggle, Theme Switcher & Real IoT/CCTV Device Manager JS symbols
         for symbol in (
             "setTrafficMode",
             "applyTrafficModeUI",
@@ -85,16 +85,28 @@ class TestDashboardUI(unittest.TestCase):
             "blockLiveDevice",
             "openSnapshotModal",
             "toggleLiveSnapshotStream",
+            "setTheme",
+            "setWorkspaceTab",
+            "setAboutChapter",
         ):
             self.assertIn(symbol, body)
 
-        # Verify v2.0.0 Traffic Mode Toggle, Live Device Registry & About Section HTML containers
+        # Verify v2.0.0 Traffic Mode Toggle, Light/Dark Toggle, Workspace Tabs, Live Device Registry & About Section
         html_res = self.client.get("/")
         self.assertEqual(html_res.status_code, 200)
         for element_id in (
             "traffic-mode-toggle",
             "mode-btn-simulated",
             "mode-btn-live",
+            "theme-toggle",
+            "theme-btn-dark",
+            "theme-btn-light",
+            "theme-overrides",
+            "workspace-subnav",
+            "tab-btn-soc",
+            "workspace-panel-soc",
+            "workspace-panel-about",
+            "about-chapter-tabs",
             "section-live-devices",
             "section-about-system",
             "btn-open-about",

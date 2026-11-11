@@ -1894,6 +1894,93 @@ document.addEventListener("DOMContentLoaded", () => {
         );
     };
 
+    function applyThemeUI(theme) {
+        const normalized = theme === "light" ? "light" : "dark";
+        const root = document.documentElement;
+        root.classList.remove("dark", "light");
+        root.classList.add(normalized);
+
+        const darkBtn = document.getElementById("theme-btn-dark");
+        const lightBtn = document.getElementById("theme-btn-light");
+        const activeCls = "px-2.5 py-1 rounded-md font-semibold transition-all bg-sky-600 text-white shadow-sm solid-accent-btn";
+        const inactiveCls = "px-2.5 py-1 rounded-md font-semibold transition-all text-slate-400 hover:text-slate-200";
+        if (darkBtn) darkBtn.className = normalized === "dark" ? activeCls : inactiveCls;
+        if (lightBtn) lightBtn.className = normalized === "light" ? activeCls : inactiveCls;
+    }
+
+    window.setTheme = function(theme) {
+        const normalized = theme === "light" ? "light" : "dark";
+        try {
+            localStorage.setItem("soc_theme", normalized);
+        } catch (err) {
+            // Ignore storage restrictions in private browsing
+        }
+        applyThemeUI(normalized);
+    };
+
+    window.setWorkspaceTab = function(tabName) {
+        const target = tabName === "about" ? "about" : "soc";
+        const socPanel = document.getElementById("workspace-panel-soc");
+        const aboutPanel = document.getElementById("workspace-panel-about");
+        const socTabBtn = document.getElementById("tab-btn-soc");
+        const aboutTabBtn = document.getElementById("btn-open-about");
+
+        if (socPanel) socPanel.classList.toggle("hidden", target !== "soc");
+        if (aboutPanel) aboutPanel.classList.toggle("hidden", target !== "about");
+
+        const activeTabCls = "px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-sky-600 text-white shadow-sm flex items-center space-x-1.5 transition-all solid-accent-btn";
+        const inactiveTabCls = "px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700/80 text-slate-300 flex items-center space-x-1.5 transition-all";
+
+        if (socTabBtn) {
+            socTabBtn.className = target === "soc" ? activeTabCls : inactiveTabCls;
+            socTabBtn.setAttribute("aria-selected", target === "soc" ? "true" : "false");
+        }
+        if (aboutTabBtn) {
+            aboutTabBtn.className = target === "about" ? activeTabCls : inactiveTabCls;
+            aboutTabBtn.setAttribute("aria-selected", target === "about" ? "true" : "false");
+            const aboutIcon = aboutTabBtn.querySelector("svg");
+            if (aboutIcon) aboutIcon.classList.toggle("text-cyan-400", target !== "about");
+        }
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+
+    window.openAboutSection = function(chapter) {
+        window.setWorkspaceTab("about");
+        if (chapter) {
+            window.setAboutChapter(chapter);
+        }
+    };
+
+    window.setAboutChapter = function(chapter) {
+        const normalized = ["all", "overview", "modes", "diff"].includes(chapter) ? chapter : "all";
+        const blockOverview = document.getElementById("about-block-overview");
+        const blockModes = document.getElementById("about-block-modes");
+        const blockDiff = document.getElementById("about-block-diff");
+        const blockAdvantages = document.getElementById("about-block-advantages");
+
+        if (blockOverview) blockOverview.classList.toggle("hidden", normalized !== "all" && normalized !== "overview");
+        if (blockModes) {
+            blockModes.classList.toggle("hidden", normalized !== "all" && normalized !== "modes");
+            blockModes.classList.toggle("pt-6", normalized === "all");
+            blockModes.classList.toggle("border-t", normalized === "all");
+        }
+        if (blockDiff) {
+            blockDiff.classList.toggle("hidden", normalized !== "all" && normalized !== "diff");
+            blockDiff.classList.toggle("pt-6", normalized === "all");
+            blockDiff.classList.toggle("border-t", normalized === "all");
+        }
+        if (blockAdvantages) {
+            blockAdvantages.classList.toggle("hidden", normalized !== "all" && normalized !== "diff");
+        }
+
+        const activeBtnCls = "px-3 py-1 rounded-md font-semibold bg-sky-600 text-white shadow-sm transition-all solid-accent-btn";
+        const inactiveBtnCls = "px-3 py-1 rounded-md font-semibold bg-slate-800/80 hover:bg-slate-700 border border-slate-700/80 text-slate-300 transition-all";
+        ["all", "overview", "modes", "diff"].forEach((key) => {
+            const btn = document.getElementById(`about-tab-${key}`);
+            if (btn) btn.className = key === normalized ? activeBtnCls : inactiveBtnCls;
+        });
+    };
+
     // Keyboard shortcut to close modals
     document.addEventListener("keydown", (e) => {
         if (e.key === "Escape") {
@@ -1905,7 +1992,15 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Initialize
+    // Initialize Theme, Workspace & Telemetry Streams
+    let savedTheme = "dark";
+    try {
+        savedTheme = localStorage.getItem("soc_theme") || "dark";
+    } catch (err) {
+        savedTheme = "dark";
+    }
+    applyThemeUI(savedTheme);
+    window.setAboutChapter("all");
     fetchInitialStatus();
     loadAnalytics();
     connectSSE();

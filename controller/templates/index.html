@@ -4,6 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Autonomous IoT Cyber Defense System — SOC Terminal</title>
+    <script>
+        (function () {
+            try {
+                if (localStorage.getItem("soc_theme") === "light") {
+                    document.documentElement.classList.remove("dark");
+                    document.documentElement.classList.add("light");
+                }
+            } catch (e) {}
+        })();
+    </script>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -18,14 +28,247 @@
             }
         }
     </script>
+    <style id="theme-overrides">
+        /* Light Theme Overrides (Preserves dark-mode default when html.dark is active) */
+        html.light body {
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+        html.light header {
+            background-color: rgba(255, 255, 255, 0.92);
+            border-color: #e2e8f0;
+        }
+        html.light footer {
+            border-color: #e2e8f0;
+            color: #475569;
+        }
+        html.light .bg-darkBase {
+            background-color: #f8fafc;
+        }
+        html.light .bg-slate-900,
+        html.light .bg-slate-900\/95,
+        html.light .bg-slate-900\/90,
+        html.light .bg-slate-900\/80,
+        html.light .bg-slate-900\/60,
+        html.light .bg-slate-900\/40 {
+            background-color: #ffffff;
+        }
+        html.light .bg-slate-950,
+        html.light .bg-slate-950\/95,
+        html.light .bg-slate-950\/90,
+        html.light .bg-slate-950\/85,
+        html.light .bg-slate-950\/80,
+        html.light .bg-slate-950\/70 {
+            background-color: #f8fafc;
+        }
+        html.light .bg-slate-800,
+        html.light .bg-slate-800\/90,
+        html.light .bg-slate-800\/80,
+        html.light .bg-slate-800\/60,
+        html.light .bg-slate-800\/50,
+        html.light .bg-slate-800\/40 {
+            background-color: #f1f5f9;
+        }
+        html.light .bg-slate-800\/40.hover\:bg-slate-800:hover,
+        html.light .hover\:bg-slate-800:hover,
+        html.light .hover\:bg-slate-700:hover {
+            background-color: #e2e8f0;
+        }
+        html.light .hover\:text-white:hover,
+        html.light .hover\:text-slate-200:hover {
+            color: #0f172a;
+        }
+        /* Keep frosted obsidian backdrops for full-screen modals */
+        html.light div.fixed.inset-0 {
+            background-color: rgba(15, 23, 42, 0.55);
+        }
+        /* Keep dark showcase canvas for cybersecurity dark-HUD illustrations and live CCTV preview */
+        html.light .diagram-showcase-frame,
+        html.light .diagram-showcase-frame .bg-slate-950 {
+            background-color: #0b0f19;
+            border-color: #1e293b;
+        }
+        html.light .diagram-showcase-frame .text-slate-500,
+        html.light .diagram-showcase-frame .text-slate-400 {
+            color: #94a3b8;
+        }
+        /* Borders & Dividers */
+        html.light .border-slate-900\/60,
+        html.light .border-slate-800,
+        html.light .border-slate-800\/90,
+        html.light .border-slate-800\/80,
+        html.light .border-slate-800\/70,
+        html.light .border-slate-800\/60 {
+            border-color: #e2e8f0;
+        }
+        html.light .border-slate-700,
+        html.light .border-slate-700\/80 {
+            border-color: #cbd5e1;
+        }
+        html.light .divide-slate-800 > :not([hidden]) ~ :not([hidden]),
+        html.light .divide-slate-800\/70 > :not([hidden]) ~ :not([hidden]),
+        html.light .divide-slate-800\/40 > :not([hidden]) ~ :not([hidden]) {
+            border-color: #e2e8f0;
+        }
+        /* Progress bar tracks */
+        html.light .rounded-full.bg-slate-800 {
+            background-color: #e2e8f0;
+        }
+        /* Typography */
+        html.light .text-white { color: #0f172a; }
+        html.light .text-slate-100 { color: #0f172a; }
+        html.light .text-slate-200 { color: #1e293b; }
+        html.light .text-slate-300 { color: #334155; }
+        html.light .text-slate-400 { color: #475569; }
+        html.light .text-slate-500 { color: #64748b; }
+        html.light .text-slate-600 { color: #64748b; }
+        /* Form inputs & selects */
+        html.light select,
+        html.light input[type="text"],
+        html.light input[type="number"],
+        html.light input[type="url"] {
+            background-color: #ffffff;
+            border-color: #cbd5e1;
+            color: #0f172a;
+        }
+        /* Semantic Tints & Readable Text in Light Mode */
+        html.light .bg-sky-950,
+        html.light .bg-sky-950\/90,
+        html.light .bg-sky-950\/80,
+        html.light .bg-sky-950\/70,
+        html.light .bg-sky-950\/60,
+        html.light .bg-sky-950\/40 { background-color: #f0f9ff; }
+        html.light .hover\:bg-sky-900:hover,
+        html.light .hover\:bg-sky-900\/80:hover { background-color: #e0f2fe; }
+        html.light .border-sky-800,
+        html.light .border-sky-800\/60,
+        html.light .border-sky-800\/40,
+        html.light .border-sky-700,
+        html.light .border-sky-700\/80,
+        html.light .border-sky-700\/70,
+        html.light .border-sky-900\/50 { border-color: #bae6fd; }
+        html.light .text-sky-300,
+        html.light .text-sky-400,
+        html.light .text-sky-400\/80 { color: #0369a1; }
+
+        html.light .bg-emerald-950,
+        html.light .bg-emerald-950\/90,
+        html.light .bg-emerald-950\/80,
+        html.light .bg-emerald-950\/70,
+        html.light .bg-emerald-950\/60,
+        html.light .bg-emerald-950\/50,
+        html.light .bg-emerald-950\/40 { background-color: #ecfdf5; }
+        html.light .hover\:bg-emerald-900:hover { background-color: #d1fae5; }
+        html.light .border-emerald-800,
+        html.light .border-emerald-800\/80,
+        html.light .border-emerald-800\/60,
+        html.light .border-emerald-800\/50,
+        html.light .border-emerald-800\/40,
+        html.light .border-emerald-700,
+        html.light .border-emerald-700\/80,
+        html.light .border-emerald-700\/70,
+        html.light .border-emerald-900\/50 { border-color: #a7f3d0; }
+        html.light .text-emerald-300,
+        html.light .text-emerald-400,
+        html.light .text-emerald-400\/90,
+        html.light .text-emerald-400\/80 { color: #047857; }
+
+        html.light .bg-amber-950,
+        html.light .bg-amber-950\/90,
+        html.light .bg-amber-950\/80,
+        html.light .bg-amber-950\/70,
+        html.light .bg-amber-950\/60,
+        html.light .bg-amber-950\/40 { background-color: #fffbeb; }
+        html.light .hover\:bg-amber-900:hover { background-color: #fef3c7; }
+        html.light .border-amber-700,
+        html.light .border-amber-800,
+        html.light .border-amber-800\/80,
+        html.light .border-amber-800\/60,
+        html.light .border-amber-800\/40,
+        html.light .border-amber-900\/50 { border-color: #fde68a; }
+        html.light .text-amber-300,
+        html.light .text-amber-400,
+        html.light .text-amber-400\/80 { color: #b45309; }
+
+        html.light .bg-rose-950,
+        html.light .bg-rose-950\/90,
+        html.light .bg-rose-950\/80,
+        html.light .bg-rose-950\/60,
+        html.light .bg-rose-950\/50,
+        html.light .bg-rose-950\/40,
+        html.light .bg-rose-950\/30,
+        html.light .bg-rose-900\/60 { background-color: #fff1f2; }
+        html.light .hover\:bg-rose-900:hover { background-color: #ffe4e6; }
+        html.light .border-rose-700,
+        html.light .border-rose-800,
+        html.light .border-rose-800\/80,
+        html.light .border-rose-800\/40,
+        html.light .border-rose-900\/60,
+        html.light .border-rose-900\/50 { border-color: #fecdd3; }
+        html.light .text-rose-300,
+        html.light .text-rose-400,
+        html.light .text-rose-400\/80,
+        html.light .text-rose-500 { color: #be123c; }
+
+        html.light .bg-red-950,
+        html.light .bg-red-950\/80,
+        html.light .bg-red-950\/60,
+        html.light .bg-red-950\/50,
+        html.light .bg-red-950\/40,
+        html.light .bg-red-950\/30,
+        html.light .bg-red-900\/90,
+        html.light .bg-red-900\/30 { background-color: #fef2f2; }
+        html.light .border-red-800,
+        html.light .border-red-700,
+        html.light .border-red-700\/60,
+        html.light .border-red-600 { border-color: #fecaca; }
+        html.light .text-red-300,
+        html.light .text-red-400 { color: #b91c1c; }
+
+        html.light .bg-indigo-950,
+        html.light .bg-indigo-950\/80,
+        html.light .bg-indigo-950\/60,
+        html.light .bg-indigo-950\/40 { background-color: #eef2ff; }
+        html.light .hover\:bg-indigo-900:hover { background-color: #e0e7ff; }
+        html.light .border-indigo-700,
+        html.light .border-indigo-800,
+        html.light .border-indigo-900\/60,
+        html.light .border-indigo-900\/50 { border-color: #c7d2fe; }
+        html.light .text-indigo-300,
+        html.light .text-indigo-400 { color: #4338ca; }
+
+        html.light .bg-cyan-950,
+        html.light .bg-cyan-950\/80 { background-color: #ecfeff; }
+        html.light .border-cyan-700\/70 { border-color: #a5f3fc; }
+        html.light .text-cyan-400 { color: #0e7490; }
+
+        /* Preserve crisp white typography on saturated solid buttons & active pills */
+        html.light .bg-sky-600,
+        html.light .bg-sky-500,
+        html.light .bg-emerald-600,
+        html.light .bg-emerald-700,
+        html.light .bg-emerald-800,
+        html.light .bg-rose-600,
+        html.light .bg-rose-700,
+        html.light .bg-indigo-600,
+        html.light .solid-accent-btn,
+        html.light .solid-accent-btn.text-white {
+            color: #ffffff;
+        }
+        html.light .bg-sky-600:hover,
+        html.light .bg-emerald-700:hover,
+        html.light .bg-rose-700:hover {
+            color: #ffffff;
+        }
+    </style>
 </head>
-<body class="bg-darkBase text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-rose-900 selection:text-white">
+<body class="bg-darkBase text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-rose-900 selection:text-white transition-colors duration-200">
 
     <!-- Top Navigation / SOC Header -->
-    <header class="border-b border-slate-800/90 bg-slate-900/60 backdrop-blur sticky top-0 z-50 px-6 py-4">
-        <div class="max-w-7xl mx-auto flex items-center justify-between">
+    <header class="border-b border-slate-800/90 bg-slate-900/60 backdrop-blur sticky top-0 z-40 px-6 py-3.5 transition-colors">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
             <div class="flex items-center space-x-3">
-                <div class="w-3.5 h-3.5 rounded-full bg-rose-500 shadow-md shadow-rose-500/50 animate-pulse"></div>
+                <div class="w-3.5 h-3.5 rounded-full bg-rose-500 shadow-md shadow-rose-500/50 animate-pulse shrink-0"></div>
                 <div>
                     <h1 class="text-base font-bold tracking-tight text-white flex items-center space-x-2">
                         <span>Autonomous IoT Cyber Defense System</span>
@@ -35,45 +278,33 @@
                 </div>
             </div>
 
-            <!-- Header Controls & SSE Pill -->
+            <!-- Global Mode, Theme & Stream Status Controls -->
             <div class="flex flex-wrap items-center gap-2.5">
                 <!-- Traffic Mode Toggle (Simulated vs Live) -->
                 <div id="traffic-mode-toggle" class="inline-flex items-center p-0.5 rounded-lg bg-slate-950 border border-slate-700/80 text-xs font-mono" role="group" aria-label="Traffic Mode Toggle">
-                    <button id="mode-btn-simulated" onclick="setTrafficMode('simulated')" class="px-2.5 py-1 rounded-md font-semibold transition-all bg-sky-600 text-white shadow-sm">
+                    <button id="mode-btn-simulated" type="button" onclick="setTrafficMode('simulated')" class="px-2.5 py-1 rounded-md font-semibold transition-all bg-sky-600 text-white shadow-sm">
                         🧪 Simulated
                     </button>
-                    <button id="mode-btn-live" onclick="setTrafficMode('live')" class="px-2.5 py-1 rounded-md font-semibold transition-all text-slate-400 hover:text-slate-200">
+                    <button id="mode-btn-live" type="button" onclick="setTrafficMode('live')" class="px-2.5 py-1 rounded-md font-semibold transition-all text-slate-400 hover:text-slate-200">
                         📡 Live
                     </button>
                 </div>
 
+                <!-- Color Theme Toggle (Dark vs Light) -->
+                <div id="theme-toggle" class="inline-flex items-center p-0.5 rounded-lg bg-slate-950 border border-slate-700/80 text-xs font-mono" role="group" aria-label="Color Theme Toggle">
+                    <button id="theme-btn-dark" type="button" onclick="setTheme('dark')" class="px-2.5 py-1 rounded-md font-semibold transition-all bg-sky-600 text-white shadow-sm">
+                        🌙 Dark
+                    </button>
+                    <button id="theme-btn-light" type="button" onclick="setTheme('light')" class="px-2.5 py-1 rounded-md font-semibold transition-all text-slate-400 hover:text-slate-200">
+                        ☀️ Light
+                    </button>
+                </div>
+
+                <!-- Live Stream Connection Badge -->
                 <div id="sse-status-pill" class="inline-flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-semibold bg-slate-800/80 border border-slate-700 text-slate-400 transition-all">
                     <span id="sse-indicator" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
                     <span id="sse-text">CONNECTING...</span>
                 </div>
-
-                <!-- Quick Jump to About & Architecture Documentation -->
-                <a id="btn-open-about" href="#section-about-system" class="px-3 py-1 text-xs font-semibold rounded bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-slate-200 transition-all flex items-center space-x-1.5 shadow-sm" title="View platform overview, architecture, educational Simulated mode, and Live operations documentation">
-                    <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>About &amp; Docs</span>
-                </a>
-
-                <!-- Separate External Analytics Tool Button -->
-                <button id="btn-open-analytics" onclick="openAnalyticsModal()" class="px-3 py-1 text-xs font-semibold rounded bg-sky-950/60 hover:bg-sky-900/80 border border-sky-700/80 text-sky-300 transition-all flex items-center space-x-1.5 shadow-sm">
-                    <span>📊</span>
-                    <span>External Analytics & Forensics</span>
-                </button>
-
-                <button id="btn-reset-bans" class="px-3 py-1 text-xs font-semibold rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all">
-                    Reset All Bans
-                </button>
-
-                <button id="btn-reset-db" onclick="resetDatabase()" class="px-3 py-1 text-xs font-semibold rounded bg-rose-950/50 hover:bg-rose-900 border border-rose-800 text-rose-300 transition-all flex items-center space-x-1" title="Completely purge database audit logs, active bans, and threat analytics">
-                    <span>🗑️</span>
-                    <span>Reset Database</span>
-                </button>
             </div>
         </div>
     </header>
@@ -81,456 +312,522 @@
     <!-- Main SOC Workspace -->
     <main class="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
 
-        <!-- Metrics Overview Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <!-- Active Bans Metric -->
-            <div class="bg-slate-900 border border-slate-800 rounded-lg p-4 shadow-sm">
-                <div class="text-xs font-medium text-slate-400 tracking-wide uppercase">Active Netfilter Drops</div>
-                <div class="mt-2 flex items-baseline justify-between">
-                    <div id="metric-banned-count" class="text-3xl font-bold font-mono text-rose-500">0</div>
-                    <span class="text-[11px] font-mono text-rose-400/80 bg-rose-950/40 border border-rose-900/50 px-1.5 py-0.5 rounded">IOT_DEFENSE_BLOCKLIST</span>
-                </div>
+        <!-- Workspace Navigation & Quick Operations Toolbar -->
+        <div id="workspace-subnav" class="bg-slate-900/80 border border-slate-800 rounded-xl px-4 py-2.5 shadow-sm flex flex-wrap items-center justify-between gap-3">
+            <!-- Primary Workspace Tabs -->
+            <div class="flex items-center space-x-1.5" role="tablist" aria-label="Workspace Sections">
+                <button id="tab-btn-soc" type="button" role="tab" aria-selected="true" onclick="setWorkspaceTab('soc')" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-sky-600 text-white shadow-sm flex items-center space-x-1.5 transition-all solid-accent-btn">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                    </svg>
+                    <span>Live Operations</span>
+                </button>
+                <button id="btn-open-about" type="button" role="tab" aria-selected="false" onclick="openAboutSection()" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700/80 text-slate-300 flex items-center space-x-1.5 transition-all" title="View platform overview, architecture, educational Simulated mode, and Live operations documentation">
+                    <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                    </svg>
+                    <span>About &amp; Architecture</span>
+                </button>
             </div>
 
-            <!-- Honeypot Traps Metric -->
-            <div class="bg-slate-900 border border-slate-800 rounded-lg p-4 shadow-sm">
-                <div class="text-xs font-medium text-slate-400 tracking-wide uppercase">Honeypot Traps Captured</div>
-                <div class="mt-2 flex items-baseline justify-between">
-                    <div id="metric-traps-count" class="text-3xl font-bold font-mono text-amber-400">0</div>
-                    <span class="text-[11px] font-mono text-amber-400/80 bg-amber-950/40 border border-amber-900/50 px-1.5 py-0.5 rounded">Cowrie SSH/Telnet</span>
-                </div>
-            </div>
+            <!-- Operations Utilities & Forensics Tools -->
+            <div class="flex flex-wrap items-center gap-2">
+                <button id="btn-open-analytics" type="button" onclick="openAnalyticsModal()" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-sky-950/60 hover:bg-sky-900/80 border border-sky-700/80 text-sky-300 transition-all flex items-center space-x-1.5 shadow-sm">
+                    <span>📊</span>
+                    <span>Analytics &amp; Forensics</span>
+                </button>
 
-            <!-- Virtual Nodes / Live Devices Metric -->
-            <div class="bg-slate-900 border border-slate-800 rounded-lg p-4 shadow-sm">
-                <div id="metric-nodes-label" class="text-xs font-medium text-slate-400 tracking-wide uppercase">Virtual IoT Nodes</div>
-                <div class="mt-2 flex items-baseline justify-between">
-                    <div id="metric-nodes-value" class="text-3xl font-bold font-mono text-emerald-400">4 / 4</div>
-                    <span id="metric-nodes-badge" class="text-[11px] font-mono text-emerald-400/80 bg-emerald-950/40 border border-emerald-900/50 px-1.5 py-0.5 rounded">172.20.0.0/24</span>
-                </div>
-            </div>
+                <button id="btn-reset-bans" type="button" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-slate-300 transition-all">
+                    Reset All Bans
+                </button>
 
-            <!-- Quarantine Mesh Status -->
-            <div class="bg-slate-900 border border-slate-800 rounded-lg p-4 shadow-sm">
-                <div id="metric-isolation-label" class="text-xs font-medium text-slate-400 tracking-wide uppercase">Quarantine Isolation</div>
-                <div class="mt-2 flex items-baseline justify-between">
-                    <div id="metric-isolation-value" class="text-lg font-bold font-mono text-sky-400 mt-1">ARMED</div>
-                    <span id="metric-isolation-badge" class="text-[11px] font-mono text-sky-400/80 bg-sky-950/40 border border-sky-900/50 px-1.5 py-0.5 rounded">internal: true</span>
-                </div>
+                <button id="btn-reset-db" type="button" onclick="resetDatabase()" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-rose-950/50 hover:bg-rose-900 border border-rose-800 text-rose-300 transition-all flex items-center space-x-1" title="Completely purge database audit logs, active bans, and threat analytics">
+                    <span>🗑️</span>
+                    <span>Reset Database</span>
+                </button>
             </div>
         </div>
 
-        <!-- Node Topology Grid (Simulated Mode) -->
-        <section id="section-simulated-topology" class="space-y-3">
-            <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Virtual IoT Network Topology & Containment</h2>
+        <!-- PANEL 1: Live Cyber Defense Operations -->
+        <div id="workspace-panel-soc" class="space-y-6">
+
+            <!-- Tier 1: Metrics Overview Grid -->
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-
-                <!-- Temperature Sensor Node -->
-                <div id="card-iot_sensor_node" class="p-4 rounded-lg bg-slate-900 border border-slate-800 transition-all">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="font-semibold text-sm text-slate-200">Temp Sensor 01</span>
-                        <span id="badge-iot_sensor_node" class="px-2 py-0.5 rounded-full text-[11px] font-bold tracking-wide uppercase bg-emerald-950/60 border border-emerald-800 text-emerald-400">PRODUCTION</span>
-                    </div>
-                    <div class="text-xs font-mono text-slate-400 mb-3">IP: 172.20.0.21 • MQTT Pub</div>
-                    <div class="flex items-center space-x-2 pt-2 border-t border-slate-800/80">
-                        <button onclick="infectNode('iot_sensor_node')" class="flex-1 py-1 px-2 text-[11px] rounded bg-rose-950/40 hover:bg-rose-900 border border-rose-800 text-rose-300 font-medium transition-colors">
-                            Simulate Infection
-                        </button>
-                        <button onclick="restoreNode('iot_sensor_node')" class="py-1 px-2 text-[11px] rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors">
-                            Restore
-                        </button>
+                <!-- Active Bans Metric -->
+                <div class="bg-slate-900 border border-slate-800 rounded-lg p-4 shadow-sm">
+                    <div class="text-xs font-medium text-slate-400 tracking-wide uppercase">Active Netfilter Drops</div>
+                    <div class="mt-2 flex items-baseline justify-between">
+                        <div id="metric-banned-count" class="text-3xl font-bold font-mono text-rose-500">0</div>
+                        <span class="text-[11px] font-mono text-rose-400/80 bg-rose-950/40 border border-rose-900/50 px-1.5 py-0.5 rounded">IOT_DEFENSE_BLOCKLIST</span>
                     </div>
                 </div>
 
-                <!-- Smart Bulb Node -->
-                <div id="card-iot_bulb_node" class="p-4 rounded-lg bg-slate-900 border border-slate-800 transition-all">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="font-semibold text-sm text-slate-200">Smart Bulb 01</span>
-                        <span id="badge-iot_bulb_node" class="px-2 py-0.5 rounded-full text-[11px] font-bold tracking-wide uppercase bg-emerald-950/60 border border-emerald-800 text-emerald-400">PRODUCTION</span>
-                    </div>
-                    <div class="text-xs font-mono text-slate-400 mb-3">IP: 172.20.0.22 • Actuator</div>
-                    <div class="flex items-center space-x-2 pt-2 border-t border-slate-800/80">
-                        <button onclick="infectNode('iot_bulb_node')" class="flex-1 py-1 px-2 text-[11px] rounded bg-rose-950/40 hover:bg-rose-900 border border-rose-800 text-rose-300 font-medium transition-colors">
-                            Simulate Infection
-                        </button>
-                        <button onclick="restoreNode('iot_bulb_node')" class="py-1 px-2 text-[11px] rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors">
-                            Restore
-                        </button>
+                <!-- Honeypot Traps Metric -->
+                <div class="bg-slate-900 border border-slate-800 rounded-lg p-4 shadow-sm">
+                    <div class="text-xs font-medium text-slate-400 tracking-wide uppercase">Honeypot Traps Captured</div>
+                    <div class="mt-2 flex items-baseline justify-between">
+                        <div id="metric-traps-count" class="text-3xl font-bold font-mono text-amber-400">0</div>
+                        <span class="text-[11px] font-mono text-amber-400/80 bg-amber-950/40 border border-amber-900/50 px-1.5 py-0.5 rounded">Cowrie SSH/Telnet</span>
                     </div>
                 </div>
 
-                <!-- Mosquitto Broker Node -->
-                <div id="card-iot_mqtt_broker" class="p-4 rounded-lg bg-slate-900 border border-slate-800 transition-all">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="font-semibold text-sm text-slate-200">MQTT Broker</span>
-                        <span id="badge-iot_mqtt_broker" class="px-2 py-0.5 rounded-full text-[11px] font-bold tracking-wide uppercase bg-emerald-950/60 border border-emerald-800 text-emerald-400">PRODUCTION</span>
-                    </div>
-                    <div class="text-xs font-mono text-slate-400 mb-3">IP: 172.20.0.10 • TCP 1883</div>
-                    <div class="text-[11px] text-slate-500 pt-2 border-t border-slate-800/80">
-                        Core Telemetry Message Bus
+                <!-- Virtual Nodes / Live Devices Metric -->
+                <div class="bg-slate-900 border border-slate-800 rounded-lg p-4 shadow-sm">
+                    <div id="metric-nodes-label" class="text-xs font-medium text-slate-400 tracking-wide uppercase">Virtual IoT Nodes</div>
+                    <div class="mt-2 flex items-baseline justify-between">
+                        <div id="metric-nodes-value" class="text-3xl font-bold font-mono text-emerald-400">4 / 4</div>
+                        <span id="metric-nodes-badge" class="text-[11px] font-mono text-emerald-400/80 bg-emerald-950/40 border border-emerald-900/50 px-1.5 py-0.5 rounded">172.20.0.0/24</span>
                     </div>
                 </div>
 
-                <!-- Cowrie Honeypot Decoy -->
-                <div id="card-iot_cowrie_honeypot" class="p-4 rounded-lg bg-slate-900 border border-slate-800 transition-all">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="font-semibold text-sm text-amber-300">Cowrie Decoy</span>
-                        <span id="badge-iot_cowrie_honeypot" class="px-2 py-0.5 rounded-full text-[11px] font-bold tracking-wide uppercase bg-amber-950/60 border border-amber-800 text-amber-400">HONEYPOT</span>
+                <!-- Quarantine Mesh Status -->
+                <div class="bg-slate-900 border border-slate-800 rounded-lg p-4 shadow-sm">
+                    <div id="metric-isolation-label" class="text-xs font-medium text-slate-400 tracking-wide uppercase">Quarantine Isolation</div>
+                    <div class="mt-2 flex items-baseline justify-between">
+                        <div id="metric-isolation-value" class="text-lg font-bold font-mono text-sky-400 mt-1">ARMED</div>
+                        <span id="metric-isolation-badge" class="text-[11px] font-mono text-sky-400/80 bg-sky-950/40 border border-sky-900/50 px-1.5 py-0.5 rounded">internal: true</span>
                     </div>
-                    <div class="text-xs font-mono text-slate-400 mb-3">IP: 172.20.0.50 • 2222 / 2223</div>
-                    <div class="text-[11px] text-amber-400/80 pt-2 border-t border-slate-800/80">
-                        Medium-Interaction Deception Trap
+                </div>
+            </div>
+
+            <!-- Tier 2A: Node Topology Grid (Simulated Mode) -->
+            <section id="section-simulated-topology" class="space-y-3">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Virtual IoT Network Topology &amp; Containment</h2>
+                    <span class="text-[11px] font-mono text-slate-500">Dual-Bridge Isolated Subnet Mesh</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+
+                    <!-- Temperature Sensor Node -->
+                    <div id="card-iot_sensor_node" class="p-4 rounded-lg bg-slate-900 border border-slate-800 shadow-sm transition-all">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="font-semibold text-sm text-slate-200">Temp Sensor 01</span>
+                            <span id="badge-iot_sensor_node" class="px-2 py-0.5 rounded-full text-[11px] font-bold tracking-wide uppercase bg-emerald-950/60 border border-emerald-800 text-emerald-400">PRODUCTION</span>
+                        </div>
+                        <div class="text-xs font-mono text-slate-400 mb-3">IP: 172.20.0.21 • MQTT Pub</div>
+                        <div class="flex items-center space-x-2 pt-2 border-t border-slate-800/80">
+                            <button onclick="infectNode('iot_sensor_node')" class="flex-1 py-1 px-2 text-[11px] rounded bg-rose-950/40 hover:bg-rose-900 border border-rose-800 text-rose-300 font-medium transition-colors">
+                                Simulate Infection
+                            </button>
+                            <button onclick="restoreNode('iot_sensor_node')" class="py-1 px-2 text-[11px] rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors">
+                                Restore
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Smart Bulb Node -->
+                    <div id="card-iot_bulb_node" class="p-4 rounded-lg bg-slate-900 border border-slate-800 shadow-sm transition-all">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="font-semibold text-sm text-slate-200">Smart Bulb 01</span>
+                            <span id="badge-iot_bulb_node" class="px-2 py-0.5 rounded-full text-[11px] font-bold tracking-wide uppercase bg-emerald-950/60 border border-emerald-800 text-emerald-400">PRODUCTION</span>
+                        </div>
+                        <div class="text-xs font-mono text-slate-400 mb-3">IP: 172.20.0.22 • Actuator</div>
+                        <div class="flex items-center space-x-2 pt-2 border-t border-slate-800/80">
+                            <button onclick="infectNode('iot_bulb_node')" class="flex-1 py-1 px-2 text-[11px] rounded bg-rose-950/40 hover:bg-rose-900 border border-rose-800 text-rose-300 font-medium transition-colors">
+                                Simulate Infection
+                            </button>
+                            <button onclick="restoreNode('iot_bulb_node')" class="py-1 px-2 text-[11px] rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors">
+                                Restore
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Mosquitto Broker Node -->
+                    <div id="card-iot_mqtt_broker" class="p-4 rounded-lg bg-slate-900 border border-slate-800 shadow-sm transition-all">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="font-semibold text-sm text-slate-200">MQTT Broker</span>
+                            <span id="badge-iot_mqtt_broker" class="px-2 py-0.5 rounded-full text-[11px] font-bold tracking-wide uppercase bg-emerald-950/60 border border-emerald-800 text-emerald-400">PRODUCTION</span>
+                        </div>
+                        <div class="text-xs font-mono text-slate-400 mb-3">IP: 172.20.0.10 • TCP 1883</div>
+                        <div class="text-[11px] text-slate-500 pt-2 border-t border-slate-800/80">
+                            Core Telemetry Message Bus
+                        </div>
+                    </div>
+
+                    <!-- Cowrie Honeypot Decoy -->
+                    <div id="card-iot_cowrie_honeypot" class="p-4 rounded-lg bg-slate-900 border border-slate-800 shadow-sm transition-all">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="font-semibold text-sm text-amber-300">Cowrie Decoy</span>
+                            <span id="badge-iot_cowrie_honeypot" class="px-2 py-0.5 rounded-full text-[11px] font-bold tracking-wide uppercase bg-amber-950/60 border border-amber-800 text-amber-400">HONEYPOT</span>
+                        </div>
+                        <div class="text-xs font-mono text-slate-400 mb-3">IP: 172.20.0.50 • 2222 / 2223</div>
+                        <div class="text-[11px] text-amber-400/80 pt-2 border-t border-slate-800/80">
+                            Medium-Interaction Deception Trap
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- Tier 2B: Live Real-World IoT & CCTV Device Onboarding Panel (Live Mode) -->
+            <section id="section-live-devices" class="hidden space-y-4">
+                <div class="bg-slate-900 border border-emerald-800/50 rounded-lg p-5 shadow-sm space-y-4">
+                    <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+                        <div class="flex items-center space-x-2.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <div>
+                                <h2 class="text-sm font-bold text-white uppercase tracking-wider">Live Real-World IoT &amp; CCTV Device Mesh</h2>
+                                <p class="text-[11px] text-slate-400">Simulated traffic paused • Receiving live LAN MQTT, authenticated webhooks, HTTP/MJPEG camera snapshots, &amp; external Cowrie hits</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button id="btn-probe-all-devices" onclick="probeAllDevices()" class="px-3 py-1.5 text-xs font-semibold rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 transition-colors">
+                                🔍 Probe Health
+                            </button>
+                            <button id="btn-open-add-device" onclick="openAddDeviceModal()" class="px-3.5 py-1.5 text-xs font-semibold rounded bg-emerald-700 hover:bg-emerald-600 text-white transition-colors shadow-sm solid-accent-btn">
+                                + Add Real IoT Device
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Live Listener Connection Guide -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-[11px] font-mono">
+                        <div class="p-3 rounded bg-slate-950/80 border border-slate-800">
+                            <div class="text-slate-400 uppercase text-[10px] mb-1">MQTT Broker (ESP32 / RPi / Frigate)</div>
+                            <div id="live-endpoint-mqtt" class="text-emerald-400 font-semibold break-all">mqtt://localhost:1883 • Topic: home/#</div>
+                        </div>
+                        <div class="p-3 rounded bg-slate-950/80 border border-slate-800">
+                            <div class="text-slate-400 uppercase text-[10px] mb-1">HTTP Webhook Ingest (X-Device-Token)</div>
+                            <div id="live-endpoint-webhook" class="text-sky-400 font-semibold break-all">POST http://localhost:8050/api/devices/ingest/&lt;device_id&gt;</div>
+                        </div>
+                        <div class="p-3 rounded bg-slate-950/80 border border-slate-800">
+                            <div class="text-slate-400 uppercase text-[10px] mb-1">External Intrusion Decoy (Cowrie)</div>
+                            <div id="live-endpoint-honeypot" class="text-amber-400 font-semibold break-all">ssh://localhost:2222 (Real attackers logged live)</div>
+                        </div>
+                    </div>
+
+                    <!-- Registered Real-World Devices Grid -->
+                    <div id="live-devices-grid" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- Dynamically populated via app.js -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tier 3: Split View: Autonomous Mitigation Ledger & Multi-Stream Activity Console -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+                <!-- Left: Autonomous Mitigation History Table (5 cols) -->
+                <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-lg p-5 shadow-sm flex flex-col">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                            <h2 class="text-sm font-bold text-white uppercase tracking-wider">Autonomous Mitigation Ledger</h2>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xs font-mono text-slate-500">Sub-second Netfilter Drops</span>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 overflow-x-auto mt-3 max-h-[360px] overflow-y-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-slate-800 text-[11px] text-slate-400 uppercase tracking-wider font-semibold">
+                                    <th class="px-4 py-2 whitespace-nowrap">Date & Time (IST)</th>
+                                    <th class="px-4 py-2">Offending IP</th>
+                                    <th class="px-4 py-2">Mitigation</th>
+                                    <th class="px-4 py-2">Trigger Reason</th>
+                                    <th class="px-4 py-2 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mitigation-table-body" class="divide-y divide-slate-800/40">
+                                <!-- Populated dynamically via SSE & JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Right: Real-time Multi-Stream Activity Console (7 cols) -->
+                <div class="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-lg p-5 shadow-sm flex flex-col">
+                    <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-2 h-2 rounded-full bg-sky-400 animate-pulse"></span>
+                            <h2 class="text-sm font-bold text-white uppercase tracking-wider">General Activity Logs</h2>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-[11px] font-mono text-slate-500 mr-1 hidden sm:inline">Multi-Stream SIEM</span>
+                            <button id="btn-export-logs" onclick="openExportLogsModal()" class="text-[11px] font-semibold text-sky-300 hover:text-white px-2 py-0.5 rounded border border-sky-800 bg-sky-950/60 hover:bg-sky-900 transition-colors flex items-center space-x-1" title="Export activity logs in JSON, CSV, or LOG format">
+                                <span>📥</span>
+                                <span>Export</span>
+                            </button>
+                            <button id="btn-clear-console" onclick="clearConsole()" class="text-[11px] font-semibold text-slate-300 hover:text-white px-2 py-0.5 rounded border border-slate-700 bg-slate-800/80 hover:bg-slate-700 transition-colors flex items-center space-x-1" title="Clear terminal logs buffer">
+                                <span>🧹</span>
+                                <span>Clear</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Stream Category Filters -->
+                    <div class="flex items-center space-x-1 py-1.5 border-b border-slate-800/60 text-[10px] font-mono overflow-x-auto">
+                        <button id="filter-btn-all" onclick="setLogFilter('all')" class="px-2 py-0.5 rounded font-bold bg-sky-950/80 border border-sky-700 text-sky-300 transition-all">ALL</button>
+                        <button id="filter-btn-honeypot" onclick="setLogFilter('honeypot')" class="px-2 py-0.5 rounded font-semibold bg-slate-800/50 hover:bg-slate-800 border border-transparent hover:border-slate-700 text-slate-400 hover:text-amber-300 transition-all">HONEYPOT</button>
+                        <button id="filter-btn-mitigation" onclick="setLogFilter('mitigation')" class="px-2 py-0.5 rounded font-semibold bg-slate-800/50 hover:bg-slate-800 border border-transparent hover:border-slate-700 text-slate-400 hover:text-rose-300 transition-all">MITIGATION</button>
+                        <button id="filter-btn-quarantine" onclick="setLogFilter('quarantine')" class="px-2 py-0.5 rounded font-semibold bg-slate-800/50 hover:bg-slate-800 border border-transparent hover:border-slate-700 text-slate-400 hover:text-red-400 transition-all">QUARANTINE</button>
+                        <button id="filter-btn-iot" onclick="setLogFilter('iot')" class="px-2 py-0.5 rounded font-semibold bg-slate-800/50 hover:bg-slate-800 border border-transparent hover:border-slate-700 text-slate-400 hover:text-emerald-300 transition-all">IOT MESH</button>
+                        <button id="filter-btn-system" onclick="setLogFilter('system')" class="px-2 py-0.5 rounded font-semibold bg-slate-800/50 hover:bg-slate-800 border border-transparent hover:border-slate-700 text-slate-400 hover:text-slate-200 transition-all">SYSTEM</button>
+                    </div>
+
+                    <!-- Unified Horizontal Scroll Wrapper for Header & Rows -->
+                    <div class="flex-1 overflow-x-auto mt-2 rounded bg-slate-950 border border-slate-800 flex flex-col">
+                        <!-- 6-Column SIEM Grid Header Bar -->
+                        <div id="siem-grid-header" class="flex items-center space-x-2 px-3 py-1.5 bg-slate-900/90 border-b border-slate-800 text-[10px] font-mono uppercase font-bold text-slate-400 select-none min-w-[860px] sticky top-0 z-10">
+                            <span class="w-[145px] shrink-0 text-slate-500">DATE & TIME (IST)</span>
+                            <span class="w-[88px] shrink-0 text-slate-400 text-center">STREAM</span>
+                            <span class="w-[56px] shrink-0 text-center text-slate-400">SEV</span>
+                            <span class="w-[115px] shrink-0 text-slate-400 text-center">SOURCE/NODE</span>
+                            <span class="w-[85px] shrink-0 text-center text-slate-400">PROTOCOL</span>
+                            <span class="flex-1 min-w-[300px] text-slate-400">PAYLOAD & EVENT DATA</span>
+                        </div>
+
+                        <div id="terminal-feed" class="flex-1 p-0 font-mono text-[11px] h-[330px] overflow-y-auto min-w-[860px] space-y-0.5">
+                            <!-- Stream logs will auto-scroll here -->
+                        </div>
                     </div>
                 </div>
 
             </div>
-        </section>
 
-        <!-- Threat Intelligence & Honeypot Log Analytics Panel -->
-        <section class="bg-slate-900 border border-slate-800 rounded-lg p-5 shadow-sm space-y-4">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-800/80">
-                <div class="flex items-center space-x-2">
-                    <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 shadow-sm shadow-indigo-500/50"></span>
-                    <h2 class="text-sm font-bold text-white uppercase tracking-wider">Honeypot Threat Intelligence & Log Analytics</h2>
-                </div>
-                <div class="flex items-center space-x-2">
-                    <span id="analytics-total-threats" class="text-xs font-mono text-indigo-400 bg-indigo-950/40 border border-indigo-900/60 px-2 py-0.5 rounded">0 Events Analyzed</span>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-                <!-- Attack Vector Distribution -->
-                <div class="p-3.5 rounded bg-slate-950/70 border border-slate-800/90 space-y-2.5">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-bold text-slate-200">Attack Vector Distribution</span>
-                        <span class="text-[10px] text-slate-500 uppercase font-mono">Real-Time</span>
+            <!-- Tier 4: Adversary Intrusion Simulation Controls (Red Team Trigger Toolbar - Simulated Mode) -->
+            <section id="section-simulated-redteam" class="bg-slate-900/90 border border-slate-800 rounded-lg p-5 shadow-sm space-y-3">
+                <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-800/80">
+                    <div class="flex items-center space-x-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-sm shadow-amber-500/50 animate-pulse"></span>
+                        <h2 class="text-sm font-bold text-white uppercase tracking-wider">Adversary Intrusion Simulation (Red Team Controls)</h2>
                     </div>
-                    <div class="space-y-2 text-xs">
-                        <div>
-                            <div class="flex justify-between text-[11px] mb-1">
-                                <span class="text-amber-400 font-medium">SSH Brute-Force</span>
-                                <span id="dist-brute-val" class="font-mono text-slate-400">0</span>
-                            </div>
-                            <div class="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
-                                <div id="dist-brute-bar" class="h-full bg-amber-400 transition-all" style="width: 0%"></div>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="flex justify-between text-[11px] mb-1">
-                                <span class="text-rose-400 font-medium">Terminal Exploits</span>
-                                <span id="dist-exploit-val" class="font-mono text-slate-400">0</span>
-                            </div>
-                            <div class="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
-                                <div id="dist-exploit-bar" class="h-full bg-rose-500 transition-all" style="width: 0%"></div>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="flex justify-between text-[11px] mb-1">
-                                <span class="text-sky-400 font-medium">Reconnaissance Probes</span>
-                                <span id="dist-probe-val" class="font-mono text-slate-400">0</span>
-                            </div>
-                            <div class="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
-                                <div id="dist-probe-bar" class="h-full bg-sky-400 transition-all" style="width: 0%"></div>
-                            </div>
-                        </div>
-                    </div>
+                    <span class="text-xs font-mono text-slate-400">Click a vector to trigger closed-loop detection &amp; autonomous mitigation</span>
                 </div>
 
-                <!-- Intercepted Attacker Credentials -->
-                <div class="p-3.5 rounded bg-slate-950/70 border border-slate-800/90 space-y-2.5">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-bold text-slate-200">Intercepted Credentials</span>
-                        <span class="text-[10px] text-slate-500 uppercase font-mono">Cowrie Traps</span>
-                    </div>
-                    <div class="space-y-2">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+                    <!-- Trigger 1: Credential Brute-Force -->
+                    <div class="p-3.5 rounded bg-slate-950/70 border border-slate-800/90 hover:border-slate-700 flex flex-col justify-between transition-all">
                         <div>
-                            <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Top Usernames:</div>
-                            <div id="intel-usernames" class="flex flex-wrap gap-1">
-                                <span class="text-[11px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">none yet</span>
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-xs font-bold text-slate-200">Credential Brute-Force</span>
+                                <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-950/60 border border-amber-800 text-amber-400">PORT 2222</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400 mb-2.5">5 rapid failed SSH logins from selectable multi-IP pool. Exceeds threshold.</p>
+                            <div class="mb-3 space-y-1.5">
+                                <select id="select-ip-bruteforce" onchange="toggleCustomAttackIp('bruteforce')" class="w-full px-2 py-1 rounded bg-slate-900 border border-slate-700/80 text-[11px] font-mono text-amber-300 focus:outline-none focus:border-amber-500">
+                                    <option value="rotate" selected>🔄 Auto-Rotate IP (5-IP Pool)</option>
+                                    <option value="198.51.100.99">198.51.100.99 (Primary Bot)</option>
+                                    <option value="198.51.100.142">198.51.100.142 (Mirai Node-B)</option>
+                                    <option value="198.51.100.205">198.51.100.205 (Mirai Node-C)</option>
+                                    <option value="203.0.113.45">203.0.113.45 (Dict Scanner)</option>
+                                    <option value="192.0.2.81">192.0.2.81 (External Node)</option>
+                                    <option value="swarm">🌐 Swarm Mode (All 5 IPs)</option>
+                                    <option value="custom">✏️ Custom IP Address...</option>
+                                </select>
+                                <input id="custom-ip-bruteforce" type="text" placeholder="Enter custom IPv4 (e.g. 198.51.100.50)" class="hidden w-full px-2 py-1 rounded bg-slate-900 border border-slate-700 text-[11px] font-mono text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500" />
                             </div>
                         </div>
-                        <div class="pt-1 border-t border-slate-800/60">
-                            <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Top Passwords:</div>
-                            <div id="intel-passwords" class="flex flex-wrap gap-1">
-                                <span class="text-[11px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">none yet</span>
+                        <button id="btn-attack-bruteforce" onclick="triggerAttack('brute-force')" class="w-full py-1.5 px-3 text-xs font-semibold rounded bg-amber-950/40 hover:bg-amber-900 border border-amber-800 hover:border-amber-700 text-amber-300 transition-all flex items-center justify-center space-x-2">
+                            <span>⚡ Trigger Brute-Force</span>
+                        </button>
+                    </div>
+
+                    <!-- Trigger 2: Remote Terminal Exploit -->
+                    <div class="p-3.5 rounded bg-slate-950/70 border border-slate-800/90 hover:border-slate-700 flex flex-col justify-between transition-all">
+                        <div>
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-xs font-bold text-slate-200">Terminal Exploit Injection</span>
+                                <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-950/60 border border-rose-800 text-rose-400">CRITICAL</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400 mb-2.5">Remote shell injection (<code class="text-slate-300 font-mono">curl | sh</code>, <code class="text-slate-300 font-mono">wget</code>, <code class="text-slate-300 font-mono">nc</code>) across attacker IPs.</p>
+                            <div class="mb-3 space-y-1.5">
+                                <select id="select-ip-exploit" onchange="toggleCustomAttackIp('exploit')" class="w-full px-2 py-1 rounded bg-slate-900 border border-slate-700/80 text-[11px] font-mono text-rose-300 focus:outline-none focus:border-rose-500">
+                                    <option value="rotate" selected>🔄 Auto-Rotate IP (5-IP Pool)</option>
+                                    <option value="203.0.113.88">203.0.113.88 (Payload Dropper)</option>
+                                    <option value="203.0.113.154">203.0.113.154 (C2 Injector)</option>
+                                    <option value="203.0.113.219">203.0.113.219 (ARM7 Dropper)</option>
+                                    <option value="198.51.100.175">198.51.100.175 (Loader Bot)</option>
+                                    <option value="192.0.2.114">192.0.2.114 (Reverse Shell)</option>
+                                    <option value="swarm">🌐 Swarm Mode (All 5 IPs)</option>
+                                    <option value="custom">✏️ Custom IP Address...</option>
+                                </select>
+                                <input id="custom-ip-exploit" type="text" placeholder="Enter custom IPv4 (e.g. 203.0.113.100)" class="hidden w-full px-2 py-1 rounded bg-slate-900 border border-slate-700 text-[11px] font-mono text-slate-200 placeholder-slate-500 focus:outline-none focus:border-rose-500" />
                             </div>
                         </div>
+                        <button id="btn-attack-exploit" onclick="triggerAttack('exploit')" class="w-full py-1.5 px-3 text-xs font-semibold rounded bg-rose-950/40 hover:bg-rose-900 border border-rose-800 hover:border-rose-700 text-rose-300 transition-all flex items-center justify-center space-x-2">
+                            <span>🔥 Trigger Terminal Exploit</span>
+                        </button>
                     </div>
-                </div>
 
-                <!-- Deception Port Surface -->
-                <div class="p-3.5 rounded bg-slate-950/70 border border-slate-800/90 space-y-2.5">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-bold text-slate-200">Deception Attack Surface</span>
-                        <span class="text-[10px] text-slate-500 uppercase font-mono">Ports Target</span>
-                    </div>
-                    <div class="grid grid-cols-3 gap-2 pt-1 text-center">
-                        <div class="p-2 rounded bg-slate-900 border border-slate-800">
-                            <div class="text-[10px] text-slate-400 font-mono">SSH 2222</div>
-                            <div id="port-2222-count" class="text-lg font-bold font-mono text-amber-400 mt-1">0</div>
-                            <div class="text-[9px] text-slate-500">Decoy SSH</div>
-                        </div>
-                        <div class="p-2 rounded bg-slate-900 border border-slate-800">
-                            <div class="text-[10px] text-slate-400 font-mono">TELNET 2223</div>
-                            <div id="port-2223-count" class="text-lg font-bold font-mono text-sky-400 mt-1">0</div>
-                            <div class="text-[9px] text-slate-500">Decoy Telnet</div>
-                        </div>
-                        <div class="p-2 rounded bg-slate-900 border border-slate-800">
-                            <div class="text-[10px] text-slate-400 font-mono">MQTT 1883</div>
-                            <div id="port-1883-count" class="text-lg font-bold font-mono text-emerald-400 mt-1">0</div>
-                            <div class="text-[9px] text-slate-500">IoT Broker</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Live Real-World IoT & CCTV Device Onboarding Panel (Live Mode) -->
-        <section id="section-live-devices" class="hidden space-y-4">
-            <div class="bg-slate-900 border border-emerald-800/50 rounded-lg p-5 shadow-sm space-y-4">
-                <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
-                    <div class="flex items-center space-x-2.5">
-                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <!-- Trigger 3: Port Reconnaissance Sweep -->
+                    <div class="p-3.5 rounded bg-slate-950/70 border border-slate-800/90 hover:border-slate-700 flex flex-col justify-between transition-all">
                         <div>
-                            <h2 class="text-sm font-bold text-white uppercase tracking-wider">Live Real-World IoT &amp; CCTV Device Mesh</h2>
-                            <p class="text-[11px] text-slate-400">Simulated traffic paused • Receiving live LAN MQTT, authenticated webhooks, HTTP/MJPEG camera snapshots, &amp; external Cowrie hits</p>
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-xs font-bold text-slate-200">Port Reconnaissance Sweep</span>
+                                <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-sky-950/60 border border-sky-800 text-sky-400">PROBES</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400 mb-2.5">Rapid TCP reconnaissance probes from distributed subnet scanners.</p>
+                            <div class="mb-3 space-y-1.5">
+                                <select id="select-ip-portsweep" onchange="toggleCustomAttackIp('portsweep')" class="w-full px-2 py-1 rounded bg-slate-900 border border-slate-700/80 text-[11px] font-mono text-sky-300 focus:outline-none focus:border-sky-500">
+                                    <option value="rotate" selected>🔄 Auto-Rotate IP (5-IP Pool)</option>
+                                    <option value="198.51.100.77">198.51.100.77 (Subnet Scanner)</option>
+                                    <option value="198.51.100.188">198.51.100.188 (SYN Prober)</option>
+                                    <option value="192.0.2.63">192.0.2.63 (Masscan Enum)</option>
+                                    <option value="203.0.113.92">203.0.113.92 (Banner Grab)</option>
+                                    <option value="192.0.2.199">192.0.2.199 (Botnet Recon)</option>
+                                    <option value="swarm">🌐 Swarm Mode (All 5 IPs)</option>
+                                    <option value="custom">✏️ Custom IP Address...</option>
+                                </select>
+                                <input id="custom-ip-portsweep" type="text" placeholder="Enter custom IPv4 (e.g. 192.0.2.77)" class="hidden w-full px-2 py-1 rounded bg-slate-900 border border-slate-700 text-[11px] font-mono text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sky-500" />
+                            </div>
                         </div>
+                        <button id="btn-attack-portsweep" onclick="triggerAttack('port-sweep')" class="w-full py-1.5 px-3 text-xs font-semibold rounded bg-sky-950/40 hover:bg-sky-900 border border-sky-800 hover:border-sky-700 text-sky-300 transition-all flex items-center justify-center space-x-2">
+                            <span>📡 Trigger Port Sweep</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tier 5: Threat Intelligence & Honeypot Log Analytics Panel -->
+            <section id="section-threat-intel" class="bg-slate-900 border border-slate-800 rounded-lg p-5 shadow-sm space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-800/80">
+                    <div class="flex items-center space-x-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 shadow-sm shadow-indigo-500/50"></span>
+                        <h2 class="text-sm font-bold text-white uppercase tracking-wider">Honeypot Threat Intelligence &amp; Log Analytics</h2>
                     </div>
                     <div class="flex items-center space-x-2">
-                        <button id="btn-probe-all-devices" onclick="probeAllDevices()" class="px-3 py-1.5 text-xs font-semibold rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 transition-colors">
-                            🔍 Probe Health
+                        <span id="analytics-total-threats" class="text-xs font-mono text-indigo-400 bg-indigo-950/40 border border-indigo-900/60 px-2 py-0.5 rounded">0 Events Analyzed</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <!-- Attack Vector Distribution -->
+                    <div class="p-3.5 rounded bg-slate-950/70 border border-slate-800/90 space-y-2.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-slate-200">Attack Vector Distribution</span>
+                            <span class="text-[10px] text-slate-500 uppercase font-mono">Real-Time</span>
+                        </div>
+                        <div class="space-y-2 text-xs">
+                            <div>
+                                <div class="flex justify-between text-[11px] mb-1">
+                                    <span class="text-amber-400 font-medium">SSH Brute-Force</span>
+                                    <span id="dist-brute-val" class="font-mono text-slate-400">0</span>
+                                </div>
+                                <div class="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                                    <div id="dist-brute-bar" class="h-full bg-amber-400 transition-all" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-[11px] mb-1">
+                                    <span class="text-rose-400 font-medium">Terminal Exploits</span>
+                                    <span id="dist-exploit-val" class="font-mono text-slate-400">0</span>
+                                </div>
+                                <div class="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                                    <div id="dist-exploit-bar" class="h-full bg-rose-500 transition-all" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-[11px] mb-1">
+                                    <span class="text-sky-400 font-medium">Reconnaissance Probes</span>
+                                    <span id="dist-probe-val" class="font-mono text-slate-400">0</span>
+                                </div>
+                                <div class="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                                    <div id="dist-probe-bar" class="h-full bg-sky-400 transition-all" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Intercepted Attacker Credentials -->
+                    <div class="p-3.5 rounded bg-slate-950/70 border border-slate-800/90 space-y-2.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-slate-200">Intercepted Credentials</span>
+                            <span class="text-[10px] text-slate-500 uppercase font-mono">Cowrie Traps</span>
+                        </div>
+                        <div class="space-y-2">
+                            <div>
+                                <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Top Usernames:</div>
+                                <div id="intel-usernames" class="flex flex-wrap gap-1">
+                                    <span class="text-[11px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">none yet</span>
+                                </div>
+                            </div>
+                            <div class="pt-1 border-t border-slate-800/60">
+                                <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Top Passwords:</div>
+                                <div id="intel-passwords" class="flex flex-wrap gap-1">
+                                    <span class="text-[11px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">none yet</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Deception Port Surface -->
+                    <div class="p-3.5 rounded bg-slate-950/70 border border-slate-800/90 space-y-2.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-slate-200">Deception Attack Surface</span>
+                            <span class="text-[10px] text-slate-500 uppercase font-mono">Ports Target</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 pt-1 text-center">
+                            <div class="p-2 rounded bg-slate-900 border border-slate-800">
+                                <div class="text-[10px] text-slate-400 font-mono">SSH 2222</div>
+                                <div id="port-2222-count" class="text-lg font-bold font-mono text-amber-400 mt-1">0</div>
+                                <div class="text-[9px] text-slate-500">Decoy SSH</div>
+                            </div>
+                            <div class="p-2 rounded bg-slate-900 border border-slate-800">
+                                <div class="text-[10px] text-slate-400 font-mono">TELNET 2223</div>
+                                <div id="port-2223-count" class="text-lg font-bold font-mono text-sky-400 mt-1">0</div>
+                                <div class="text-[9px] text-slate-500">Decoy Telnet</div>
+                            </div>
+                            <div class="p-2 rounded bg-slate-900 border border-slate-800">
+                                <div class="text-[10px] text-slate-400 font-mono">MQTT 1883</div>
+                                <div id="port-1883-count" class="text-lg font-bold font-mono text-emerald-400 mt-1">0</div>
+                                <div class="text-[9px] text-slate-500">IoT Broker</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div><!-- /#workspace-panel-soc -->
+
+        <!-- PANEL 2: About, Architecture & Platform Documentation -->
+        <div id="workspace-panel-about" class="hidden space-y-6">
+        <section id="section-about-system" class="space-y-6 scroll-mt-24">
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-lg space-y-6">
+                <!-- Section Banner & Chapter Navigation -->
+                <div class="space-y-4 pb-4 border-b border-slate-800">
+                    <div class="flex flex-wrap items-center justify-between gap-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-lg bg-cyan-950/80 border border-cyan-700/70 flex items-center justify-center shrink-0">
+                                <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h2 class="text-base font-bold text-white uppercase tracking-wider">About the Platform &amp; How It Works</h2>
+                                <p class="text-xs text-slate-400">Closed-Loop IoT Deception, Autonomous Kernel Mitigation &amp; Dual-Mode Cyber Defense Operations</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2 text-[11px] font-mono">
+                            <span class="px-2.5 py-1 rounded-full bg-amber-950/60 border border-amber-800/80 text-amber-300">Deception-First Decoy</span>
+                            <span class="px-2.5 py-1 rounded-full bg-rose-950/60 border border-rose-800/80 text-rose-300">&lt; 1 ms Auto-Mitigation</span>
+                            <span class="px-2.5 py-1 rounded-full bg-emerald-950/60 border border-emerald-800/80 text-emerald-300">Education &amp; Real Hardware</span>
+                            <button type="button" onclick="setWorkspaceTab('soc')" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-sans font-semibold transition-all">
+                                ← Back to Operations
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Chapter Filter Pills -->
+                    <div id="about-chapter-tabs" class="flex flex-wrap items-center gap-2 pt-1 text-xs font-mono" role="tablist" aria-label="Documentation Chapters">
+                        <button id="about-tab-all" type="button" onclick="setAboutChapter('all')" class="px-3 py-1 rounded-md font-semibold bg-sky-600 text-white shadow-sm transition-all solid-accent-btn">
+                            ✨ Full Guide
                         </button>
-                        <button id="btn-open-add-device" onclick="openAddDeviceModal()" class="px-3.5 py-1.5 text-xs font-semibold rounded bg-emerald-700 hover:bg-emerald-600 text-white transition-colors shadow-sm">
-                            + Add Real IoT Device
+                        <button id="about-tab-overview" type="button" onclick="setAboutChapter('overview')" class="px-3 py-1 rounded-md font-semibold bg-slate-800/80 hover:bg-slate-700 border border-slate-700/80 text-slate-300 transition-all">
+                            ⚙️ How It Works
                         </button>
-                    </div>
-                </div>
-
-                <!-- Live Listener Connection Guide -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-[11px] font-mono">
-                    <div class="p-3 rounded bg-slate-950/80 border border-slate-800">
-                        <div class="text-slate-400 uppercase text-[10px] mb-1">MQTT Broker (ESP32 / RPi / Frigate)</div>
-                        <div id="live-endpoint-mqtt" class="text-emerald-400 font-semibold break-all">mqtt://localhost:1883 • Topic: home/#</div>
-                    </div>
-                    <div class="p-3 rounded bg-slate-950/80 border border-slate-800">
-                        <div class="text-slate-400 uppercase text-[10px] mb-1">HTTP Webhook Ingest (X-Device-Token)</div>
-                        <div id="live-endpoint-webhook" class="text-sky-400 font-semibold break-all">POST http://localhost:8050/api/devices/ingest/&lt;device_id&gt;</div>
-                    </div>
-                    <div class="p-3 rounded bg-slate-950/80 border border-slate-800">
-                        <div class="text-slate-400 uppercase text-[10px] mb-1">External Intrusion Decoy (Cowrie)</div>
-                        <div id="live-endpoint-honeypot" class="text-amber-400 font-semibold break-all">ssh://localhost:2222 (Real attackers logged live)</div>
-                    </div>
-                </div>
-
-                <!-- Registered Real-World Devices Grid -->
-                <div id="live-devices-grid" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <!-- Dynamically populated via app.js -->
-                </div>
-            </div>
-        </section>
-
-        <!-- Adversary Intrusion Simulation Controls (Red Team Trigger Toolbar - Simulated Mode) -->
-        <section id="section-simulated-redteam" class="bg-slate-900/90 border border-slate-800 rounded-lg p-5 shadow-sm space-y-3">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-800/80">
-                <div class="flex items-center space-x-2">
-                    <span class="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-sm shadow-amber-500/50 animate-pulse"></span>
-                    <h2 class="text-sm font-bold text-white uppercase tracking-wider">Adversary Intrusion Simulation (Red Team Controls)</h2>
-                </div>
-                <span class="text-xs font-mono text-slate-400">Click a vector to trigger closed-loop detection & autonomous mitigation</span>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
-                <!-- Trigger 1: Credential Brute-Force -->
-                <div class="p-3.5 rounded bg-slate-950/70 border border-slate-800/90 hover:border-slate-700 flex flex-col justify-between transition-all">
-                    <div>
-                        <div class="flex items-center justify-between mb-1.5">
-                            <span class="text-xs font-bold text-slate-200">Credential Brute-Force</span>
-                            <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-950/60 border border-amber-800 text-amber-400">PORT 2222</span>
-                        </div>
-                        <p class="text-[11px] text-slate-400 mb-2.5">5 rapid failed SSH logins from selectable multi-IP pool. Exceeds threshold.</p>
-                        <div class="mb-3 space-y-1.5">
-                            <select id="select-ip-bruteforce" onchange="toggleCustomAttackIp('bruteforce')" class="w-full px-2 py-1 rounded bg-slate-900 border border-slate-700/80 text-[11px] font-mono text-amber-300 focus:outline-none focus:border-amber-500">
-                                <option value="rotate" selected>🔄 Auto-Rotate IP (5-IP Pool)</option>
-                                <option value="198.51.100.99">198.51.100.99 (Primary Bot)</option>
-                                <option value="198.51.100.142">198.51.100.142 (Mirai Node-B)</option>
-                                <option value="198.51.100.205">198.51.100.205 (Mirai Node-C)</option>
-                                <option value="203.0.113.45">203.0.113.45 (Dict Scanner)</option>
-                                <option value="192.0.2.81">192.0.2.81 (External Node)</option>
-                                <option value="swarm">🌐 Swarm Mode (All 5 IPs)</option>
-                                <option value="custom">✏️ Custom IP Address...</option>
-                            </select>
-                            <input id="custom-ip-bruteforce" type="text" placeholder="Enter custom IPv4 (e.g. 198.51.100.50)" class="hidden w-full px-2 py-1 rounded bg-slate-900 border border-slate-700 text-[11px] font-mono text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500" />
-                        </div>
-                    </div>
-                    <button id="btn-attack-bruteforce" onclick="triggerAttack('brute-force')" class="w-full py-1.5 px-3 text-xs font-semibold rounded bg-amber-950/40 hover:bg-amber-900 border border-amber-800 hover:border-amber-700 text-amber-300 transition-all flex items-center justify-center space-x-2">
-                        <span>⚡ Trigger Brute-Force</span>
-                    </button>
-                </div>
-
-                <!-- Trigger 2: Remote Terminal Exploit -->
-                <div class="p-3.5 rounded bg-slate-950/70 border border-slate-800/90 hover:border-slate-700 flex flex-col justify-between transition-all">
-                    <div>
-                        <div class="flex items-center justify-between mb-1.5">
-                            <span class="text-xs font-bold text-slate-200">Terminal Exploit Injection</span>
-                            <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-950/60 border border-rose-800 text-rose-400">CRITICAL</span>
-                        </div>
-                        <p class="text-[11px] text-slate-400 mb-2.5">Remote shell injection (<code class="text-slate-300 font-mono">curl | sh</code>, <code class="text-slate-300 font-mono">wget</code>, <code class="text-slate-300 font-mono">nc</code>) across attacker IPs.</p>
-                        <div class="mb-3 space-y-1.5">
-                            <select id="select-ip-exploit" onchange="toggleCustomAttackIp('exploit')" class="w-full px-2 py-1 rounded bg-slate-900 border border-slate-700/80 text-[11px] font-mono text-rose-300 focus:outline-none focus:border-rose-500">
-                                <option value="rotate" selected>🔄 Auto-Rotate IP (5-IP Pool)</option>
-                                <option value="203.0.113.88">203.0.113.88 (Payload Dropper)</option>
-                                <option value="203.0.113.154">203.0.113.154 (C2 Injector)</option>
-                                <option value="203.0.113.219">203.0.113.219 (ARM7 Dropper)</option>
-                                <option value="198.51.100.175">198.51.100.175 (Loader Bot)</option>
-                                <option value="192.0.2.114">192.0.2.114 (Reverse Shell)</option>
-                                <option value="swarm">🌐 Swarm Mode (All 5 IPs)</option>
-                                <option value="custom">✏️ Custom IP Address...</option>
-                            </select>
-                            <input id="custom-ip-exploit" type="text" placeholder="Enter custom IPv4 (e.g. 203.0.113.100)" class="hidden w-full px-2 py-1 rounded bg-slate-900 border border-slate-700 text-[11px] font-mono text-slate-200 placeholder-slate-500 focus:outline-none focus:border-rose-500" />
-                        </div>
-                    </div>
-                    <button id="btn-attack-exploit" onclick="triggerAttack('exploit')" class="w-full py-1.5 px-3 text-xs font-semibold rounded bg-rose-950/40 hover:bg-rose-900 border border-rose-800 hover:border-rose-700 text-rose-300 transition-all flex items-center justify-center space-x-2">
-                        <span>🔥 Trigger Terminal Exploit</span>
-                    </button>
-                </div>
-
-                <!-- Trigger 3: Port Reconnaissance Sweep -->
-                <div class="p-3.5 rounded bg-slate-950/70 border border-slate-800/90 hover:border-slate-700 flex flex-col justify-between transition-all">
-                    <div>
-                        <div class="flex items-center justify-between mb-1.5">
-                            <span class="text-xs font-bold text-slate-200">Port Reconnaissance Sweep</span>
-                            <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-sky-950/60 border border-sky-800 text-sky-400">PROBES</span>
-                        </div>
-                        <p class="text-[11px] text-slate-400 mb-2.5">Rapid TCP reconnaissance probes from distributed subnet scanners.</p>
-                        <div class="mb-3 space-y-1.5">
-                            <select id="select-ip-portsweep" onchange="toggleCustomAttackIp('portsweep')" class="w-full px-2 py-1 rounded bg-slate-900 border border-slate-700/80 text-[11px] font-mono text-sky-300 focus:outline-none focus:border-sky-500">
-                                <option value="rotate" selected>🔄 Auto-Rotate IP (5-IP Pool)</option>
-                                <option value="198.51.100.77">198.51.100.77 (Subnet Scanner)</option>
-                                <option value="198.51.100.188">198.51.100.188 (SYN Prober)</option>
-                                <option value="192.0.2.63">192.0.2.63 (Masscan Enum)</option>
-                                <option value="203.0.113.92">203.0.113.92 (Banner Grab)</option>
-                                <option value="192.0.2.199">192.0.2.199 (Botnet Recon)</option>
-                                <option value="swarm">🌐 Swarm Mode (All 5 IPs)</option>
-                                <option value="custom">✏️ Custom IP Address...</option>
-                            </select>
-                            <input id="custom-ip-portsweep" type="text" placeholder="Enter custom IPv4 (e.g. 192.0.2.77)" class="hidden w-full px-2 py-1 rounded bg-slate-900 border border-slate-700 text-[11px] font-mono text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sky-500" />
-                        </div>
-                    </div>
-                    <button id="btn-attack-portsweep" onclick="triggerAttack('port-sweep')" class="w-full py-1.5 px-3 text-xs font-semibold rounded bg-sky-950/40 hover:bg-sky-900 border border-sky-800 hover:border-sky-700 text-sky-300 transition-all flex items-center justify-center space-x-2">
-                        <span>📡 Trigger Port Sweep</span>
-                    </button>
-                </div>
-            </div>
-        </section>
-
-        <!-- Split View: Mitigation Table & Live Terminal -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-            <!-- Left: Autonomous Mitigation History Table (5 cols) -->
-            <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-lg p-5 shadow-sm flex flex-col">
-                <div class="flex items-center justify-between pb-3 border-b border-slate-800">
-                    <div class="flex items-center space-x-2">
-                        <span class="w-2 h-2 rounded-full bg-rose-500"></span>
-                        <h2 class="text-sm font-bold text-white uppercase tracking-wider">Autonomous Mitigation Ledger</h2>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                        <span class="text-xs font-mono text-slate-500">Sub-second Netfilter Drops</span>
-                    </div>
-                </div>
-
-                <div class="flex-1 overflow-x-auto mt-3 max-h-[360px] overflow-y-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="border-b border-slate-800 text-[11px] text-slate-400 uppercase tracking-wider font-semibold">
-                                <th class="px-4 py-2 whitespace-nowrap">Date & Time (IST)</th>
-                                <th class="px-4 py-2">Offending IP</th>
-                                <th class="px-4 py-2">Mitigation</th>
-                                <th class="px-4 py-2">Trigger Reason</th>
-                                <th class="px-4 py-2 text-right">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="mitigation-table-body" class="divide-y divide-slate-800/40">
-                            <!-- Populated dynamically via SSE & JS -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Right: Real-time Multi-Stream Activity Console (7 cols) -->
-            <div class="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-lg p-5 shadow-sm flex flex-col">
-                <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-                    <div class="flex items-center space-x-2">
-                        <span class="w-2 h-2 rounded-full bg-sky-400 animate-pulse"></span>
-                        <h2 class="text-sm font-bold text-white uppercase tracking-wider">General Activity Logs</h2>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                        <span class="text-[11px] font-mono text-slate-500 mr-1 hidden sm:inline">Multi-Stream SIEM</span>
-                        <button id="btn-export-logs" onclick="openExportLogsModal()" class="text-[11px] font-semibold text-sky-300 hover:text-white px-2 py-0.5 rounded border border-sky-800 bg-sky-950/60 hover:bg-sky-900 transition-colors flex items-center space-x-1" title="Export activity logs in JSON, CSV, or LOG format">
-                            <span>📥</span>
-                            <span>Export</span>
+                        <button id="about-tab-modes" type="button" onclick="setAboutChapter('modes')" class="px-3 py-1 rounded-md font-semibold bg-slate-800/80 hover:bg-slate-700 border border-slate-700/80 text-slate-300 transition-all">
+                            🎓 Simulated vs Live
                         </button>
-                        <button id="btn-clear-console" onclick="clearConsole()" class="text-[11px] font-semibold text-slate-300 hover:text-white px-2 py-0.5 rounded border border-slate-700 bg-slate-800/80 hover:bg-slate-700 transition-colors flex items-center space-x-1" title="Clear terminal logs buffer">
-                            <span>🧹</span>
-                            <span>Clear</span>
+                        <button id="about-tab-diff" type="button" onclick="setAboutChapter('diff')" class="px-3 py-1 rounded-md font-semibold bg-slate-800/80 hover:bg-slate-700 border border-slate-700/80 text-slate-300 transition-all">
+                            🛡️ Differences &amp; Advantages
                         </button>
-                    </div>
-                </div>
-
-                <!-- Stream Category Filters -->
-                <div class="flex items-center space-x-1 py-1.5 border-b border-slate-800/60 text-[10px] font-mono overflow-x-auto">
-                    <button id="filter-btn-all" onclick="setLogFilter('all')" class="px-2 py-0.5 rounded font-bold bg-sky-950/80 border border-sky-700 text-sky-300 transition-all">ALL</button>
-                    <button id="filter-btn-honeypot" onclick="setLogFilter('honeypot')" class="px-2 py-0.5 rounded font-semibold bg-slate-800/50 hover:bg-slate-800 border border-transparent hover:border-slate-700 text-slate-400 hover:text-amber-300 transition-all">HONEYPOT</button>
-                    <button id="filter-btn-mitigation" onclick="setLogFilter('mitigation')" class="px-2 py-0.5 rounded font-semibold bg-slate-800/50 hover:bg-slate-800 border border-transparent hover:border-slate-700 text-slate-400 hover:text-rose-300 transition-all">MITIGATION</button>
-                    <button id="filter-btn-quarantine" onclick="setLogFilter('quarantine')" class="px-2 py-0.5 rounded font-semibold bg-slate-800/50 hover:bg-slate-800 border border-transparent hover:border-slate-700 text-slate-400 hover:text-red-400 transition-all">QUARANTINE</button>
-                    <button id="filter-btn-iot" onclick="setLogFilter('iot')" class="px-2 py-0.5 rounded font-semibold bg-slate-800/50 hover:bg-slate-800 border border-transparent hover:border-slate-700 text-slate-400 hover:text-emerald-300 transition-all">IOT MESH</button>
-                    <button id="filter-btn-system" onclick="setLogFilter('system')" class="px-2 py-0.5 rounded font-semibold bg-slate-800/50 hover:bg-slate-800 border border-transparent hover:border-slate-700 text-slate-400 hover:text-slate-200 transition-all">SYSTEM</button>
-                </div>
-
-                <!-- Unified Horizontal Scroll Wrapper for Header & Rows -->
-                <div class="flex-1 overflow-x-auto mt-2 rounded bg-slate-950 border border-slate-800 flex flex-col">
-                    <!-- 6-Column SIEM Grid Header Bar -->
-                    <div id="siem-grid-header" class="flex items-center space-x-2 px-3 py-1.5 bg-slate-900/90 border-b border-slate-800 text-[10px] font-mono uppercase font-bold text-slate-400 select-none min-w-[860px] sticky top-0 z-10">
-                        <span class="w-[145px] shrink-0 text-slate-500">DATE & TIME (IST)</span>
-                        <span class="w-[88px] shrink-0 text-slate-400 text-center">STREAM</span>
-                        <span class="w-[56px] shrink-0 text-center text-slate-400">SEV</span>
-                        <span class="w-[115px] shrink-0 text-slate-400 text-center">SOURCE/NODE</span>
-                        <span class="w-[85px] shrink-0 text-center text-slate-400">PROTOCOL</span>
-                        <span class="flex-1 min-w-[300px] text-slate-400">PAYLOAD & EVENT DATA</span>
-                    </div>
-
-                    <div id="terminal-feed" class="flex-1 p-0 font-mono text-[11px] h-[330px] overflow-y-auto min-w-[860px] space-y-0.5">
-                        <!-- Stream logs will auto-scroll here -->
-                    </div>
-                </div>
-            </div>
-
-        </div>
-
-        <!-- About, Architecture & Platform Documentation Section -->
-        <section id="section-about-system" class="pt-4 space-y-6 scroll-mt-24">
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-lg space-y-8">
-                <!-- Section Banner -->
-                <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-800">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-10 h-10 rounded-lg bg-cyan-950/80 border border-cyan-700/70 flex items-center justify-center shrink-0">
-                            <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-                            </svg>
-                        </div>
-                        <div>
-                            <h2 class="text-base font-bold text-white uppercase tracking-wider">About the Platform &amp; How It Works</h2>
-                            <p class="text-xs text-slate-400">Closed-Loop IoT Deception, Autonomous Kernel Mitigation &amp; Dual-Mode Cyber Defense Operations</p>
-                        </div>
-                    </div>
-                    <div class="flex flex-wrap items-center gap-2 text-[11px] font-mono">
-                        <span class="px-2.5 py-1 rounded-full bg-amber-950/60 border border-amber-800/80 text-amber-300">Deception-First Decoy</span>
-                        <span class="px-2.5 py-1 rounded-full bg-rose-950/60 border border-rose-800/80 text-rose-300">&lt; 1 ms Auto-Mitigation</span>
-                        <span class="px-2.5 py-1 rounded-full bg-emerald-950/60 border border-emerald-800/80 text-emerald-300">Education &amp; Real Hardware</span>
                     </div>
                 </div>
 
                 <!-- 1. Overview & Closed-Loop Architecture Diagram -->
-                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                <div id="about-block-overview" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
                     <div class="lg:col-span-6 space-y-4">
                         <div class="inline-flex items-center space-x-2 text-xs font-semibold uppercase tracking-wider text-sky-400">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
@@ -591,7 +888,7 @@
 
                     <!-- Architecture Visual Diagram -->
                     <div class="lg:col-span-6 space-y-2">
-                        <div class="rounded-xl overflow-hidden border border-slate-800 bg-slate-950 shadow-inner">
+                        <div class="diagram-showcase-frame rounded-xl overflow-hidden border border-slate-800 bg-slate-950 shadow-inner">
                             <img src="/static/images/architecture_overview.jpg" alt="Closed-Loop Autonomous IoT Defense & Dual-Bridge Isolation Architecture" class="w-full h-auto object-cover" />
                         </div>
                         <div class="flex flex-wrap items-center justify-between gap-2 px-1 text-[10px] font-mono text-slate-400">
@@ -602,7 +899,7 @@
                 </div>
 
                 <!-- 2. Educational Use (Simulated Mode) vs Real-World Operations (Live Mode) -->
-                <div class="pt-6 border-t border-slate-800/90 space-y-5">
+                <div id="about-block-modes" class="pt-6 border-t border-slate-800/90 space-y-5">
                     <div class="flex flex-wrap items-center justify-between gap-2">
                         <div>
                             <div class="text-xs font-semibold uppercase tracking-wider text-emerald-400">Two Dedicated Operating Modes</div>
@@ -614,7 +911,7 @@
                     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
                         <!-- Dual Mode Visual Concept -->
                         <div class="lg:col-span-5 space-y-2">
-                            <div class="rounded-xl overflow-hidden border border-slate-800 bg-slate-950 shadow-inner">
+                            <div class="diagram-showcase-frame rounded-xl overflow-hidden border border-slate-800 bg-slate-950 shadow-inner">
                                 <img src="/static/images/dual_mode_comparison.jpg" alt="Simulated Educational Cyber Range vs Real-World Live Hardware Mode" class="w-full h-auto object-cover" />
                             </div>
                             <div class="flex items-center justify-between px-1 text-[10px] font-mono text-slate-400">
@@ -681,7 +978,7 @@
                 </div>
 
                 <!-- 3. How This Website Is Different From Other Security Tools -->
-                <div class="pt-6 border-t border-slate-800/90 space-y-4">
+                <div id="about-block-diff" class="pt-6 border-t border-slate-800/90 space-y-4">
                     <div>
                         <div class="text-xs font-semibold uppercase tracking-wider text-amber-400">Architectural Differentiation</div>
                         <h3 class="text-lg font-bold text-white">How Our Platform Differs From Traditional IoT Security Tools</h3>
@@ -723,7 +1020,7 @@
                 </div>
 
                 <!-- 4. Core Advantages Grid -->
-                <div class="pt-6 border-t border-slate-800/90 space-y-4">
+                <div id="about-block-advantages" class="pt-6 border-t border-slate-800/90 space-y-4">
                     <div>
                         <div class="text-xs font-semibold uppercase tracking-wider text-indigo-400">Key Advantages</div>
                         <h3 class="text-lg font-bold text-white">Built-In Security, Speed &amp; Operational Clarity</h3>
@@ -793,6 +1090,7 @@
                 </div>
             </div>
         </section>
+        </div><!-- /#workspace-panel-about -->
 
     </main>
 
@@ -961,7 +1259,7 @@
                 <button onclick="closeExportLogsModal()" class="px-3 py-1.5 text-xs font-semibold rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors">
                     Cancel
                 </button>
-                <button id="btn-confirm-export" onclick="downloadActivityLogs()" class="px-4 py-1.5 text-xs font-semibold rounded bg-sky-600 hover:bg-sky-500 text-white transition-all flex items-center space-x-1.5 shadow-sm">
+                <button id="btn-confirm-export" onclick="downloadActivityLogs()" class="px-4 py-1.5 text-xs font-semibold rounded bg-sky-600 hover:bg-sky-500 text-white transition-all flex items-center space-x-1.5 shadow-sm solid-accent-btn">
                     <span>⬇️</span>
                     <span>Download File</span>
                 </button>
@@ -1034,14 +1332,14 @@
                     <div class="font-bold text-emerald-300">Device Registered — Save One-Time Webhook Token:</div>
                     <div class="flex items-center space-x-2">
                         <code id="device-token-value" class="flex-1 p-1.5 rounded bg-slate-950 border border-slate-800 font-mono text-emerald-400 break-all"></code>
-                        <button type="button" onclick="copyIngestToken()" class="px-2.5 py-1 rounded bg-emerald-800 hover:bg-emerald-700 text-white font-semibold">Copy</button>
+                        <button type="button" onclick="copyIngestToken()" class="px-2.5 py-1 rounded bg-emerald-800 hover:bg-emerald-700 text-white font-semibold solid-accent-btn">Copy</button>
                     </div>
                     <div id="device-token-curl" class="font-mono text-[10px] text-slate-400 break-all"></div>
                 </div>
 
                 <div class="pt-2 flex items-center justify-end space-x-2 border-t border-slate-800">
                     <button type="button" onclick="closeAddDeviceModal()" class="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold">Close</button>
-                    <button id="btn-submit-device" type="submit" class="px-4 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-white font-semibold">Register Device</button>
+                    <button id="btn-submit-device" type="submit" class="px-4 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-white font-semibold solid-accent-btn">Register Device</button>
                 </div>
             </form>
         </div>
@@ -1061,7 +1359,7 @@
                     <button onclick="closeSnapshotModal()" class="text-slate-400 hover:text-white px-2 py-1 rounded hover:bg-slate-800">✕</button>
                 </div>
             </div>
-            <div class="p-4 bg-slate-950 flex items-center justify-center min-h-[280px]">
+            <div class="diagram-showcase-frame p-4 bg-slate-950 flex items-center justify-center min-h-[280px]">
                 <img id="snapshot-preview-img" alt="CCTV Camera Snapshot Frame" class="hidden max-h-[65vh] rounded border border-slate-800 object-contain" />
                 <div id="snapshot-fallback-msg" class="text-xs font-mono text-slate-500 text-center max-w-md">Loading camera frame via SSRF-guarded proxy...</div>
             </div>
@@ -1075,13 +1373,13 @@
             <p id="confirm-modal-message" class="text-xs text-slate-300"></p>
             <div class="flex items-center justify-end space-x-2 pt-2 border-t border-slate-800">
                 <button onclick="closeConfirmModal()" class="px-3 py-1.5 text-xs font-semibold rounded bg-slate-800 hover:bg-slate-700 text-slate-300">Cancel</button>
-                <button id="confirm-modal-ok" class="px-4 py-1.5 text-xs font-semibold rounded bg-rose-700 hover:bg-rose-600 text-white">Confirm</button>
+                <button id="confirm-modal-ok" class="px-4 py-1.5 text-xs font-semibold rounded bg-rose-700 hover:bg-rose-600 text-white solid-accent-btn">Confirm</button>
             </div>
         </div>
     </div>
 
     <!-- SOC Terminal JS Client -->
-    <script src="/static/app.js?v=2.0.1"></script>
+    <script src="/static/app.js?v=2.0.2"></script>
 </body>
 </html>
 

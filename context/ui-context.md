@@ -1,22 +1,28 @@
 # UI Context
 
-## Theme
-Dark mode only. The visual language represents a security operations center (SOC) terminal: near-black, low-saturation slate backgrounds, layered card surfaces, high-contrast monospace typography for network telemetry, and vivid status-indicator states (emerald for normal, amber for deception traps, rose/red for autonomous mitigation and quarantined assets).
+## Theme & Layout Architecture
+Dual-theme SOC interface supporting persistent **Dark Mode** (`html.dark`, default obsidian terminal theme) and **Light Mode** (`html.light`, crisp Slate-50/White editorial operations view persisted in `localStorage` under `soc_theme`).
+
+Top navigation houses global toggles (`Simulated | Live` traffic switch, `Dark | Light` theme switch, and `#sse-status-pill`). Below the header, `#workspace-subnav` cleanly separates workspace tabs (`#tab-btn-soc` **Live Operations** vs `#btn-open-about` **About & Architecture**) from utility actions (**Analytics & Forensics**, **Reset All Bans**, **Reset Database**).
+
+- **Live Operations Workspace (`#workspace-panel-soc`):** Ordered by operational priority — 4 KPI cards → Active Asset Mesh (`#section-simulated-topology` in Simulated / `#section-live-devices` in Live) → Split Telemetry View (**Autonomous Mitigation Ledger** + **General Activity Logs**) → **Adversary Intrusion Simulation** (`#section-simulated-redteam`) → **Honeypot Threat Intelligence & Log Analytics** (`#section-threat-intel`).
+- **About & Architecture Workspace (`#workspace-panel-about`):** Chapter-filtered documentation tabs (`#about-chapter-tabs`: Full Guide, How It Works, Simulated vs Live, Differences & Advantages) with `.diagram-showcase-frame` containers preserving obsidian framing around dark-HUD diagrams across themes.
 
 ## Colors
 
-| Role | CSS Variable / Tailwind | Hex / Token | Usage |
+| Role | Dark Mode (`html.dark`) | Light Mode (`html.light`) | Usage |
 | :--- | :--- | :--- | :--- |
-| **Page Base** | `bg-[#0b0f19]` | `#0b0f19` | Application background |
-| **Surface Card** | `bg-slate-900` | `#0f172a` | Panels, card containers, widgets |
-| **Border Default** | `border-slate-800` | `#1e293b` | Structural dividers, panel borders |
-| **Text Primary** | `text-slate-100` | `#f1f5f9` | Primary headings and metric values |
-| **Text Muted** | `text-slate-400` | `#94a3b8` | Metadata labels, descriptions, subheaders |
-| **Text Monospace**| `text-slate-300` | `#cbd5e1` | IP addresses, ports, timestamps |
-| **State Healthy** | `text-emerald-400` | `#34d399` | Online stream, normal node status |
-| **State Warning** | `text-amber-400` | `#fbbf24` | Honeypot hits, recon probes detected |
-| **State Threat** | `text-rose-500` | `#f43f5e` | iptables DROP rules, quarantined nodes |
-| **Accent Primary**| `text-sky-400` | `#38bdf8` | Network topology labels, active selections |
+| **Page Base** | `#0b0f19` (`bg-darkBase`) | `#f8fafc` (`Slate 50`) | Application background |
+| **Surface Card** | `#0f172a` (`bg-slate-900`) | `#ffffff` (`White`) | Panels, card containers, widgets |
+| **Sub-Card / Well** | `#020617` (`bg-slate-950`) | `#f8fafc` (`Slate 50`) | Nested cards, SIEM feed, inputs |
+| **Border Default** | `#1e293b` (`border-slate-800`) | `#e2e8f0` (`Slate 200`) | Structural dividers, panel borders |
+| **Text Primary** | `#f1f5f9` (`text-slate-100` / `#ffffff`) | `#0f172a` (`Slate 900`) | Primary headings and metric values |
+| **Text Muted** | `#94a3b8` (`text-slate-400`) | `#475569` (`Slate 600`) | Metadata labels, descriptions, subheaders |
+| **Text Monospace** | `#cbd5e1` (`text-slate-300`) | `#334155` (`Slate 700`) | IP addresses, ports, timestamps |
+| **State Healthy** | `#34d399` (`text-emerald-400`) | `#047857` (`Emerald 700`) | Online stream, normal node status |
+| **State Warning** | `#fbbf24` (`text-amber-400`) | `#b45309` (`Amber 700`) | Honeypot hits, recon probes detected |
+| **State Threat** | `#f43f5e` (`text-rose-500`) | `#be123c` (`Rose 700`) | iptables DROP rules, quarantined nodes |
+| **Accent Primary** | `#38bdf8` (`text-sky-400`) | `#0369a1` (`Sky 700`) | Network topology labels, active selections |
 
 ## Typography
 
