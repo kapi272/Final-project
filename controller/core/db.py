@@ -24,6 +24,10 @@ class DefenseDatabase:
     def _get_connection(self) -> Generator[sqlite3.Connection, None, None]:
         conn = sqlite3.connect(self.db_path, timeout=10.0)
         conn.row_factory = sqlite3.Row
+        # Concurrency & WAL mode pragmas
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        conn.execute("PRAGMA busy_timeout=5000;")
         try:
             yield conn
         finally:
@@ -78,6 +82,32 @@ class DefenseDatabase:
                     last_payload TEXT NOT NULL DEFAULT '',
                     created_at REAL NOT NULL
                 )
+            """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS threat_events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp REAL NOT NULL,
+                    src_ip TEXT NOT NULL,
+                    dst_port INTEGER NOT NULL DEFAULT 2222,
+                    eventid TEXT NOT NULL,
+                    attack_type TEXT NOT NULL DEFAULT 'probe',
+                    username TEXT NOT NULL DEFAULT '',
+                    password TEXT NOT NULL DEFAULT '',
+                    input_command TEXT NOT NULL DEFAULT '',
+                    message TEXT NOT NULL DEFAULT ''
+                )
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_threat_events_timestamp
+                ON threat_events (timestamp DESC)
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_threat_events_src_ip
+                ON threat_events (src_ip)
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_threat_events_type
+                ON threat_events (attack_type)
             """)
             conn.commit()
             logger.info("DefenseDatabase initialized at %s", self.db_path)
@@ -145,19 +175,129 @@ class DefenseDatabase:
             return True
 
     def reset_database(self) -> bool:
-        """Completely purges all historical mitigation records, active bans, and autoincrement sequences."""
+        """Completely purges all historical mitigation records, active bans, threat events, and autoincrement sequences."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
+            cursor.execute("DELETE FROM threat_events")
             cursor.execute("DELETE FROM mitigation_history")
             cursor.execute("DELETE FROM active_bans")
             cursor.execute("UPDATE registered_devices SET blocked = 0, status = 'MONITORING' WHERE blocked = 1")
             try:
-                cursor.execute("DELETE FROM sqlite_sequence WHERE name IN ('mitigation_history')")
+                cursor.execute("DELETE FROM sqlite_sequence WHERE name IN ('mitigation_history', 'threat_events')")
             except Exception:
                 pass
             conn.commit()
-            logger.info("Database reset: All mitigation history and active bans cleared.")
+            logger.info("Database reset: All mitigation history, active bans, and threat events cleared.")
             return True
+
+    def record_threat_event(self, event_data: Dict[str, Any]) -> int:
+        """Records a parsed honeypot threat event into persistent storage."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO threat_events (
+                    timestamp, src_ip, dst_port, eventid, attack_type,
+                    username, password, input_command, message
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                float(event_data.get("timestamp", time.time())),
+                str(event_data.get("src_ip", "")).strip(),
+                int(event_data.get("dst_port") or 2222),
+                str(event_data.get("eventid", "")),
+                str(event_data.get("attack_type", "probe")),
+                str(event_data.get("username", "") or ""),
+                str(event_data.get("password", "") or ""),
+                str(event_data.get("input_command", "") or ""),
+                str(event_data.get("message", "") or ""),
+            ))
+            conn.commit()
+            return cursor.lastrowid or 0
+
+    def get_persisted_threat_analytics(self) -> Dict[str, Any]:
+        """Computes aggregated threat intelligence statistics directly from SQLite."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) as total FROM threat_events")
+            total = int(cursor.fetchone()["total"])
+
+            attack_breakdown: Dict[str, int] = {"brute_force": 0, "exploit": 0, "probe": 0}
+            cursor.execute("""
+                SELECT attack_type, COUNT(*) as cnt
+                FROM threat_events
+                GROUP BY attack_type
+            """)
+            for row in cursor.fetchall():
+                atype = str(row["attack_type"])
+                attack_breakdown[atype] = int(row["cnt"])
+
+            cursor.execute("""
+                SELECT username, COUNT(*) as cnt
+                FROM threat_events
+                WHERE username IS NOT NULL AND username != ''
+                GROUP BY username
+                ORDER BY cnt DESC
+                LIMIT 5
+            """)
+            top_usernames = [(str(row["username"]), int(row["cnt"])) for row in cursor.fetchall()]
+
+            cursor.execute("""
+                SELECT password, COUNT(*) as cnt
+                FROM threat_events
+                WHERE password IS NOT NULL AND password != ''
+                GROUP BY password
+                ORDER BY cnt DESC
+                LIMIT 5
+            """)
+            top_passwords = [(str(row["password"]), int(row["cnt"])) for row in cursor.fetchall()]
+
+            target_ports: Dict[str, int] = {"2222": 0, "2223": 0, "1883": 0}
+            cursor.execute("""
+                SELECT dst_port, COUNT(*) as cnt
+                FROM threat_events
+                GROUP BY dst_port
+            """)
+            for row in cursor.fetchall():
+                target_ports[str(row["dst_port"])] = int(row["cnt"])
+
+            return {
+                "total_threat_events": total,
+                "attack_breakdown": attack_breakdown,
+                "top_usernames": top_usernames,
+                "top_passwords": top_passwords,
+                "target_ports": target_ports,
+            }
+
+    def get_threat_events_by_ip(self, ip: str, limit: int = 50) -> List[Dict[str, Any]]:
+        """Retrieves historical threat events matching a specific source IP."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT timestamp, src_ip, dst_port, eventid, attack_type,
+                       username, password, input_command, message
+                FROM threat_events
+                WHERE src_ip = ?
+                ORDER BY timestamp ASC
+                LIMIT ?
+            """, (ip.strip(), limit))
+            return [dict(row) for row in cursor.fetchall()]
+
+    def get_recent_threat_events(self, limit: int = 500) -> List[Dict[str, Any]]:
+        """Retrieves recent threat events ordered chronologically for hydration and telemetry."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT timestamp, src_ip, dst_port, eventid, attack_type,
+                       username, password, input_command, message
+                FROM (
+                    SELECT timestamp, src_ip, dst_port, eventid, attack_type,
+                           username, password, input_command, message
+                    FROM threat_events
+                    ORDER BY timestamp DESC
+                    LIMIT ?
+                )
+                ORDER BY timestamp ASC
+            """, (limit,))
+            return [dict(row) for row in cursor.fetchall()]
 
     def get_setting(self, key: str, default: str = "") -> str:
         """Retrieves a persisted configuration value by key."""

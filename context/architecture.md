@@ -48,8 +48,12 @@ Honeypot:     172.20.0.50 (Decoy)
 ## Storage Model
 
 - **File-Based Telemetry Logs (`honeypot/logs/cowrie.json`)**: Persistent JSON lines appended by Cowrie; consumed via an asynchronous inode-aware file-pointer tailer (`HoneypotLogTailer`) that automatically reopens rotated logs (`cowrie.json.*`).
-- **In-Memory Tracking State (`controller/core/state.py`)**: Ephemeral sliding windows (`collections.deque`), active ban set, and runtime node health metrics kept in RAM for sub-millisecond evaluation.
-- **Embedded Database (`data/defense_history.db`)**: Lightweight SQLite database tracking persistent mitigation audit logs (`mitigations`), persistent controller mode settings (`system_settings`: `traffic_mode` `"simulated"` | `"live"`), and external physical device definitions (`registered_devices` with SHA-256 `token_hash` and redacted metadata).
+- **In-Memory Tracking State (`controller/core/state.py` / `IntrusionDetector`)**: Ephemeral sliding windows (`collections.deque`), active ban set, and runtime node health metrics kept in RAM for sub-millisecond evaluation, hydrated from SQLite on startup.
+- **Embedded Database (`data/defense_history.db`)**: High-concurrency SQLite database configured with `PRAGMA journal_mode=WAL;`, `PRAGMA synchronous=NORMAL;`, and `PRAGMA busy_timeout=5000;`. Stores:
+  - `mitigation_history` & `active_bans`: Autonomous and manual Netfilter actions.
+  - `threat_events`: Persistent parsed Cowrie events (probes, brute-force credential stuffing, exploit inputs, destination ports) surviving controller restarts.
+  - `system_settings`: Key-value configuration (`traffic_mode`: `"simulated"` | `"live"`).
+  - `registered_devices`: External physical device definitions with SHA-256 `token_hash`, quarantine status, and redacted metadata.
 
 ## Auth and Access Model
 

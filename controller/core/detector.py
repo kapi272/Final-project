@@ -58,6 +58,26 @@ class IntrusionDetector:
         self._port_counts: Dict[str, int] = {"2222": 0, "2223": 0, "1883": 0}
         self._events_history: List[Dict[str, Any]] = []
 
+        # Hydrate threat analytics and recent event history from persistent storage
+        self._hydrate_analytics_from_db()
+
+    def _hydrate_analytics_from_db(self) -> None:
+        """Hydrates in-memory threat counters and event history from SQLite."""
+        try:
+            persisted = self.db.get_persisted_threat_analytics()
+            if persisted.get("total_threat_events", 0) > 0:
+                self._attack_counts.update(persisted.get("attack_breakdown", {}))
+                self._username_counts = dict(persisted.get("top_usernames", []))
+                self._password_counts = dict(persisted.get("top_passwords", []))
+                self._port_counts.update(persisted.get("target_ports", {}))
+
+            recent = self.db.get_recent_threat_events(limit=500)
+            if recent:
+                self._events_history = recent
+            logger.info("IntrusionDetector analytics hydrated from database (%d events).", len(recent))
+        except Exception as e:
+            logger.warning("Could not hydrate IntrusionDetector analytics from database: %s", e)
+
     def _prune_expired_attempts(self, ip: str, now: float) -> None:
         """Removes timestamps outside the rolling time window."""
         queue = self._failed_attempts.get(ip)
@@ -88,25 +108,36 @@ class IntrusionDetector:
         if event.password:
             self._password_counts[event.password] = self._password_counts.get(event.password, 0) + 1
 
+        attack_type = "probe"
         if event.eventid == "cowrie.login.failed":
             self._attack_counts["brute_force"] = self._attack_counts.get("brute_force", 0) + 1
+            attack_type = "brute_force"
         elif event.eventid in ["cowrie.client.version", "cowrie.session.connect"]:
             self._attack_counts["probe"] = self._attack_counts.get("probe", 0) + 1
+            attack_type = "probe"
         elif event.eventid == "cowrie.command.input":
             self._attack_counts["exploit"] = self._attack_counts.get("exploit", 0) + 1
+            attack_type = "exploit"
 
-        self._events_history.append({
+        event_record = {
             "timestamp": event.timestamp,
             "src_ip": src_ip,
             "dst_port": event.dst_port or 2222,
             "eventid": event.eventid,
-            "username": event.username,
-            "password": event.password,
-            "input_command": event.input_command,
-            "message": event.message,
-        })
+            "attack_type": attack_type,
+            "username": event.username or "",
+            "password": event.password or "",
+            "input_command": event.input_command or "",
+            "message": event.message or "",
+        }
+        self._events_history.append(event_record)
         if len(self._events_history) > 500:
             self._events_history = self._events_history[-500:]
+
+        try:
+            self.db.record_threat_event(event_record)
+        except Exception as e:
+            logger.error("Failed to persist threat event to database: %s", e)
 
         # Invariant check: Allowlisted and management IPs are never banned
         if self.allowlist.is_ip_protected(src_ip):
@@ -250,7 +281,14 @@ class IntrusionDetector:
     def get_ip_forensics(self, ip: str) -> Dict[str, Any]:
         """Returns deep forensic timeline and event history for a specific offending IP."""
         sanitized_ip = ip.strip()
-        matched_events = [ev for ev in self._events_history if ev.get("src_ip") == sanitized_ip]
+        try:
+            matched_events = self.db.get_threat_events_by_ip(sanitized_ip, limit=50)
+            if not matched_events:
+                matched_events = [ev for ev in self._events_history if ev.get("src_ip") == sanitized_ip]
+        except Exception as e:
+            logger.warning("Falling back to in-memory events for IP forensics (%s): %s", sanitized_ip, e)
+            matched_events = [ev for ev in self._events_history if ev.get("src_ip") == sanitized_ip]
+
         is_banned = self.firewall.is_ip_banned(sanitized_ip)
 
         history = self.db.get_history(limit=50)
