@@ -51,6 +51,11 @@ This project is an autonomous, containerized host-level IoT cyber defense system
 - Persistent Real-World Device Registry supporting CCTV cameras (`rtsp_http`), MQTT nodes (`mqtt`), and HTTP webhooks (`http_webhook` with SHA-256 `X-Device-Token` auth).
 - Non-shell asyncio TCP reachability polling, SSRF-guarded HTTP/MJPEG snapshot proxy with double-buffered **Live Video** playback (`▶ Live Video` / `⏸ Pause Video`), and logical quarantine (`DEVICE_BLOCKED` / `DEVICE_RESTORED`) with ingestion drop and firewall enforcement.
 
+### 6. MQTT Honey-Topic Deception & Payload Anomaly Engine (`v2.2.0`)
+- Deceptive honey-topics (`home/admin/#`, `home/debug/#`, `home/system/firmware_update`, `home/gateway/exec`) capturing unauthorized MQTT reconnaissance.
+- Deep payload command injection detection (`curl`, `wget`, `nc -e`, `chmod +x`, `/bin/sh`), buffer overflow caps (32 KB), and publish rate flood anomaly tracking.
+- Closed-loop autonomous quarantine of compromised real-world hardware and instant Netfilter drop bans on offending attacker IPs.
+
 ## Scope
 
 ### In Scope

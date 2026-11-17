@@ -73,6 +73,39 @@ def create_app(
         mode = getattr(app.state, "traffic_mode", "simulated")
         matched_dev, is_sim_default = device_manager.match_mqtt_message(topic, payload)
 
+        src_ip = matched_dev["ip_address"] if matched_dev else None
+        device_id = matched_dev["device_id"] if matched_dev else None
+
+        # Autonomous MQTT Protocol & Deception Inspection
+        mqtt_mitigation = detector_instance.evaluate_mqtt_message(
+            topic=topic,
+            payload=payload,
+            src_ip=src_ip,
+            device_id=device_id,
+        )
+        if mqtt_mitigation is not None:
+            # If the offending sender is a registered real hardware device, quarantine it
+            if matched_dev is not None:
+                device_manager.set_device_blocked(
+                    device_id=matched_dev["device_id"],
+                    blocked=True,
+                    status="QUARANTINED",
+                )
+                await sse_broadcaster.broadcast("quarantine_alert", {
+                    "container": matched_dev["name"],
+                    "status": "quarantined",
+                    "reason": mqtt_mitigation.reason,
+                    "timestamp": ts,
+                    "target_type": "device",
+                    "device_id": matched_dev["device_id"],
+                })
+                updated_dev = device_manager.get_device(matched_dev["device_id"])
+                if updated_dev:
+                    await sse_broadcaster.broadcast("device_updated", updated_dev)
+
+            # Drop malicious payload so it never reaches application mesh
+            return
+
         if mode == "simulated":
             # In Simulated Mode, stream virtual mesh telemetry only; ignore live registered devices
             if matched_dev is not None:

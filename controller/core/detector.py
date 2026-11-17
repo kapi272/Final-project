@@ -25,6 +25,25 @@ CRITICAL_COMMAND_PATTERNS: List[str] = [
     "cat /etc/shadow",
 ]
 
+MQTT_HONEY_TOPIC_PREFIXES: List[str] = [
+    "home/admin/",
+    "home/debug/",
+    "home/system/",
+    "home/gateway/",
+]
+
+MQTT_HONEY_TOPIC_EXACT: List[str] = [
+    "home/admin/config",
+    "home/admin/credentials",
+    "home/debug/shell",
+    "home/system/firmware_update",
+    "home/gateway/exec",
+]
+
+MAX_MQTT_PAYLOAD_BYTES: int = 32 * 1024  # 32 KB
+DEFAULT_MQTT_RATE_LIMIT: int = 20  # Max 20 msgs in 5s
+DEFAULT_MQTT_RATE_WINDOW: float = 5.0
+
 
 class IntrusionDetector:
     """
@@ -50,6 +69,8 @@ class IntrusionDetector:
 
         # In-memory sliding window: IP -> deque of timestamps
         self._failed_attempts: Dict[str, deque] = {}
+        # In-memory sliding window for MQTT publish rates: tracking_key -> deque of timestamps
+        self._mqtt_publish_times: Dict[str, deque] = {}
 
         # Telemetry analytics counters
         self._attack_counts: Dict[str, int] = {"brute_force": 0, "exploit": 0, "probe": 0}
@@ -188,6 +209,122 @@ class IntrusionDetector:
 
         return mitigation
 
+    def is_honey_topic(self, topic: str) -> bool:
+        """Determines if an MQTT topic belongs to a deceptive honey-topic namespace."""
+        clean_topic = topic.strip().lower()
+        if clean_topic in MQTT_HONEY_TOPIC_EXACT:
+            return True
+        for prefix in MQTT_HONEY_TOPIC_PREFIXES:
+            if clean_topic.startswith(prefix):
+                return True
+        return False
+
+    def evaluate_mqtt_message(
+        self,
+        topic: str,
+        payload: str,
+        src_ip: Optional[str] = None,
+        device_id: Optional[str] = None,
+    ) -> Optional[MitigationRecord]:
+        """
+        Inspects an incoming MQTT message for deceptive honey-topic breaches, command injections,
+        oversized buffer anomalies, and publish rate flooding.
+        """
+        now = time.time()
+        clean_topic = topic.strip()
+        effective_ip = (src_ip or "").strip()
+        tracking_key = effective_ip or device_id or clean_topic
+
+        # Update target port analytics counter for 1883
+        self._port_counts["1883"] = self._port_counts.get("1883", 0) + 1
+
+        # Track publish rate in sliding window
+        if tracking_key:
+            if tracking_key not in self._mqtt_publish_times:
+                self._mqtt_publish_times[tracking_key] = deque()
+            queue = self._mqtt_publish_times[tracking_key]
+            queue.append(now)
+            cutoff = now - DEFAULT_MQTT_RATE_WINDOW
+            while queue and queue[0] < cutoff:
+                queue.popleft()
+
+        reason: Optional[str] = None
+        severity = "HIGH"
+        attack_type = "mqtt_exploit"
+
+        # 1. Check Deceptive Honey-Topic Access
+        if self.is_honey_topic(clean_topic):
+            reason = f"MQTT honey-topic breach on '{clean_topic}'"
+            severity = "CRITICAL"
+            attack_type = "mqtt_trap"
+
+        # 2. Check Payload Command Injection Patterns
+        if not reason and payload:
+            lowered_payload = payload.lower()
+            for pattern in CRITICAL_COMMAND_PATTERNS:
+                if pattern in lowered_payload:
+                    reason = f"MQTT payload exploit command detected: '{pattern.strip()}' in '{clean_topic}'"
+                    severity = "CRITICAL"
+                    attack_type = "mqtt_exploit"
+                    break
+
+        # 3. Check Buffer Overflow / Oversized Payload Anomaly
+        if not reason and len(payload.encode("utf-8", errors="replace")) > MAX_MQTT_PAYLOAD_BYTES:
+            reason = f"MQTT oversized payload anomaly ({len(payload)} bytes) on '{clean_topic}'"
+            severity = "HIGH"
+            attack_type = "mqtt_exploit"
+
+        # 4. Check Publish Rate Flooding
+        if not reason and tracking_key:
+            rate_count = len(self._mqtt_publish_times.get(tracking_key, []))
+            if rate_count > DEFAULT_MQTT_RATE_LIMIT:
+                reason = f"MQTT publish rate anomaly: {rate_count} msgs in {DEFAULT_MQTT_RATE_WINDOW:.0f}s on '{clean_topic}'"
+                severity = "HIGH"
+                attack_type = "mqtt_flood"
+
+        if not reason:
+            return None
+
+        # Record threat analytics
+        self._attack_counts["exploit"] = self._attack_counts.get("exploit", 0) + 1
+        event_record = {
+            "timestamp": now,
+            "src_ip": effective_ip or f"mqtt:{device_id or clean_topic}",
+            "dst_port": 1883,
+            "eventid": f"mqtt.{attack_type}",
+            "attack_type": attack_type,
+            "username": device_id or "",
+            "password": "",
+            "input_command": payload[:80] if payload else "",
+            "message": reason,
+        }
+        self._events_history.append(event_record)
+        if len(self._events_history) > 500:
+            self._events_history = self._events_history[-500:]
+
+        try:
+            self.db.record_threat_event(event_record)
+        except Exception as e:
+            logger.error("Failed to record MQTT threat event: %s", e)
+
+        # Invariant check: Allowlisted and management IPs are never banned
+        if effective_ip and self.allowlist.is_ip_protected(effective_ip):
+            logger.debug("MQTT source IP %s is protected by allowlist; skipping firewall ban.", effective_ip)
+            return None
+
+        if effective_ip:
+            if not self.firewall.is_ip_banned(effective_ip):
+                return self._execute_ban(effective_ip, reason=reason, severity=severity)
+
+        record = MitigationRecord(
+            src_ip=effective_ip or f"mqtt:{device_id or clean_topic}",
+            action="MQTT_ISOLATE" if device_id else "IPTABLES_DROP",
+            reason=reason,
+            severity=severity,
+            timestamp=now,
+        )
+        return record
+
     def _execute_ban(self, ip: str, reason: str, severity: str) -> MitigationRecord:
         """Executes firewall drop rule, records audit log in SQLite, and invokes listeners."""
         logger.warning("AUTONOMOUS MITIGATION TRIGGERED -> Target: %s | Reason: %s", ip, reason)
@@ -255,6 +392,7 @@ class IntrusionDetector:
         self.firewall.flush_blocklist()
         self.db.reset_database()
         self._failed_attempts.clear()
+        self._mqtt_publish_times.clear()
         self._attack_counts = {"brute_force": 0, "exploit": 0, "probe": 0}
         self._username_counts.clear()
         self._password_counts.clear()

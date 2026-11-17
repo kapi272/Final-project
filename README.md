@@ -5,9 +5,9 @@ An autonomous, containerized host-level IoT cyber defense testbed and SOC platfo
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![Docker Compose](https://img.shields.io/badge/Docker-Compose%20v2+-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
-[![Release: v2.0.0](https://img.shields.io/badge/Release-v2.0.0-blue)](./)
+[![Release: v2.2.0](https://img.shields.io/badge/Release-v2.2.0-blue)](./)
 [![Reaction SLA](https://img.shields.io/badge/Mitigation%20Latency-0.65%20ms-emerald)](./context/specs/06-red-team-simulation.md)
-[![Tests Passing](https://img.shields.io/badge/Tests-52%2F52%20Passing-brightgreen)](./tests/)
+[![Tests Passing](https://img.shields.io/badge/Tests-57%2F57%20Passing-brightgreen)](./tests/)
 
 ---
 
@@ -186,7 +186,7 @@ docker compose down
 
 ## Automated Test Suite
 
-The automated suite contains **52 unit/integration tests** across detection, SQLite persistence, SSRF/device management, mitigation drivers, FastAPI routes, SSE streaming, UI markup, and sub-second latency benchmarks.
+The automated suite contains **57 unit/integration tests** across detection, SQLite persistence, SSRF/device management, mitigation drivers, FastAPI routes, SSE streaming, UI markup, and sub-second latency benchmarks.
 
 **macOS / Linux (`bash` / `zsh`):**
 ```bash
