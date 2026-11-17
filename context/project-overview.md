@@ -1,7 +1,7 @@
 # Autonomous IoT Cyber Defense System Using Virtual IoT Nodes and Honeypot Technology
 
 ## Overview
-**Current Release:** v2.3.0 (SOC Terminal `v2.0.0-SOC`)
+**Current Release:** v2.4.0 (SOC Terminal `v2.4.0-SOC`)
 
 This project is an autonomous, containerized host-level IoT cyber defense system. It simulates an enterprise/smart-home IoT environment (sensors, actuators, MQTT broker) on a single physical workstation using isolated virtual networks. By deploying an instrumented deception layer (Cowrie medium-interaction honeypot) directly alongside virtual IoT nodes, the system attracts and analyzes adversarial reconnaissance, brute-force intrusions, and botnet infections without risking physical hardware. An integrated analytics engine evaluates honeypot events and sniffs subnet traffic to autonomously execute closed-loop mitigations—injecting dynamic kernel firewall (`iptables`) drop rules into Docker routing chains and isolating rogue containers into a quarantine bridge network via the Docker Engine API.
 
@@ -62,6 +62,12 @@ This project is an autonomous, containerized host-level IoT cyber defense system
 - Fast non-blocking concurrent TCP port sweep across common IoT ports (`554` RTSP, `8080` HTTP Cam, `1883` MQTT, `80` HTTP Web).
 - Strict SSRF boundary enforcement preventing scans against loopback (`127.0.0.0/8`), cloud metadata (`169.254.0.0/16`), and internal Docker bridge subnets.
 - 1-click device onboarding pre-populating the Real-World Device Registry with auto-detected protocols, ports, and snapshot URLs.
+
+### 8. STIX 2.1 Threat Intel & SIEM Webhook Dispatcher (`v2.4.0`)
+- Compiles real-time honeypot intrusions and active Netfilter drops into standardized OASIS STIX 2.1 JSON bundles.
+- Automatic MITRE ATT&CK mapping: `T1110` (Brute Force), `T1059` (Command Interpreter), `T1046` (Service Discovery), and `T1078` (Valid Accounts/Honey-Topics).
+- Multi-format outbound alert webhook forwarder dispatching instant mitigation notifications to Splunk HEC, generic SIEMs, Discord, or Slack.
+- DNS-resolved SSRF protection preventing webhook abuse against internal management subnets.
 
 ## Scope
 

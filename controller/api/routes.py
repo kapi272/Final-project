@@ -7,7 +7,7 @@ import time
 from typing import Any, AsyncGenerator, Dict, List, Optional, Set, Tuple
 
 from fastapi import APIRouter, Body, Header, HTTPException, Request, Response
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from controller.api.sse_broker import SSEBroadcaster
@@ -15,6 +15,8 @@ from controller.core.device_discovery import run_lan_discovery
 from controller.core.device_manager import RealDeviceManager
 from controller.core.detector import IntrusionDetector
 from controller.core.models import CowrieEvent
+from controller.core.stix_exporter import generate_stix_bundle
+from controller.core.webhook_notifier import WebhookNotifier
 from controller.mitigation.quarantine import QuarantineManager
 
 logger = logging.getLogger(__name__)
@@ -109,6 +111,12 @@ class DeviceDiscoverRequest(BaseModel):
     timeout: float = Field(2.0, description="Discovery scan timeout in seconds")
 
 
+class WebhookConfigRequest(BaseModel):
+    url: str = Field(..., description="Destination webhook URL (HTTP/HTTPS)")
+    enabled: bool = Field(True, description="Whether automated mitigation dispatch is enabled")
+    format: str = Field("generic", description="Payload format: generic | slack | discord")
+
+
 def _resolve_simulation_targets(
     attack_type: str,
     payload: Optional[AttackSimulationRequest],
@@ -166,6 +174,15 @@ def get_broadcaster(request: Request) -> SSEBroadcaster:
 
 def get_device_manager(request: Request) -> RealDeviceManager:
     return request.app.state.device_manager
+
+
+def get_webhook_notifier(request: Request) -> WebhookNotifier:
+    notifier = getattr(request.app.state, "webhook_notifier", None)
+    if not notifier:
+        detector = get_detector(request)
+        notifier = WebhookNotifier(db=detector.db)
+        request.app.state.webhook_notifier = notifier
+    return notifier
 
 
 def _ensure_simulated_mode(request: Request) -> None:
@@ -634,6 +651,67 @@ async def export_audit_report(request: Request) -> Dict[str, Any]:
         "mitigation_audit_log": history,
     }
     return make_response(data=export_payload, message="SOC Audit Report generated successfully.")
+
+
+@router.get("/defense/export/stix")
+async def export_stix_bundle(
+    request: Request,
+    limit: int = 200,
+) -> JSONResponse:
+    """Generates and downloads an OASIS STIX 2.1 Cyber Threat Intelligence JSON bundle."""
+    detector = get_detector(request)
+    history = detector.db.get_history(limit=limit)
+    threat_events = detector.db.get_recent_threat_events(limit=limit)
+    banned_ips_list = detector.firewall.list_banned_ips()
+    active_bans_records = [{"src_ip": ip, "reason": "Active Netfilter Ban", "severity": "HIGH"} for ip in banned_ips_list]
+
+    stix_bundle = generate_stix_bundle(
+        history=history,
+        threat_events=threat_events,
+        active_bans=active_bans_records,
+    )
+    return JSONResponse(
+        content=stix_bundle,
+        media_type="application/stix+json",
+        headers={
+            "Content-Disposition": f'attachment; filename="stix_threat_intel_{int(time.time())}.json"'
+        },
+    )
+
+
+@router.get("/defense/webhook/config")
+async def get_webhook_config(request: Request) -> Dict[str, Any]:
+    """Retrieves current outbound SIEM / notification webhook configuration."""
+    notifier = get_webhook_notifier(request)
+    return make_response(data=notifier.get_config(), message="Webhook configuration retrieved.")
+
+
+@router.post("/defense/webhook/config")
+async def update_webhook_config(request: Request, payload: WebhookConfigRequest) -> Dict[str, Any]:
+    """Updates outbound SIEM webhook settings with SSRF validation."""
+    notifier = get_webhook_notifier(request)
+    try:
+        updated = notifier.update_config(
+            url=payload.url,
+            enabled=payload.enabled,
+            webhook_format=payload.format,
+        )
+        return make_response(data=updated, message="Webhook configuration updated successfully.")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/defense/webhook/test")
+async def test_webhook_connection(request: Request) -> Dict[str, Any]:
+    """Sends a verification probe payload to the configured SIEM webhook."""
+    notifier = get_webhook_notifier(request)
+    try:
+        result = await notifier.send_test_webhook()
+        return make_response(data=result, message="Verification probe sent successfully to SIEM webhook.")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Failed to deliver probe to webhook: {exc}") from exc
 
 
 # --- Real-World IoT & CCTV Device Registry / Live Ingestion Routes ---

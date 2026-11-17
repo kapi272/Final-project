@@ -3,10 +3,10 @@
 Update this file after every meaningful implementation change.
 
 ## Current Phase
-Phase 20: Milestone v2.3.0 Completed — Phase C LAN Camera & IoT Node Auto-Discovery (ONVIF WS-Discovery & Subnet Sweep)
+Phase 21: Milestone v2.4.0 Completed — Phase D (Integration) OASIS STIX 2.1 Threat Intel Bundle Exporter & SIEM Webhook Forwarder
 
 ## Current Goal
-Provide zero-touch local network visibility and 1-click onboarding for physical CCTV/IP cameras and IoT sensors with strict SSRF protection and non-blocking asynchronous multi-protocol probes.
+Provide standardized cyber threat intelligence (CTI) feeds mapped to MITRE ATT&CK techniques (T1110, T1059, T1046, T1078) and real-time automated webhook alerts to external SIEMs, Splunk HEC, Discord, or Slack.
 
 ## Completed
 - [x] Context foundation files established and verified at root.
@@ -37,6 +37,7 @@ Provide zero-touch local network visibility and 1-click onboarding for physical 
 - [x] Phase 18: Milestone v2.1.0 — Phase A (Quick Wins) Telemetry Persistence & SQLite WAL Concurrency: Enabled SQLite Write-Ahead Logging (`PRAGMA journal_mode=WAL;`), `PRAGMA synchronous=NORMAL;`, and `PRAGMA busy_timeout=5000;` on all database connections to eliminate database lock contention under concurrent load. Added persistent `threat_events` table and indexed query methods (`record_threat_event`, `get_persisted_threat_analytics`, `get_threat_events_by_ip`, `get_recent_threat_events`) to `DefenseDatabase`. Updated `IntrusionDetector` with `_hydrate_analytics_from_db()` to automatically restore attack counts, top usernames/passwords, port statistics, and IP forensic timelines upon controller restart. Expanded test suite with 5 new unit tests (52/52 passing).
 - [x] Phase 19: Milestone v2.2.0 — Phase B (Security) MQTT Honey-Topic Trap & Payload Anomaly Engine: Extended autonomous closed-loop defense to MQTT port 1883. Implemented `is_honey_topic` and `evaluate_mqtt_message` in `IntrusionDetector` with honey-topic traps (`home/admin/#`, `home/debug/#`, `home/system/firmware_update`, `home/gateway/exec`), command injection detection (`curl`, `wget`, `nc -e`, `chmod +x`, `/bin/sh`), buffer caps (32 KB), and publish rate flood tracking. Wired `on_iot_telemetry` to quarantine compromised live devices and drop malicious messages. Added `POST /api/simulate/attack/mqtt-exploit` endpoint with curated 5-IP pool, 4th Red Team UI trigger card in dashboard, and `--mqtt-exploit` CLI adversary flag. 57/57 unit tests passing.
 - [x] Phase 20: Milestone v2.3.0 — Phase C (Usability) LAN Camera & IoT Node Auto-Discovery: Implemented zero-dependency multi-protocol LAN hardware discovery (`controller/core/device_discovery.py`) utilizing ONVIF WS-Discovery (UDP multicast `239.255.255.250:3702`) and fast concurrent non-blocking TCP sweeps across ports 554 (RTSP), 8080 (HTTP Cam), 1883 (MQTT), and 80 (HTTP Web). Added strict SSRF guardrails (`validate_discovery_ip`) blocking loopback, cloud metadata (`169.254.0.0/16`), Docker subnets (`172.20.0.0/16`, `172.21.0.0/16`), and host gateways. Exposed `POST /api/devices/discover` endpoint with CIDR subnet validation. Created `#discover-modal` in dashboard with 1-click scan and instant onboarding into the Real Device Registry. 64/64 unit tests passing.
+- [x] Phase 21: Milestone v2.4.0 — Phase D (Integration) OASIS STIX 2.1 Threat Intel Bundle Exporter & SIEM Webhook Forwarder: Implemented zero-dependency STIX 2.1 JSON compiler (`controller/core/stix_exporter.py`) mapping honeypot intrusions, brute-force attempts, and MQTT exploits directly to MITRE ATT&CK techniques (T1110, T1059, T1046, T1078) with indicator patterns and course-of-action mitigations. Added `WebhookNotifier` (`controller/core/webhook_notifier.py`) with strict DNS-resolved SSRF protection and multi-format payload dispatch (Generic SIEM, Slack, Discord). Exposed `GET /api/defense/export/stix` and `/api/defense/webhook/*` endpoints. Integrated 1-click STIX export and live Webhook configuration in SOC dashboard. Expanded test suite with 9 new tests (73/73 passing).
 
 ## In Progress
 - [ ] Live evaluation demonstration and evaluator walkthrough.

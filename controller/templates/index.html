@@ -299,7 +299,7 @@
                 <div>
                     <h1 class="text-base font-bold tracking-tight text-white flex items-center space-x-2">
                         <span>Autonomous IoT Cyber Defense System</span>
-                        <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-sky-400 font-mono font-normal">v2.0.0-SOC</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-sky-400 font-mono font-normal">v2.4.0-SOC</span>
                     </h1>
                     <p class="text-xs text-slate-400">Virtual Node Mesh • Cowrie Deception Decoy • Netfilter Kernel Auto-Mitigation</p>
                 </div>
@@ -1178,7 +1178,7 @@
     <!-- Footer -->
     <footer class="border-t border-slate-800/80 px-6 py-3 text-xs text-slate-500 flex items-center justify-between">
         <span>Autonomous IoT Cyber Defense System • Docker & Netfilter Subnet Containment</span>
-        <span class="font-mono text-slate-600">v2.0.0-SOC • Simulated &amp; Live Real-World IoT Defense Engine</span>
+        <span class="font-mono text-slate-600">v2.4.0-SOC • Simulated &amp; Live Real-World IoT Defense Engine</span>
     </footer>
 
     <!-- External Log Analytics & SIEM Forensics Modal (Separate Tool, Not in Main Page Flow) -->
@@ -1194,6 +1194,10 @@
                     </div>
                 </div>
                 <div class="flex items-center space-x-2">
+                    <button onclick="downloadStixBundle()" class="px-3 py-1.5 text-xs font-semibold rounded bg-sky-950 hover:bg-sky-900 border border-sky-700 text-sky-300 transition-colors flex items-center space-x-1.5">
+                        <span>🛡️</span>
+                        <span>Export STIX 2.1</span>
+                    </button>
                     <button onclick="downloadSocAuditReport()" class="px-3 py-1.5 text-xs font-semibold rounded bg-indigo-950 hover:bg-indigo-900 border border-indigo-700 text-indigo-300 transition-colors flex items-center space-x-1.5">
                         <span>📥</span>
                         <span>Export Audit Report (JSON)</span>
@@ -1219,6 +1223,45 @@
                     <a href="http://localhost:8000" target="_blank" class="px-3 py-1.5 text-xs font-semibold rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 transition-colors">
                         Launch Splunk ↗
                     </a>
+                </div>
+
+                <!-- Outbound SIEM / Alert Webhook Forwarder Card -->
+                <div class="p-4 rounded-lg bg-slate-950 border border-slate-800 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-base">🔔</span>
+                            <div>
+                                <span class="text-xs font-bold text-slate-200">Outbound SIEM &amp; Alert Webhook Dispatcher</span>
+                                <p class="text-[11px] text-slate-400">Forward real-time autonomous drop &amp; quarantine events to external SIEM, Splunk HEC, Discord, or Slack</p>
+                            </div>
+                        </div>
+                        <span id="webhook-status-badge" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-400">DISABLED</span>
+                    </div>
+                    <div class="grid grid-cols-12 gap-3 items-center">
+                        <div class="col-span-6">
+                            <input id="webhook-url-input" type="url" placeholder="Webhook URL (e.g. https://hooks.slack.com/services/... or http://siem.lan/api/alerts)" class="w-full bg-slate-900 border border-slate-800 rounded px-3 py-1.5 text-xs text-slate-200 font-mono focus:outline-none focus:border-indigo-500" />
+                        </div>
+                        <div class="col-span-3">
+                            <select id="webhook-format-select" class="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-slate-200 font-mono focus:outline-none focus:border-indigo-500">
+                                <option value="generic">Generic SIEM / Splunk</option>
+                                <option value="slack">Slack Incoming Webhook</option>
+                                <option value="discord">Discord Channel Webhook</option>
+                            </select>
+                        </div>
+                        <div class="col-span-3 flex items-center space-x-2">
+                            <label class="flex items-center space-x-1.5 text-xs text-slate-300 cursor-pointer">
+                                <input id="webhook-enabled-checkbox" type="checkbox" class="rounded bg-slate-900 border-slate-700 text-indigo-500 focus:ring-0" />
+                                <span>Enabled</span>
+                            </label>
+                            <button type="button" onclick="saveWebhookConfig()" class="px-2.5 py-1.5 text-xs font-semibold rounded bg-indigo-950 hover:bg-indigo-900 border border-indigo-700 text-indigo-300 transition-colors">
+                                Save
+                            </button>
+                            <button id="btn-test-webhook" type="button" onclick="testWebhookConnection()" class="px-2.5 py-1.5 text-xs font-semibold rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition-colors">
+                                Test
+                            </button>
+                        </div>
+                    </div>
+                    <div id="webhook-feedback-msg" class="text-[11px] font-mono text-slate-400"></div>
                 </div>
 
                 <!-- Deep IP Forensic Dossier Tool -->
@@ -1303,27 +1346,34 @@
                 <!-- 2. Format Selection -->
                 <div>
                     <label class="block font-semibold text-slate-300 uppercase tracking-wider text-[11px] mb-1.5">Select Export Format:</label>
-                    <div class="grid grid-cols-3 gap-2">
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
                         <label class="flex flex-col p-2.5 rounded bg-slate-950/80 border border-slate-800 hover:border-sky-600/60 cursor-pointer">
                             <div class="flex items-center space-x-2 mb-1">
                                 <input type="radio" name="export-format" value="json" checked class="text-sky-500 focus:ring-0">
                                 <span class="font-bold text-white font-mono">JSON</span>
                             </div>
-                            <span class="text-[10px] text-slate-400">Structured array for SIEM & API</span>
+                            <span class="text-[10px] text-slate-400">SIEM structured logs</span>
+                        </label>
+                        <label class="flex flex-col p-2.5 rounded bg-slate-950/80 border border-slate-800 hover:border-sky-600/60 cursor-pointer">
+                            <div class="flex items-center space-x-2 mb-1">
+                                <input type="radio" name="export-format" value="stix" class="text-sky-500 focus:ring-0">
+                                <span class="font-bold text-sky-400 font-mono">STIX 2.1</span>
+                            </div>
+                            <span class="text-[10px] text-slate-400">OASIS Threat Intel</span>
                         </label>
                         <label class="flex flex-col p-2.5 rounded bg-slate-950/80 border border-slate-800 hover:border-sky-600/60 cursor-pointer">
                             <div class="flex items-center space-x-2 mb-1">
                                 <input type="radio" name="export-format" value="csv" class="text-sky-500 focus:ring-0">
                                 <span class="font-bold text-white font-mono">CSV</span>
                             </div>
-                            <span class="text-[10px] text-slate-400">Spreadsheet for Excel & Sheets</span>
+                            <span class="text-[10px] text-slate-400">Spreadsheet table</span>
                         </label>
                         <label class="flex flex-col p-2.5 rounded bg-slate-950/80 border border-slate-800 hover:border-sky-600/60 cursor-pointer">
                             <div class="flex items-center space-x-2 mb-1">
                                 <input type="radio" name="export-format" value="log" class="text-sky-500 focus:ring-0">
                                 <span class="font-bold text-white font-mono">LOG / TXT</span>
                             </div>
-                            <span class="text-[10px] text-slate-400">Monospace raw terminal logs</span>
+                            <span class="text-[10px] text-slate-400">Monospace terminal</span>
                         </label>
                     </div>
                 </div>
@@ -1503,7 +1553,7 @@
     </div>
 
     <!-- SOC Terminal JS Client -->
-    <script src="/static/app.js?v=2.2.0"></script>
+    <script src="/static/app.js?v=2.3.0"></script>
 </body>
 </html>
 

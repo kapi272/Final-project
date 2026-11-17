@@ -17,6 +17,7 @@ from controller.core.detector import IntrusionDetector
 from controller.core.log_tailer import HoneypotLogTailer
 from controller.core.models import CowrieEvent, MitigationRecord
 from controller.core.mqtt_listener import IoTTelemetryListener
+from controller.core.webhook_notifier import WebhookNotifier
 from controller.mitigation.allowlist import AllowlistManager
 from controller.mitigation.firewall import FirewallController
 from controller.mitigation.quarantine import QuarantineManager
@@ -42,9 +43,15 @@ def create_app(
     firewall = FirewallController(allowlist_manager=allowlist)
     db = DefenseDatabase()
 
+    webhook_notifier = WebhookNotifier(db=db)
+
     async def on_mitigation_action(record: MitigationRecord) -> None:
         """Callback invoked when autonomous mitigation triggers a firewall ban."""
         await sse_broadcaster.broadcast("mitigation_alert", record.to_dict())
+        try:
+            await webhook_notifier.dispatch_mitigation_alert(record)
+        except Exception as err:
+            logger.warning("SIEM webhook dispatch failed: %s", err)
 
     detector_instance = detector or IntrusionDetector(
         firewall=firewall,
@@ -55,6 +62,7 @@ def create_app(
 
     quarantine_instance = quarantine_manager or QuarantineManager()
     device_manager = RealDeviceManager(db=detector_instance.db)
+    webhook_notifier.db = detector_instance.db
     saved_mode = detector_instance.db.get_setting("traffic_mode", "simulated")
     initial_mode = saved_mode if saved_mode in {"simulated", "live"} else "simulated"
 
@@ -209,6 +217,7 @@ def create_app(
     app.state.quarantine_manager = quarantine_instance
     app.state.sse_broadcaster = sse_broadcaster
     app.state.device_manager = device_manager
+    app.state.webhook_notifier = webhook_notifier
     app.state.traffic_mode = initial_mode
 
     # CORS configuration scoped to local management origins (same-origin UI does not require wildcard)

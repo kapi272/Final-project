@@ -271,6 +271,12 @@ document.addEventListener("DOMContentLoaded", () => {
         const selectedFormatRadio = document.querySelector('input[name="export-format"]:checked');
         const format = selectedFormatRadio ? selectedFormatRadio.value : "json";
 
+        if (format === "stix") {
+            window.closeExportLogsModal();
+            window.downloadStixBundle();
+            return;
+        }
+
         const filteredLogs = scope === "all"
             ? [...terminalLogsBuffer]
             : terminalLogsBuffer.filter(l => l.category === scope);
@@ -1133,6 +1139,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const modal = document.getElementById("analytics-modal");
         if (modal) modal.classList.remove("hidden");
         loadAnalytics();
+        if (window.loadWebhookConfig) window.loadWebhookConfig();
     };
 
     window.closeAnalyticsModal = function() {
@@ -1256,6 +1263,135 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         } catch (e) {
             alert(`Error downloading report: ${e}`);
+        }
+    };
+
+    // Download OASIS STIX 2.1 Threat Intel Bundle (JSON)
+    window.downloadStixBundle = async function() {
+        try {
+            const res = await fetch("/api/defense/export/stix");
+            const data = await res.json();
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/stix+json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `stix_threat_intel_${Date.now()}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            appendTerminalLog({
+                stream: "STIX",
+                category: "system",
+                severity: "INFO",
+                source: "SOC_ENGINE",
+                protocol: "STIX_2.1",
+                message: "Exported OASIS STIX 2.1 Cyber Threat Intelligence Bundle (ATT&CK mapped)."
+            });
+        } catch (e) {
+            alert(`Error downloading STIX 2.1 bundle: ${e}`);
+        }
+    };
+
+    // Outbound SIEM & Alert Webhook Configuration
+    window.loadWebhookConfig = async function() {
+        try {
+            const res = await fetch("/api/defense/webhook/config");
+            const data = await res.json();
+            if (data.status === "success" && data.data) {
+                const urlEl = document.getElementById("webhook-url-input");
+                const enabledEl = document.getElementById("webhook-enabled-checkbox");
+                const formatEl = document.getElementById("webhook-format-select");
+                const badgeEl = document.getElementById("webhook-status-badge");
+                if (urlEl) urlEl.value = data.data.url || "";
+                if (enabledEl) enabledEl.checked = !!data.data.enabled;
+                if (formatEl) formatEl.value = data.data.format || "generic";
+                if (badgeEl) {
+                    if (data.data.enabled && data.data.url) {
+                        badgeEl.textContent = "ACTIVE";
+                        badgeEl.className = "text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-950 border border-emerald-800 text-emerald-400";
+                    } else {
+                        badgeEl.textContent = "DISABLED";
+                        badgeEl.className = "text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-400";
+                    }
+                }
+            }
+        } catch (e) {
+            console.error("Failed to load webhook config:", e);
+        }
+    };
+
+    window.saveWebhookConfig = async function() {
+        const urlEl = document.getElementById("webhook-url-input");
+        const enabledEl = document.getElementById("webhook-enabled-checkbox");
+        const formatEl = document.getElementById("webhook-format-select");
+        const msgEl = document.getElementById("webhook-feedback-msg");
+        const url = urlEl ? urlEl.value.trim() : "";
+        const enabled = enabledEl ? enabledEl.checked : false;
+        const format = formatEl ? formatEl.value : "generic";
+
+        try {
+            const res = await fetch("/api/defense/webhook/config", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ url, enabled, format })
+            });
+            const data = await res.json();
+            if (res.ok && data.status === "success") {
+                if (msgEl) {
+                    msgEl.textContent = "✓ Webhook configuration saved.";
+                    msgEl.className = "text-[11px] font-mono text-emerald-400";
+                }
+                window.loadWebhookConfig();
+            } else {
+                if (msgEl) {
+                    msgEl.textContent = `✗ ${data.detail || data.message || "Failed to save webhook."}`;
+                    msgEl.className = "text-[11px] font-mono text-rose-400";
+                }
+            }
+        } catch (e) {
+            if (msgEl) {
+                msgEl.textContent = `✗ Network error: ${e.message}`;
+                msgEl.className = "text-[11px] font-mono text-rose-400";
+            }
+        }
+    };
+
+    window.testWebhookConnection = async function() {
+        const msgEl = document.getElementById("webhook-feedback-msg");
+        const btn = document.getElementById("btn-test-webhook");
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = "Testing...";
+        }
+        if (msgEl) {
+            msgEl.textContent = "Sending test probe to configured SIEM webhook...";
+            msgEl.className = "text-[11px] font-mono text-sky-400";
+        }
+        try {
+            const res = await fetch("/api/defense/webhook/test", { method: "POST" });
+            const data = await res.json();
+            if (res.ok && data.status === "success") {
+                if (msgEl) {
+                    msgEl.textContent = "✓ Test probe successfully delivered to webhook!";
+                    msgEl.className = "text-[11px] font-mono text-emerald-400";
+                }
+            } else {
+                if (msgEl) {
+                    msgEl.textContent = `✗ Probe failed: ${data.detail || data.message || "Error"}`;
+                    msgEl.className = "text-[11px] font-mono text-rose-400";
+                }
+            }
+        } catch (e) {
+            if (msgEl) {
+                msgEl.textContent = `✗ Probe error: ${e.message}`;
+                msgEl.className = "text-[11px] font-mono text-rose-400";
+            }
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = "Test";
+            }
         }
     };
 
