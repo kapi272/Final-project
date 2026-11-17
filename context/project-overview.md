@@ -1,7 +1,7 @@
 # Autonomous IoT Cyber Defense System Using Virtual IoT Nodes and Honeypot Technology
 
 ## Overview
-**Current Release:** v2.4.0 (SOC Terminal `v2.4.0-SOC`)
+**Current Release:** v2.5.0 (SOC Terminal `v2.5.0-SOC`)
 
 This project is an autonomous, containerized host-level IoT cyber defense system. It simulates an enterprise/smart-home IoT environment (sensors, actuators, MQTT broker) on a single physical workstation using isolated virtual networks. By deploying an instrumented deception layer (Cowrie medium-interaction honeypot) directly alongside virtual IoT nodes, the system attracts and analyzes adversarial reconnaissance, brute-force intrusions, and botnet infections without risking physical hardware. An integrated analytics engine evaluates honeypot events and sniffs subnet traffic to autonomously execute closed-loop mitigations—injecting dynamic kernel firewall (`iptables`) drop rules into Docker routing chains and isolating rogue containers into a quarantine bridge network via the Docker Engine API.
 
@@ -68,6 +68,11 @@ This project is an autonomous, containerized host-level IoT cyber defense system
 - Automatic MITRE ATT&CK mapping: `T1110` (Brute Force), `T1059` (Command Interpreter), `T1046` (Service Discovery), and `T1078` (Valid Accounts/Honey-Topics).
 - Multi-format outbound alert webhook forwarder dispatching instant mitigation notifications to Splunk HEC, generic SIEMs, Discord, or Slack.
 - DNS-resolved SSRF protection preventing webhook abuse against internal management subnets.
+
+### 9. Multi-Protocol IoT Deception Decoy Engine (`v2.5.0`)
+- Lightweight asynchronous Constrained Application Protocol (CoAP RFC 7252 UDP:5683) smart sensor honeypot answering resource discovery (`/.well-known/core`) while capturing unauthorized mutation probes and command injection.
+- Real-Time Streaming Protocol (RTSP RFC 2326 TCP:8554) camera honeypot emulating streaming handshakes (`OPTIONS`, `DESCRIBE`) and harvesting credential brute-force attempts.
+- Automated closed-loop mitigation executing sub-second kernel Netfilter drop bans against offending attacker IPs with 5th Red Team simulation card.
 
 ## Scope
 

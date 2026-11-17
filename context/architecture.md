@@ -68,6 +68,7 @@ Honeypot:     172.20.0.50 (Decoy)
 - **LAN Device Auto-Discovery Engine (`controller/core/device_discovery.py`):** Multi-protocol discovery combines non-blocking UDP multicast (`239.255.255.250:3702`) for ONVIF WS-Discovery and concurrent asynchronous TCP port sweeping (ports 554, 8080, 1883, 80). Subnet boundaries (`scan_lan_subnet`) strictly reject target CIDRs overlapping with blocked address spaces (`127.0.0.0/8`, `169.254.0.0/16`, `172.20.0.0/16`, `172.21.0.0/16`). Candidate records are de-duplicated by IP address and seamlessly mapped into the Real Device Registry modal.
 - **STIX 2.1 Threat Intel Engine (`controller/core/stix_exporter.py`):** Generates standardized OASIS STIX 2.1 JSON bundles dynamically mapping threat records and active firewall drop rules to MITRE ATT&CK techniques (`T1110`, `T1059`, `T1046`, `T1078`), indicators, and courses of action.
 - **SIEM Webhook Forwarder (`controller/core/webhook_notifier.py`):** Asynchronous alert dispatcher forwarding real-time mitigation events to external SIEM collectors (Splunk, Elastic, Slack, Discord) with DNS-resolved SSRF policy validation.
+- **Multi-Protocol IoT Deception Decoy Engine (`controller/core/decoy_services.py`):** Asynchronous CoAP (RFC 7252 on UDP:5683) smart sensor and RTSP (RFC 2326 on TCP:8554) camera decoy servers responding to standard protocol queries while detecting unauthorized mutation sweeps, credential brute-forcing, and command injection strings. Offending IPs trigger sub-second Netfilter drop bans.
 
 ## Invariants
 

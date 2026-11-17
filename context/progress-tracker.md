@@ -3,10 +3,10 @@
 Update this file after every meaningful implementation change.
 
 ## Current Phase
-Phase 21: Milestone v2.4.0 Completed — Phase D (Integration) OASIS STIX 2.1 Threat Intel Bundle Exporter & SIEM Webhook Forwarder
+Phase 22: Milestone v2.5.0 Completed — Phase E (Deception) Multi-Protocol IoT Deception Decoy Engine (CoAP / RTSP)
 
 ## Current Goal
-Provide standardized cyber threat intelligence (CTI) feeds mapped to MITRE ATT&CK techniques (T1110, T1059, T1046, T1078) and real-time automated webhook alerts to external SIEMs, Splunk HEC, Discord, or Slack.
+Broaden deception perimeter beyond SSH/Telnet/MQTT by emulating smart sensor CoAP (RFC 7252 UDP 5683) and streaming IP camera RTSP (RFC 2326 TCP 8554) decoy traps, capturing unauthorized resource queries, credential brute-forcing, and command injections with sub-second Netfilter closed-loop mitigation.
 
 ## Completed
 - [x] Context foundation files established and verified at root.
@@ -38,6 +38,7 @@ Provide standardized cyber threat intelligence (CTI) feeds mapped to MITRE ATT&C
 - [x] Phase 19: Milestone v2.2.0 — Phase B (Security) MQTT Honey-Topic Trap & Payload Anomaly Engine: Extended autonomous closed-loop defense to MQTT port 1883. Implemented `is_honey_topic` and `evaluate_mqtt_message` in `IntrusionDetector` with honey-topic traps (`home/admin/#`, `home/debug/#`, `home/system/firmware_update`, `home/gateway/exec`), command injection detection (`curl`, `wget`, `nc -e`, `chmod +x`, `/bin/sh`), buffer caps (32 KB), and publish rate flood tracking. Wired `on_iot_telemetry` to quarantine compromised live devices and drop malicious messages. Added `POST /api/simulate/attack/mqtt-exploit` endpoint with curated 5-IP pool, 4th Red Team UI trigger card in dashboard, and `--mqtt-exploit` CLI adversary flag. 57/57 unit tests passing.
 - [x] Phase 20: Milestone v2.3.0 — Phase C (Usability) LAN Camera & IoT Node Auto-Discovery: Implemented zero-dependency multi-protocol LAN hardware discovery (`controller/core/device_discovery.py`) utilizing ONVIF WS-Discovery (UDP multicast `239.255.255.250:3702`) and fast concurrent non-blocking TCP sweeps across ports 554 (RTSP), 8080 (HTTP Cam), 1883 (MQTT), and 80 (HTTP Web). Added strict SSRF guardrails (`validate_discovery_ip`) blocking loopback, cloud metadata (`169.254.0.0/16`), Docker subnets (`172.20.0.0/16`, `172.21.0.0/16`), and host gateways. Exposed `POST /api/devices/discover` endpoint with CIDR subnet validation. Created `#discover-modal` in dashboard with 1-click scan and instant onboarding into the Real Device Registry. 64/64 unit tests passing.
 - [x] Phase 21: Milestone v2.4.0 — Phase D (Integration) OASIS STIX 2.1 Threat Intel Bundle Exporter & SIEM Webhook Forwarder: Implemented zero-dependency STIX 2.1 JSON compiler (`controller/core/stix_exporter.py`) mapping honeypot intrusions, brute-force attempts, and MQTT exploits directly to MITRE ATT&CK techniques (T1110, T1059, T1046, T1078) with indicator patterns and course-of-action mitigations. Added `WebhookNotifier` (`controller/core/webhook_notifier.py`) with strict DNS-resolved SSRF protection and multi-format payload dispatch (Generic SIEM, Slack, Discord). Exposed `GET /api/defense/export/stix` and `/api/defense/webhook/*` endpoints. Integrated 1-click STIX export and live Webhook configuration in SOC dashboard. Expanded test suite with 9 new tests (73/73 passing).
+- [x] Phase 22: Milestone v2.5.0 — Phase E (Deception) Multi-Protocol IoT Deception Decoy Engine (CoAP / RTSP): Implemented zero-dependency asynchronous deception decoy services (`controller/core/decoy_services.py`) providing smart IoT sensor CoAP emulation (RFC 7252 UDP:5683) answering `/.well-known/core` and IP camera RTSP emulation (RFC 2326 TCP:8554). Added `evaluate_coap_probe` in `IntrusionDetector` with sliding-window sweep and critical exploit injection detection. Added `POST /api/simulate/attack/coap-probe` with curated 5-IP pool, 5th Red Team Card in dashboard, `--coap-probe` CLI adversary flag, and incremented app version to `v2.5.0-SOC`. 82/82 unit tests passing.
 
 ## In Progress
 - [ ] Live evaluation demonstration and evaluator walkthrough.

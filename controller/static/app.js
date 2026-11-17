@@ -905,9 +905,10 @@ document.addEventListener("DOMContentLoaded", () => {
         "brute-force": ["198.51.100.99", "198.51.100.142", "198.51.100.205", "203.0.113.45", "192.0.2.81"],
         "exploit": ["203.0.113.88", "203.0.113.154", "203.0.113.219", "198.51.100.175", "192.0.2.114"],
         "port-sweep": ["198.51.100.77", "198.51.100.188", "192.0.2.63", "203.0.113.92", "192.0.2.199"],
-        "mqtt-exploit": ["198.51.100.112", "198.51.100.165", "203.0.113.71", "203.0.113.140", "192.0.2.98"]
+        "mqtt-exploit": ["198.51.100.112", "198.51.100.165", "203.0.113.71", "203.0.113.140", "192.0.2.98"],
+        "coap-probe": ["198.51.100.133", "198.51.100.168", "203.0.113.111", "203.0.113.220", "192.0.2.145"]
     };
-    const attackRotationIndex = { "brute-force": 0, "exploit": 0, "port-sweep": 0, "mqtt-exploit": 0 };
+    const attackRotationIndex = { "brute-force": 0, "exploit": 0, "port-sweep": 0, "mqtt-exploit": 0, "coap-probe": 0 };
 
     // Show/hide inline custom IP input on Red Team simulation cards
     window.toggleCustomAttackIp = function(cardKey) {

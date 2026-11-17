@@ -71,12 +71,14 @@ class IntrusionDetector:
         self._failed_attempts: Dict[str, deque] = {}
         # In-memory sliding window for MQTT publish rates: tracking_key -> deque of timestamps
         self._mqtt_publish_times: Dict[str, deque] = {}
+        # In-memory sliding window for CoAP probes: IP -> deque of timestamps
+        self._coap_probe_times: Dict[str, deque] = {}
 
         # Telemetry analytics counters
         self._attack_counts: Dict[str, int] = {"brute_force": 0, "exploit": 0, "probe": 0}
         self._username_counts: Dict[str, int] = {}
         self._password_counts: Dict[str, int] = {}
-        self._port_counts: Dict[str, int] = {"2222": 0, "2223": 0, "1883": 0}
+        self._port_counts: Dict[str, int] = {"2222": 0, "2223": 0, "1883": 0, "5683": 0, "8554": 0}
         self._events_history: List[Dict[str, Any]] = []
 
         # Hydrate threat analytics and recent event history from persistent storage
@@ -324,6 +326,106 @@ class IntrusionDetector:
             timestamp=now,
         )
         return record
+
+    def evaluate_coap_probe(
+        self,
+        src_ip: str,
+        uri_path: str,
+        payload: str = "",
+    ) -> Optional[MitigationRecord]:
+        """
+        Inspects incoming CoAP decoy datagrams:
+        - Blocks and bans immediate shell injections or actuator exploits
+        - Tracks multi-probe reconnaissance sweeps across the CoAP decoy
+        - Records forensic timeline events into persistent SQLite storage
+        """
+        now = time.time()
+        clean_ip = src_ip.strip()
+
+        # Update telemetry counters
+        self._port_counts["5683"] = self._port_counts.get("5683", 0) + 1
+        self._attack_counts["probe"] = self._attack_counts.get("probe", 0) + 1
+
+        # Persist probe event to SQLite database
+        self.db.record_threat_event({
+            "timestamp": now,
+            "src_ip": clean_ip,
+            "dst_port": 5683,
+            "eventid": "coap.probe",
+            "attack_type": "probe",
+            "input_command": f"{uri_path} {payload}".strip()[:256],
+            "message": payload[:1024] if payload else None,
+        })
+
+        # Allowlist safety check
+        if self.allowlist.is_ip_protected(clean_ip):
+            logger.info("CoAP interaction from protected IP %s permitted without mitigation", clean_ip)
+            return None
+
+        # 1. Critical Command Injection / Exploit in URI or payload
+        combined = f"{uri_path} {payload}".lower()
+        exploit_detected = False
+        matched_pattern = ""
+        for pat in [
+            "curl", "wget", "/bin/sh", "/bin/bash", "nc -e", "chmod +x",
+            "rm -rf", "cat /etc/shadow", "botnet", "mirai",
+        ]:
+            if pat in combined:
+                exploit_detected = True
+                matched_pattern = pat
+                break
+
+        if exploit_detected:
+            self._attack_counts["exploit"] = self._attack_counts.get("exploit", 0) + 1
+            reason = f"Critical CoAP decoy exploit command detected: '{matched_pattern}' in '{uri_path}'"
+            if not self.firewall.is_ip_banned(clean_ip):
+                return self._execute_ban(clean_ip, reason=reason, severity="CRITICAL")
+            return MitigationRecord(
+                src_ip=clean_ip,
+                action="IPTABLES_DROP",
+                reason=reason,
+                severity="CRITICAL",
+                timestamp=now,
+            )
+
+        # 2. Unauthorized actuator mutation attempt
+        if uri_path.startswith("/actuators") or "override" in combined:
+            self._attack_counts["exploit"] = self._attack_counts.get("exploit", 0) + 1
+            reason = f"Unauthorized CoAP actuator tampering attempt: '{uri_path}'"
+            if not self.firewall.is_ip_banned(clean_ip):
+                return self._execute_ban(clean_ip, reason=reason, severity="HIGH")
+            return MitigationRecord(
+                src_ip=clean_ip,
+                action="IPTABLES_DROP",
+                reason=reason,
+                severity="HIGH",
+                timestamp=now,
+            )
+
+        # 3. Sliding-window reconnaissance sweep tracking
+        if clean_ip not in self._coap_probe_times:
+            self._coap_probe_times[clean_ip] = deque()
+
+        queue = self._coap_probe_times[clean_ip]
+        queue.append(now)
+
+        cutoff = now - self.time_window_seconds
+        while queue and queue[0] < cutoff:
+            queue.popleft()
+
+        if len(queue) >= 5:
+            reason = f"CoAP decoy reconnaissance sweep: {len(queue)} rapid probes in {int(self.time_window_seconds)}s"
+            if not self.firewall.is_ip_banned(clean_ip):
+                return self._execute_ban(clean_ip, reason=reason, severity="HIGH")
+            return MitigationRecord(
+                src_ip=clean_ip,
+                action="IPTABLES_DROP",
+                reason=reason,
+                severity="HIGH",
+                timestamp=now,
+            )
+
+        return None
 
     def _execute_ban(self, ip: str, reason: str, severity: str) -> MitigationRecord:
         """Executes firewall drop rule, records audit log in SQLite, and invokes listeners."""

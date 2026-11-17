@@ -163,6 +163,14 @@ class TestAPIRoutes(unittest.TestCase):
         self.assertEqual(data["data"]["target_ip"], "198.51.100.112")
         self.assertTrue(self.firewall.is_ip_banned("198.51.100.112"))
 
+    def test_simulate_coap_probe_attack(self) -> None:
+        res = self.client.post("/api/simulate/attack/coap-probe")
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["status"], "success")
+        self.assertEqual(data["data"]["target_ip"], "198.51.100.133")
+        self.assertTrue(self.firewall.is_ip_banned("198.51.100.133"))
+
     def test_defense_analytics_endpoint(self) -> None:
         # Trigger an attack first to populate stats
         self.client.post("/api/simulate/attack/brute-force")

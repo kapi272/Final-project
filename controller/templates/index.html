@@ -299,7 +299,7 @@
                 <div>
                     <h1 class="text-base font-bold tracking-tight text-white flex items-center space-x-2">
                         <span>Autonomous IoT Cyber Defense System</span>
-                        <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-sky-400 font-mono font-normal">v2.4.0-SOC</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-sky-400 font-mono font-normal">v2.5.0-SOC</span>
                     </h1>
                     <p class="text-xs text-slate-400">Virtual Node Mesh • Cowrie Deception Decoy • Netfilter Kernel Auto-Mitigation</p>
                 </div>
@@ -557,7 +557,7 @@
                     <span class="text-xs font-mono text-slate-400">Click a vector to trigger closed-loop detection &amp; autonomous mitigation</span>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-1">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5 pt-1">
                     <!-- Trigger 1: Credential Brute-Force -->
                     <div class="p-3.5 rounded bg-slate-950/70 border border-slate-800/90 hover:border-slate-700 flex flex-col justify-between transition-all">
                         <div>
@@ -663,6 +663,33 @@
                         </div>
                         <button id="btn-attack-mqttexploit" onclick="triggerAttack('mqtt-exploit')" class="w-full py-1.5 px-3 text-xs font-semibold rounded bg-cyan-950/40 hover:bg-cyan-900 border border-cyan-800 hover:border-cyan-700 text-cyan-300 transition-all flex items-center justify-center space-x-2">
                             <span>⚡ Trigger MQTT Exploit</span>
+                        </button>
+                    </div>
+
+                    <!-- Trigger 5: CoAP IoT Decoy Probe -->
+                    <div class="p-3.5 rounded bg-slate-950/70 border border-slate-800/90 hover:border-slate-700 flex flex-col justify-between transition-all">
+                        <div>
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-xs font-bold text-slate-200">CoAP Decoy Probe</span>
+                                <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-violet-950/60 border border-violet-800 text-violet-400">UDP 5683</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400 mb-2.5">Probes CoAP decoy paths (<code class="text-slate-300 font-mono">/.well-known/core</code>, <code class="text-slate-300 font-mono">/actuators</code>) &amp; payload attacks.</p>
+                            <div class="mb-3 space-y-1.5">
+                                <select id="select-ip-coapprobe" onchange="toggleCustomAttackIp('coapprobe')" class="w-full px-2 py-1 rounded bg-slate-900 border border-slate-700/80 text-[11px] font-mono text-violet-300 focus:outline-none focus:border-violet-500">
+                                    <option value="rotate" selected>🔄 Auto-Rotate IP (5-IP Pool)</option>
+                                    <option value="198.51.100.133">198.51.100.133 (CoAP Scanner)</option>
+                                    <option value="198.51.100.168">198.51.100.168 (Sensor Tamperer)</option>
+                                    <option value="203.0.113.111">203.0.113.111 (Actuator Exploit)</option>
+                                    <option value="203.0.113.220">203.0.113.220 (RFC 7252 Flooder)</option>
+                                    <option value="192.0.2.145">192.0.2.145 (UDP Botnet Node)</option>
+                                    <option value="swarm">🌐 Swarm Mode (All 5 IPs)</option>
+                                    <option value="custom">✏️ Custom IP Address...</option>
+                                </select>
+                                <input id="custom-ip-coapprobe" type="text" placeholder="Enter custom IPv4 (e.g. 198.51.100.70)" class="hidden w-full px-2 py-1 rounded bg-slate-900 border border-slate-700 text-[11px] font-mono text-slate-200 placeholder-slate-500 focus:outline-none focus:border-violet-500" />
+                            </div>
+                        </div>
+                        <button id="btn-attack-coapprobe" onclick="triggerAttack('coap-probe')" class="w-full py-1.5 px-3 text-xs font-semibold rounded bg-violet-950/40 hover:bg-violet-900 border border-violet-800 hover:border-violet-700 text-violet-300 transition-all flex items-center justify-center space-x-2">
+                            <span>🔮 Trigger CoAP Probe</span>
                         </button>
                     </div>
                 </div>
@@ -1178,7 +1205,7 @@
     <!-- Footer -->
     <footer class="border-t border-slate-800/80 px-6 py-3 text-xs text-slate-500 flex items-center justify-between">
         <span>Autonomous IoT Cyber Defense System • Docker & Netfilter Subnet Containment</span>
-        <span class="font-mono text-slate-600">v2.4.0-SOC • Simulated &amp; Live Real-World IoT Defense Engine</span>
+        <span class="font-mono text-slate-600">v2.5.0-SOC • Simulated &amp; Live Real-World IoT Defense Engine</span>
     </footer>
 
     <!-- External Log Analytics & SIEM Forensics Modal (Separate Tool, Not in Main Page Flow) -->
@@ -1553,7 +1580,7 @@
     </div>
 
     <!-- SOC Terminal JS Client -->
-    <script src="/static/app.js?v=2.3.0"></script>
+    <script src="/static/app.js?v=2.4.0"></script>
 </body>
 </html>
 

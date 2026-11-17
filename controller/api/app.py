@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from controller.api.routes import router
 from controller.api.sse_broker import SSEBroadcaster
 from controller.core.db import DefenseDatabase
+from controller.core.decoy_services import DecoyManager
 from controller.core.device_manager import RealDeviceManager
 from controller.core.detector import IntrusionDetector
 from controller.core.log_tailer import HoneypotLogTailer
@@ -31,6 +32,7 @@ def create_app(
     broadcaster: Optional[SSEBroadcaster] = None,
     enable_tailer: bool = True,
     enable_mqtt: bool = False,
+    enable_decoys: bool = False,
     log_path: Optional[str] = None,
     mqtt_host: Optional[str] = None,
     mqtt_port: Optional[int] = None,
@@ -63,6 +65,24 @@ def create_app(
     quarantine_instance = quarantine_manager or QuarantineManager()
     device_manager = RealDeviceManager(db=detector_instance.db)
     webhook_notifier.db = detector_instance.db
+    decoy_manager = DecoyManager(
+        on_coap_probe=lambda ip, uri, p: asyncio.create_task(
+            _handle_coap_probe(ip, uri, p)
+        ),
+    )
+
+    async def _handle_coap_probe(ip: str, uri: str, p: str) -> None:
+        rec = detector_instance.evaluate_coap_probe(ip, uri, p)
+        if rec and rec.action == "IPTABLES_DROP":
+            await sse_broadcaster.broadcast("honeypot_hit", {
+                "eventid": "coap.exploit.detected" if "exploit" in rec.reason.lower() else "coap.probe.sweep",
+                "src_ip": ip,
+                "protocol": "UDP:5683",
+                "uri": uri,
+                "reason": rec.reason,
+                "timestamp": rec.timestamp,
+            })
+
     saved_mode = detector_instance.db.get_setting("traffic_mode", "simulated")
     initial_mode = saved_mode if saved_mode in {"simulated", "live"} else "simulated"
 
@@ -191,12 +211,17 @@ def create_app(
         if mqtt_instance:
             mqtt_instance.start(loop=loop)
 
+        if enable_decoys:
+            await decoy_manager.start()
+
         yield
 
         logger.info("Shutting down Autonomous IoT Defense Controller backend...")
         tailer_instance.stop()
         if mqtt_instance:
             mqtt_instance.stop()
+        if enable_decoys:
+            decoy_manager.stop()
         for task in (tailer_task, health_task):
             if task:
                 task.cancel()
@@ -218,6 +243,7 @@ def create_app(
     app.state.sse_broadcaster = sse_broadcaster
     app.state.device_manager = device_manager
     app.state.webhook_notifier = webhook_notifier
+    app.state.decoy_manager = decoy_manager
     app.state.traffic_mode = initial_mode
 
     # CORS configuration scoped to local management origins (same-origin UI does not require wildcard)

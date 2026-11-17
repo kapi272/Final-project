@@ -185,6 +185,24 @@ def trigger_mqtt_exploit_test(api_base: str, attacker_ip: str = "198.51.100.112"
         return False
 
 
+def trigger_coap_probe_test(api_base: str, attacker_ip: str = "198.51.100.133") -> bool:
+    print(f"\n[*] Simulating CoAP IoT Decoy Probe across UDP:5683 from {attacker_ip}...")
+    url = f"{api_base}/api/simulate/attack/coap-probe"
+    body = json.dumps({"src_ip": attacker_ip, "mode": "single"}).encode()
+    try:
+        req = urllib.request.Request(url, method="POST", data=body)
+        req.add_header("Content-Type", "application/json")
+        start = time.time()
+        with urllib.request.urlopen(req, timeout=3.0) as resp:
+            elapsed_ms = (time.time() - start) * 1000
+            data = json.loads(resp.read().decode())
+            print(f"    [+] Response ({elapsed_ms:.1f}ms): {data.get('message')}")
+            return data.get("status") == "success"
+    except Exception as e:
+        print(f"    [!] CoAP probe simulation API error: {e}")
+        return False
+
+
 def verify_active_mitigations(api_base: str) -> Dict[str, Any]:
     url = f"{api_base}/api/defense/status"
     try:
@@ -203,12 +221,13 @@ def main() -> None:
     parser.add_argument("--brute-force", action="store_true", help="Launch credential brute-force probe")
     parser.add_argument("--infect", action="store_true", help="Simulate rogue internal container compromise")
     parser.add_argument("--mqtt-exploit", action="store_true", help="Launch MQTT honey-topic and payload injection attack")
+    parser.add_argument("--coap-probe", action="store_true", help="Launch CoAP UDP decoy reconnaissance and probe attack")
     parser.add_argument("--all", action="store_true", help="Run full automated red team test suite")
 
     args = parser.parse_args()
 
     # Default to --all if no specific flag passed
-    if not (args.port_sweep or args.brute_force or args.infect or args.mqtt_exploit or args.all):
+    if not (args.port_sweep or args.brute_force or args.infect or args.mqtt_exploit or args.coap_probe or args.all):
         args.all = True
 
     print_banner()
@@ -225,6 +244,9 @@ def main() -> None:
 
     if args.mqtt_exploit or args.all:
         trigger_mqtt_exploit_test(api_url, "198.51.100.112")
+
+    if args.coap_probe or args.all:
+        trigger_coap_probe_test(api_url, "198.51.100.133")
 
     print("\n" + "=" * 70)
     print("  VERIFYING REALTIME SOC DEFENSE STATUS VIA CONTROLLER API")
