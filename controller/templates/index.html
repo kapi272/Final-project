@@ -512,8 +512,11 @@
                             </div>
                         </div>
                         <div class="flex items-center space-x-2">
+                            <button id="btn-discover-devices" onclick="openDiscoverModal()" class="px-3 py-1.5 text-xs font-semibold rounded bg-sky-950/70 hover:bg-sky-900 border border-sky-700 text-sky-300 transition-colors flex items-center space-x-1.5">
+                                <span>🔍 Auto-Discover LAN</span>
+                            </button>
                             <button id="btn-probe-all-devices" onclick="probeAllDevices()" class="px-3 py-1.5 text-xs font-semibold rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 transition-colors">
-                                🔍 Probe Health
+                                📡 Probe Health
                             </button>
                             <button id="btn-open-add-device" onclick="openAddDeviceModal()" class="px-3.5 py-1.5 text-xs font-semibold rounded bg-emerald-700 hover:bg-emerald-600 text-white transition-colors shadow-sm solid-accent-btn">
                                 + Add Real IoT Device
@@ -1345,6 +1348,49 @@
         </div>
     </div>
 
+    <!-- Auto-Discover Real-World LAN IoT & CCTV Modal -->
+    <div id="discover-modal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4" onclick="if(event.target === this) closeDiscoverModal()">
+        <div class="bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl max-w-xl w-full flex flex-col overflow-hidden">
+            <div class="px-5 py-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-900/90">
+                <div class="flex items-center space-x-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse"></span>
+                    <div>
+                        <h3 class="text-sm font-bold text-white uppercase tracking-wider">Auto-Discover LAN Cameras &amp; IoT Nodes</h3>
+                        <p class="text-[11px] text-slate-400">Scans local Wi-Fi / Ethernet using ONVIF WS-Discovery &amp; IoT port sweeps</p>
+                    </div>
+                </div>
+                <button onclick="closeDiscoverModal()" class="text-slate-400 hover:text-white px-2 py-1 rounded hover:bg-slate-800">✕</button>
+            </div>
+            <div class="p-5 space-y-4 text-xs">
+                <!-- Subnet selector & scan button -->
+                <div class="flex items-center gap-2">
+                    <input id="discover-subnet-input" type="text" placeholder="Subnet (Optional, e.g. 192.168.1.0/24 - default auto-detect)" class="flex-1 px-3 py-1.5 rounded bg-slate-950 border border-slate-700 text-slate-200 font-mono text-[11px] focus:outline-none focus:border-sky-500" />
+                    <button id="btn-start-discover" onclick="startDeviceDiscovery()" class="px-4 py-1.5 rounded bg-sky-700 hover:bg-sky-600 text-white font-semibold flex items-center space-x-1.5 transition-colors solid-accent-btn">
+                        <span>🔍 Scan Now</span>
+                    </button>
+                </div>
+
+                <!-- Status banner -->
+                <div id="discover-status-banner" class="hidden p-3 rounded bg-slate-950 border border-slate-800 font-mono text-[11px] flex items-center space-x-2 text-slate-300">
+                    <span id="discover-spinner" class="animate-spin">⚙️</span>
+                    <span id="discover-status-text">Broadcasting ONVIF WS-Discovery probes &amp; sweeping subnet...</span>
+                </div>
+
+                <!-- Discovered devices container -->
+                <div id="discover-results-container" class="space-y-2.5 max-h-[320px] overflow-y-auto pr-1">
+                    <div id="discover-empty-state" class="text-center py-6 text-slate-500 font-mono text-xs">
+                        Click "Scan Now" to discover real-world cameras and smart devices on your local network.
+                    </div>
+                </div>
+
+                <div class="pt-2 flex items-center justify-between border-t border-slate-800">
+                    <span id="discover-count-pill" class="text-[11px] font-mono text-slate-400">0 devices found</span>
+                    <button type="button" onclick="closeDiscoverModal()" class="px-3.5 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Add Real-World IoT / CCTV Device Modal -->
     <div id="add-device-modal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4" onclick="if(event.target === this) closeAddDeviceModal()">
         <div class="bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl max-w-lg w-full flex flex-col overflow-hidden">
@@ -1457,7 +1503,7 @@
     </div>
 
     <!-- SOC Terminal JS Client -->
-    <script src="/static/app.js?v=2.1.0"></script>
+    <script src="/static/app.js?v=2.2.0"></script>
 </body>
 </html>
 

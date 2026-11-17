@@ -5,9 +5,9 @@ An autonomous, containerized host-level IoT cyber defense testbed and SOC platfo
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![Docker Compose](https://img.shields.io/badge/Docker-Compose%20v2+-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
-[![Release: v2.2.0](https://img.shields.io/badge/Release-v2.2.0-blue)](./)
+[![Release: v2.3.0](https://img.shields.io/badge/Release-v2.3.0-blue)](./)
 [![Reaction SLA](https://img.shields.io/badge/Mitigation%20Latency-0.65%20ms-emerald)](./context/specs/06-red-team-simulation.md)
-[![Tests Passing](https://img.shields.io/badge/Tests-57%2F57%20Passing-brightgreen)](./tests/)
+[![Tests Passing](https://img.shields.io/badge/Tests-64%2F64%20Passing-brightgreen)](./tests/)
 
 ---
 
@@ -16,7 +16,7 @@ An autonomous, containerized host-level IoT cyber defense testbed and SOC platfo
 This project unifies an educational cyber-range simulator and a live local-perimeter IoT defense monitor behind dual **`Simulated` / `Live`** operating modes:
 
 - **`Simulated Mode` (Educational Cyber Range):** Runs virtual Mosquitto/MQTT sensor and smart-bulb containers inside isolated Docker subnets (`172.20.0.0/24` / `172.21.0.0/24`) alongside a 1-click Red Team simulation toolbar and scripted CLI adversary runner (`tests/attacker_sim.py`).
-- **`Live Mode` (Real-World IoT & CCTV Shield):** Mutes synthetic demo traffic and onboards real physical LAN IoT sensors (ESP32, Raspberry Pi) and IP/CCTV cameras via MQTT (`home/#`), SHA-256 token-authenticated HTTP webhooks, periodic TCP health probes, and an SSRF-guarded HTTP/MJPEG live camera viewer.
+- **`Live Mode` (Real-World IoT & CCTV Shield):** Mutes synthetic demo traffic, provides **1-Click LAN Auto-Discovery** (ONVIF WS-Discovery + IoT port sweep), and onboards real physical LAN IoT sensors (ESP32, Raspberry Pi) and IP/CCTV cameras via MQTT (`home/#`), SHA-256 token-authenticated HTTP webhooks, periodic TCP health probes, and an SSRF-guarded HTTP/MJPEG live camera viewer.
 - **SOC Dashboard (`http://localhost:8050`):** Tabbed single-page console organized into **Live Operations**, full-width **Mitigation Ledger**, 6-column IST **Activity Logs**, and **About & Architecture**, with a persistent **Dark / Light Mode** switcher (`soc_theme`).
 
 Built following the **Six-File Context Methodology** for spec-driven development.

@@ -3,10 +3,10 @@
 Update this file after every meaningful implementation change.
 
 ## Current Phase
-Phase 17: Milestone v2.0.0 Completed — Dual Simulated/Live Traffic Mode & Real-World IoT/CCTV Device Onboarding
+Phase 20: Milestone v2.3.0 Completed — Phase C LAN Camera & IoT Node Auto-Discovery (ONVIF WS-Discovery & Subnet Sweep)
 
 ## Current Goal
-Deliver production-verified v2.0.0 release with strict Simulated/Live toggle, SSRF-hardened Real Device Registry, authenticated HTTP/MQTT telemetry ingestion, snapshot proxy, logical device quarantine, and log-rotation resilient Cowrie tailing.
+Provide zero-touch local network visibility and 1-click onboarding for physical CCTV/IP cameras and IoT sensors with strict SSRF protection and non-blocking asynchronous multi-protocol probes.
 
 ## Completed
 - [x] Context foundation files established and verified at root.
@@ -36,6 +36,7 @@ Deliver production-verified v2.0.0 release with strict Simulated/Live toggle, SS
 - [x] Phase 17.4: Cross-Platform `README.md` Prerequisites, OS Setup & Directory Alignment: Added explicit prerequisites (Docker Engine/Compose v2, `/var/run/docker.sock`, `CAP_NET_ADMIN`, required host ports `8050`/`1883`/`2222`/`2223`, optional Python 3.11+ venv + `httpx` for host `unittest` runs), dedicated setup sections for macOS, Windows (WSL 2 + Docker Desktop), and Linux (`apt`/`systemctl`/firewall ports), and updated the repository directory tree to match actual tracked and runtime layout cleanly.
 - [x] Phase 18: Milestone v2.1.0 — Phase A (Quick Wins) Telemetry Persistence & SQLite WAL Concurrency: Enabled SQLite Write-Ahead Logging (`PRAGMA journal_mode=WAL;`), `PRAGMA synchronous=NORMAL;`, and `PRAGMA busy_timeout=5000;` on all database connections to eliminate database lock contention under concurrent load. Added persistent `threat_events` table and indexed query methods (`record_threat_event`, `get_persisted_threat_analytics`, `get_threat_events_by_ip`, `get_recent_threat_events`) to `DefenseDatabase`. Updated `IntrusionDetector` with `_hydrate_analytics_from_db()` to automatically restore attack counts, top usernames/passwords, port statistics, and IP forensic timelines upon controller restart. Expanded test suite with 5 new unit tests (52/52 passing).
 - [x] Phase 19: Milestone v2.2.0 — Phase B (Security) MQTT Honey-Topic Trap & Payload Anomaly Engine: Extended autonomous closed-loop defense to MQTT port 1883. Implemented `is_honey_topic` and `evaluate_mqtt_message` in `IntrusionDetector` with honey-topic traps (`home/admin/#`, `home/debug/#`, `home/system/firmware_update`, `home/gateway/exec`), command injection detection (`curl`, `wget`, `nc -e`, `chmod +x`, `/bin/sh`), buffer caps (32 KB), and publish rate flood tracking. Wired `on_iot_telemetry` to quarantine compromised live devices and drop malicious messages. Added `POST /api/simulate/attack/mqtt-exploit` endpoint with curated 5-IP pool, 4th Red Team UI trigger card in dashboard, and `--mqtt-exploit` CLI adversary flag. 57/57 unit tests passing.
+- [x] Phase 20: Milestone v2.3.0 — Phase C (Usability) LAN Camera & IoT Node Auto-Discovery: Implemented zero-dependency multi-protocol LAN hardware discovery (`controller/core/device_discovery.py`) utilizing ONVIF WS-Discovery (UDP multicast `239.255.255.250:3702`) and fast concurrent non-blocking TCP sweeps across ports 554 (RTSP), 8080 (HTTP Cam), 1883 (MQTT), and 80 (HTTP Web). Added strict SSRF guardrails (`validate_discovery_ip`) blocking loopback, cloud metadata (`169.254.0.0/16`), Docker subnets (`172.20.0.0/16`, `172.21.0.0/16`), and host gateways. Exposed `POST /api/devices/discover` endpoint with CIDR subnet validation. Created `#discover-modal` in dashboard with 1-click scan and instant onboarding into the Real Device Registry. 64/64 unit tests passing.
 
 ## In Progress
 - [ ] Live evaluation demonstration and evaluator walkthrough.

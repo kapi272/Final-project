@@ -11,6 +11,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from controller.api.sse_broker import SSEBroadcaster
+from controller.core.device_discovery import run_lan_discovery
 from controller.core.device_manager import RealDeviceManager
 from controller.core.detector import IntrusionDetector
 from controller.core.models import CowrieEvent
@@ -101,6 +102,11 @@ class DeviceBlockRequest(BaseModel):
 
 class DeviceIngestRequest(BaseModel):
     payload: Dict[str, Any] = Field(default_factory=dict, description="JSON telemetry/event payload from physical IoT device")
+
+
+class DeviceDiscoverRequest(BaseModel):
+    subnet: Optional[str] = Field(None, description="Optional target subnet CIDR (e.g. 192.168.1.0/24)")
+    timeout: float = Field(2.0, description="Discovery scan timeout in seconds")
 
 
 def _resolve_simulation_targets(
@@ -631,6 +637,30 @@ async def export_audit_report(request: Request) -> Dict[str, Any]:
 
 
 # --- Real-World IoT & CCTV Device Registry / Live Ingestion Routes ---
+
+@router.post("/devices/discover")
+async def discover_devices_on_lan(
+    request: Request,
+    payload: Optional[DeviceDiscoverRequest] = Body(default=None),
+) -> Dict[str, Any]:
+    """Scans local network via ONVIF WS-Discovery and IoT port sweeps to auto-discover hardware."""
+    subnet = payload.subnet if payload else None
+    timeout = payload.timeout if payload else 2.0
+    try:
+        devices = await run_lan_discovery(subnet_cidr=subnet, timeout=timeout)
+        return make_response(
+            data={"devices": devices, "count": len(devices)},
+            message=f"LAN discovery complete. Found {len(devices)} candidate device(s).",
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.error("Error during LAN device discovery: %s", exc)
+        return make_response(
+            data={"devices": [], "count": 0},
+            message=f"Discovery completed with 0 devices found: {exc}",
+        )
+
 
 @router.get("/devices")
 async def list_registered_devices(request: Request) -> Dict[str, Any]:

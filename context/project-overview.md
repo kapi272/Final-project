@@ -1,7 +1,7 @@
 # Autonomous IoT Cyber Defense System Using Virtual IoT Nodes and Honeypot Technology
 
 ## Overview
-**Current Release:** v2.0.0 (SOC Terminal `v2.0.0-SOC`)
+**Current Release:** v2.3.0 (SOC Terminal `v2.0.0-SOC`)
 
 This project is an autonomous, containerized host-level IoT cyber defense system. It simulates an enterprise/smart-home IoT environment (sensors, actuators, MQTT broker) on a single physical workstation using isolated virtual networks. By deploying an instrumented deception layer (Cowrie medium-interaction honeypot) directly alongside virtual IoT nodes, the system attracts and analyzes adversarial reconnaissance, brute-force intrusions, and botnet infections without risking physical hardware. An integrated analytics engine evaluates honeypot events and sniffs subnet traffic to autonomously execute closed-loop mitigations—injecting dynamic kernel firewall (`iptables`) drop rules into Docker routing chains and isolating rogue containers into a quarantine bridge network via the Docker Engine API.
 
@@ -55,6 +55,13 @@ This project is an autonomous, containerized host-level IoT cyber defense system
 - Deceptive honey-topics (`home/admin/#`, `home/debug/#`, `home/system/firmware_update`, `home/gateway/exec`) capturing unauthorized MQTT reconnaissance.
 - Deep payload command injection detection (`curl`, `wget`, `nc -e`, `chmod +x`, `/bin/sh`), buffer overflow caps (32 KB), and publish rate flood anomaly tracking.
 - Closed-loop autonomous quarantine of compromised real-world hardware and instant Netfilter drop bans on offending attacker IPs.
+
+### 7. LAN Camera & IoT Node Auto-Discovery (`v2.3.0`)
+- 1-click discovery modal scanning physical Wi-Fi/Ethernet subnets using zero third-party dependencies.
+- Broadcasts standard ONVIF WS-Discovery SOAP probes over UDP multicast (`239.255.255.250:3702`) to identify IP cameras, parsing service endpoints (`XAddrs`) and hardware models from XML scopes.
+- Fast non-blocking concurrent TCP port sweep across common IoT ports (`554` RTSP, `8080` HTTP Cam, `1883` MQTT, `80` HTTP Web).
+- Strict SSRF boundary enforcement preventing scans against loopback (`127.0.0.0/8`), cloud metadata (`169.254.0.0/16`), and internal Docker bridge subnets.
+- 1-click device onboarding pre-populating the Real-World Device Registry with auto-detected protocols, ports, and snapshot URLs.
 
 ## Scope
 

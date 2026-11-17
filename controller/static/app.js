@@ -1474,6 +1474,155 @@ document.addEventListener("DOMContentLoaded", () => {
         grid.replaceChildren(frag);
     }
 
+    function escapeHtml(str) {
+        if (!str) return "";
+        const d = document.createElement("div");
+        d.textContent = String(str);
+        return d.innerHTML;
+    }
+
+    let _lastDiscoveredDevices = [];
+
+    window.openDiscoverModal = function() {
+        const modal = document.getElementById("discover-modal");
+        if (modal) modal.classList.remove("hidden");
+    };
+
+    window.closeDiscoverModal = function() {
+        const modal = document.getElementById("discover-modal");
+        if (modal) modal.classList.add("hidden");
+    };
+
+    window.startDeviceDiscovery = async function() {
+        const subnetInput = document.getElementById("discover-subnet-input");
+        const banner = document.getElementById("discover-status-banner");
+        const statusText = document.getElementById("discover-status-text");
+        const btn = document.getElementById("btn-start-discover");
+        const container = document.getElementById("discover-results-container");
+        const countPill = document.getElementById("discover-count-pill");
+
+        const subnet = subnetInput ? subnetInput.value.trim() : "";
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = `<span>⏳ Scanning...</span>`;
+            btn.classList.add("opacity-60", "cursor-not-allowed");
+        }
+        if (banner) {
+            banner.classList.remove("hidden");
+            if (statusText) statusText.textContent = "Broadcasting ONVIF WS-Discovery probes & sweeping subnet...";
+        }
+
+        try {
+            const res = await fetch("/api/devices/discover", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ subnet: subnet || null, timeout: 2.0 })
+            });
+            const data = await res.json();
+            if (!res.ok || data.status !== "success") {
+                const errMsg = data.detail || data.message || "Failed to scan LAN devices.";
+                if (statusText) statusText.textContent = `❌ Scan failed: ${errMsg}`;
+                return;
+            }
+
+            const devices = (data.data && data.data.devices) ? data.data.devices : [];
+            _lastDiscoveredDevices = devices;
+
+            if (countPill) {
+                countPill.textContent = `${devices.length} device${devices.length === 1 ? "" : "s"} found`;
+            }
+
+            if (devices.length === 0) {
+                if (container) {
+                    container.innerHTML = `
+                        <div class="text-center py-6 text-slate-400 font-mono text-xs">
+                            ⚠️ No responsive ONVIF cameras or open IoT ports found on subnet.<br>
+                            <span class="text-[11px] text-slate-500">Ensure the device is powered on and connected to the same Wi-Fi / Ethernet LAN.</span>
+                        </div>`;
+                }
+                if (statusText) statusText.textContent = "Scan complete: 0 devices responded.";
+            } else {
+                if (container) {
+                    container.innerHTML = "";
+                    devices.forEach((dev, idx) => {
+                        const card = document.createElement("div");
+                        card.className = "p-3 rounded-lg bg-slate-950/80 border border-slate-800 hover:border-sky-500/50 flex items-center justify-between transition-all";
+
+                        const devIp = dev.ip_address || dev.ip || "";
+                        const devId = dev.device_id || dev.id || "";
+                        const isCam = dev.device_type === "cctv_camera";
+                        const icon = isCam ? "📹" : (dev.port === 1883 ? "🌡️" : "🌐");
+                        const methodBadge = dev.discovery_method === "onvif_ws_discovery"
+                            ? `<span class="px-1.5 py-0.5 rounded bg-sky-900/40 text-sky-400 border border-sky-700/60 font-mono text-[10px]">ONVIF</span>`
+                            : `<span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 font-mono text-[10px]">Port ${dev.port}</span>`;
+
+                        const extraInfo = dev.details ? `<div class="text-[10px] text-slate-400 truncate max-w-xs">${escapeHtml(dev.details)}</div>` : "";
+
+                        card.innerHTML = `
+                            <div class="flex items-center space-x-3 min-w-0">
+                                <span class="text-xl">${icon}</span>
+                                <div class="min-w-0">
+                                    <div class="flex items-center space-x-2">
+                                        <span class="font-bold text-slate-200 truncate">${escapeHtml(dev.name || devIp)}</span>
+                                        ${methodBadge}
+                                    </div>
+                                    <div class="font-mono text-[11px] text-slate-400">
+                                        ${escapeHtml(devIp)}:${dev.port} &bull; <span class="text-slate-500">${escapeHtml(dev.protocol)}</span>
+                                    </div>
+                                    ${extraInfo}
+                                </div>
+                            </div>
+                            <button type="button" onclick="quickOnboardDevice(${idx})" class="px-3 py-1.5 rounded bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs flex items-center space-x-1 transition-all shadow-sm solid-accent-btn whitespace-nowrap">
+                                <span>➕ Onboard</span>
+                            </button>
+                        `;
+                        container.appendChild(card);
+                    });
+                }
+                if (statusText) statusText.textContent = `Scan complete: ${devices.length} device${devices.length === 1 ? "" : "s"} discovered.`;
+            }
+        } catch (err) {
+            console.error("Discovery error:", err);
+            if (statusText) statusText.textContent = `❌ Network error: ${err.message}`;
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = `<span>🔍 Scan Now</span>`;
+                btn.classList.remove("opacity-60", "cursor-not-allowed");
+            }
+        }
+    };
+
+    window.quickOnboardDevice = function(devIndex) {
+        const dev = _lastDiscoveredDevices[devIndex];
+        if (!dev) return;
+
+        window.closeDiscoverModal();
+        window.openAddDeviceModal();
+
+        const idEl = document.getElementById("dev-input-id");
+        const nameEl = document.getElementById("dev-input-name");
+        const typeEl = document.getElementById("dev-input-type");
+        const protoEl = document.getElementById("dev-input-proto");
+        const ipEl = document.getElementById("dev-input-ip");
+        const portEl = document.getElementById("dev-input-port");
+        const snapEl = document.getElementById("dev-input-snapshot");
+        const topicEl = document.getElementById("dev-input-topic");
+
+        const devIp = dev.ip_address || dev.ip || "";
+        const devId = dev.device_id || dev.id || "";
+        const cleanIp = devIp.replace(/\./g, "_");
+
+        if (idEl) idEl.value = devId || `${dev.device_type || "device"}_${cleanIp}`;
+        if (nameEl) nameEl.value = dev.name || `${dev.device_type === "cctv_camera" ? "Camera" : "IoT Device"} (${devIp})`;
+        if (typeEl) typeEl.value = dev.device_type || "cctv_camera";
+        if (protoEl) protoEl.value = dev.protocol || (dev.device_type === "cctv_camera" ? "rtsp_http" : "mqtt");
+        if (ipEl) ipEl.value = devIp;
+        if (portEl) portEl.value = dev.port || (dev.device_type === "cctv_camera" ? 554 : 1883);
+        if (snapEl) snapEl.value = dev.snapshot_url || "";
+        if (topicEl && dev.topic) topicEl.value = dev.topic;
+    };
+
     window.syncDeviceDefaults = function() {
         const typeEl = document.getElementById("dev-input-type");
         const protoEl = document.getElementById("dev-input-proto");

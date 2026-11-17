@@ -15,6 +15,12 @@ from controller.api.app import create_app
 from controller.api.sse_broker import SSEBroadcaster
 from controller.core.db import DefenseDatabase
 from controller.core.detector import IntrusionDetector
+from controller.core.device_discovery import (
+    parse_onvif_response,
+    run_lan_discovery,
+    scan_lan_subnet,
+    validate_discovery_ip,
+)
 from controller.core.device_manager import RealDeviceManager
 from controller.core.log_tailer import HoneypotLogTailer
 from controller.mitigation.allowlist import AllowlistManager
@@ -605,6 +611,131 @@ class TestLiveModeMQTTAndLogRotation(unittest.IsolatedAsyncioTestCase):
         finally:
             tailer.stop()
             await asyncio.wait_for(task, timeout=2.0)
+
+
+class TestDeviceDiscoveryAndSSRF(unittest.TestCase):
+    """Unit tests for Phase C LAN ONVIF & IoT Discovery, SSRF guardrails, and discover API."""
+
+    def setUp(self) -> None:
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.db_path = os.path.join(self.temp_dir.name, "discovery_test.db")
+        self.comp = _build_test_components(self.db_path)
+        self.app = create_app(
+            detector=self.comp["detector"],
+            quarantine_manager=self.comp["quarantine"],
+            broadcaster=self.comp["broadcaster"],
+            enable_tailer=False,
+            enable_mqtt=False,
+        )
+        self.client = TestClient(self.app)
+
+    def tearDown(self) -> None:
+        self.temp_dir.cleanup()
+
+    def test_validate_discovery_ip_allowed_lan(self) -> None:
+        """Legitimate private LAN IPs pass SSRF validation."""
+        allowed_ips = ["192.168.1.100", "10.0.0.15", "172.16.5.4", "192.168.0.254"]
+        for ip in allowed_ips:
+            res = validate_discovery_ip(ip)
+            self.assertEqual(str(res), ip)
+
+    def test_validate_discovery_ip_blocks_ssrf(self) -> None:
+        """SSRF, loopback, link-local, and Docker internal IPs are strictly blocked."""
+        blocked_ips = [
+            "127.0.0.1",
+            "127.0.0.254",
+            "169.254.169.254",  # AWS / Cloud metadata
+            "169.254.1.1",      # Link-local
+            "172.20.0.1",      # Docker production net gateway
+            "172.20.0.5",      # Honeypot internal IP
+            "172.21.0.1",      # Docker quarantine net gateway
+            "172.21.0.5",      # Honeypot quarantine IP
+            "192.168.65.1",    # Docker Desktop macOS host gateway
+            "239.255.255.250", # Multicast address
+            "not_an_ip",       # Malformed string
+        ]
+        for ip in blocked_ips:
+            with self.assertRaises(ValueError, msg=f"Should block: {ip}"):
+                validate_discovery_ip(ip)
+
+    def test_parse_onvif_response_valid_xml(self) -> None:
+        """Parses valid ONVIF WS-Discovery SOAP response extracting IP, port, and scopes."""
+        soap_xml = (
+            b'<?xml version="1.0" encoding="utf-8"?>'
+            b'<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://www.w3.org/2003/05/soap-envelope" '
+            b'xmlns:d="http://schemas.xmlsoap.org/ws/2005/04/discovery">'
+            b'<SOAP-ENV:Body>'
+            b'<d:ProbeMatches>'
+            b'<d:ProbeMatch>'
+            b'<d:XAddrs>http://192.168.1.88:8080/onvif/device_service</d:XAddrs>'
+            b'<d:Scopes>onvif://www.onvif.org/type/video_encoder onvif://www.onvif.org/name/Hikvision_Camera onvif://www.onvif.org/hardware/DS-2CD2042WD</d:Scopes>'
+            b'</d:ProbeMatch>'
+            b'</d:ProbeMatches>'
+            b'</SOAP-ENV:Body>'
+            b'</SOAP-ENV:Envelope>'
+        )
+        parsed = parse_onvif_response(soap_xml)
+        self.assertIsNotNone(parsed)
+        self.assertEqual(parsed["ip_address"], "192.168.1.88")
+        self.assertEqual(parsed["device_type"], "cctv_camera")
+        self.assertEqual(parsed["name"], "Hikvision Camera")
+        self.assertEqual(parsed["device_id"], "cam_192_168_1_88")
+        self.assertEqual(parsed["protocol"], "rtsp_http")
+        self.assertEqual(parsed["port"], 554)
+        self.assertEqual(parsed["snapshot_url"], "http://192.168.1.88:8080/onvif/snapshot")
+
+    def test_parse_onvif_response_drops_ssrf_xaddrs(self) -> None:
+        """ONVIF XML response pointing to SSRF/metadata target is rejected."""
+        soap_ssrf = (
+            b'<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://www.w3.org/2003/05/soap-envelope" '
+            b'xmlns:d="http://schemas.xmlsoap.org/ws/2005/04/discovery">'
+            b'<SOAP-ENV:Body>'
+            b'<d:ProbeMatches>'
+            b'<d:ProbeMatch>'
+            b'<d:XAddrs>http://169.254.169.254/latest/meta-data/</d:XAddrs>'
+            b'</d:ProbeMatch>'
+            b'</d:ProbeMatches>'
+            b'</SOAP-ENV:Body>'
+            b'</SOAP-ENV:Envelope>'
+        )
+        parsed = parse_onvif_response(soap_ssrf)
+        self.assertIsNone(parsed)
+
+    def test_parse_onvif_response_malformed(self) -> None:
+        """Malformed XML or missing XAddrs cleanly returns None."""
+        self.assertIsNone(parse_onvif_response(b"not-xml"))
+        self.assertIsNone(parse_onvif_response(b"<Envelope><Body></Body></Envelope>"))
+
+    def test_api_discover_devices_endpoint_success(self) -> None:
+        """POST /api/devices/discover returns discovered device candidates."""
+        mock_devices = [
+            {
+                "device_id": "cam_192_168_1_55",
+                "name": "Hikvision CCTV",
+                "device_type": "cctv_camera",
+                "protocol": "rtsp_http",
+                "ip_address": "192.168.1.55",
+                "port": 554,
+                "snapshot_url": "http://192.168.1.55:80/onvif/snapshot",
+                "discovery_method": "onvif_ws_discovery",
+                "details": "ONVIF Service: http://192.168.1.55:80/onvif",
+            }
+        ]
+        with patch("controller.api.routes.run_lan_discovery", new_callable=AsyncMock) as mock_run:
+            mock_run.return_value = mock_devices
+            res = self.client.post("/api/devices/discover", json={"subnet": "192.168.1.0/24", "timeout": 1.5})
+            self.assertEqual(res.status_code, 200)
+            data = res.json()
+            self.assertEqual(data["status"], "success")
+            self.assertEqual(data["data"]["count"], 1)
+            self.assertEqual(data["data"]["devices"][0]["ip_address"], "192.168.1.55")
+
+    def test_api_discover_devices_blocks_forbidden_subnets(self) -> None:
+        """POST /api/devices/discover rejects scans of loopback, metadata, or Docker subnets."""
+        blocked_subnets = ["127.0.0.0/8", "169.254.0.0/16", "172.21.0.0/16", "invalid_cidr"]
+        for subnet in blocked_subnets:
+            res = self.client.post("/api/devices/discover", json={"subnet": subnet, "timeout": 1.0})
+            self.assertEqual(res.status_code, 400, msg=f"Subnet {subnet} should return 400")
 
 
 if __name__ == "__main__":
