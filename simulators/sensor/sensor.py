@@ -21,6 +21,9 @@ DEVICE_ID: str = os.getenv("DEVICE_ID", "temp_sensor_01")
 TOPIC: str = os.getenv("MQTT_TOPIC", "home/sensors/temperature")
 PUBLISH_INTERVAL: float = float(os.getenv("PUBLISH_INTERVAL", "2.0"))
 
+MQTT_USER: str = os.getenv("MQTT_USER") or os.getenv("MQTT_USERNAME", "")
+MQTT_PASSWORD: str = os.getenv("MQTT_PASSWORD", "")
+
 running: bool = True
 
 
@@ -39,6 +42,8 @@ def create_mqtt_client() -> mqtt.Client:
         client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, client_id=DEVICE_ID)
     else:
         client = mqtt.Client(client_id=DEVICE_ID)
+    if MQTT_USER:
+        client.username_pw_set(MQTT_USER, MQTT_PASSWORD)
     return client
 
 

@@ -19,12 +19,16 @@ class IoTTelemetryListener:
         broker_host: str = "172.20.0.10",
         broker_port: int = 1883,
         topic: str = "home/#",
+        username: Optional[str] = None,
+        password: Optional[str] = None,
         loop: Optional[asyncio.AbstractEventLoop] = None,
         on_message_callback: Optional[Callable[[str, str, float], Any]] = None,
     ) -> None:
         self.broker_host = broker_host
         self.broker_port = broker_port
         self.topic = topic
+        self.username = username or os.getenv("MQTT_USERNAME")
+        self.password = password or os.getenv("MQTT_PASSWORD")
         self.loop = loop
         self.on_message_callback = on_message_callback
         self.client: Optional[mqtt.Client] = None
@@ -43,6 +47,9 @@ class IoTTelemetryListener:
                 self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, client_id="iot_soc_listener")
             else:
                 self.client = mqtt.Client(client_id="iot_soc_listener")
+
+            if self.username:
+                self.client.username_pw_set(self.username, self.password)
 
             self.client.on_connect = self._on_connect
             self.client.on_message = self._on_message

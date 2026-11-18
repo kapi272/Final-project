@@ -19,6 +19,8 @@ BROKER_PORT: int = int(os.getenv("MQTT_BROKER_PORT", "1883"))
 DEVICE_ID: str = os.getenv("DEVICE_ID", "smart_bulb_01")
 SET_TOPIC: str = os.getenv("MQTT_SET_TOPIC", "home/devices/bulb/set")
 STATUS_TOPIC: str = os.getenv("MQTT_STATUS_TOPIC", "home/devices/bulb/status")
+MQTT_USER: str = os.getenv("MQTT_USER") or os.getenv("MQTT_USERNAME", "")
+MQTT_PASSWORD: str = os.getenv("MQTT_PASSWORD", "")
 
 bulb_state: Dict[str, Any] = {
     "device_id": DEVICE_ID,
@@ -66,6 +68,8 @@ def create_mqtt_client() -> mqtt.Client:
         client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, client_id=DEVICE_ID)
     else:
         client = mqtt.Client(client_id=DEVICE_ID)
+    if MQTT_USER:
+        client.username_pw_set(MQTT_USER, MQTT_PASSWORD)
     client.on_message = on_message
     return client
 

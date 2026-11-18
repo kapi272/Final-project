@@ -6,7 +6,7 @@ services:
     ports:
       - "1883:1883"
     volumes:
-      - ./config/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./config/mosquitto:/mosquitto/config:ro
     healthcheck:
       test: ["CMD-SHELL", "mosquitto_sub -t '$$SYS/broker/uptime' -C 1 -h 127.0.0.1 -p 1883 || exit 1"]
       interval: 5s
