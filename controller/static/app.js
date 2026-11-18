@@ -819,6 +819,23 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
 
+        eventSource.addEventListener("drill_completed", (e) => {
+            try {
+                const payload = JSON.parse(e.data);
+                const data = payload.data || {};
+                appendTerminalLog({
+                    stream: "SYSTEM",
+                    category: "system",
+                    severity: data.status === "PASSED" ? "INFO" : "WARN",
+                    source: "watchdog_drill",
+                    protocol: "WATCHDOG",
+                    message: data.summary || `Automated defense verification drill completed (${data.status}).`
+                });
+            } catch (err) {
+                // ignore parse errors
+            }
+        });
+
         eventSource.addEventListener("error", () => {
             sseIndicator.className = "w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping";
             ssePill.className = "inline-flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-semibold bg-rose-950/40 border border-rose-800 text-rose-400";
@@ -2286,6 +2303,173 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     };
 
+    function renderWatchdogHealth(data) {
+        const container = document.getElementById("drill-checks-container");
+        const statusText = document.getElementById("drill-status-text");
+        const statusPill = document.getElementById("drill-status-pill");
+        const statusSub = document.getElementById("drill-status-sub");
+        const latencyDisp = document.getElementById("drill-latency-display");
+        if (!container) return;
+
+        if (statusText) statusText.textContent = `Defense Health: ${data.overall_status || "UNKNOWN"}`;
+        if (statusSub) statusSub.textContent = `Netfilter: ${data.netfilter?.status || "OK"} (${data.netfilter?.active_rules || 0} drops) • Database WAL: ${data.database?.wal_mode ? "Active" : "Standard"}`;
+        if (statusPill) {
+            const isHealthy = data.overall_status === "HEALTHY";
+            statusPill.className = isHealthy
+                ? "px-2.5 py-1 rounded text-xs font-mono font-bold bg-emerald-950 border border-emerald-700 text-emerald-300"
+                : "px-2.5 py-1 rounded text-xs font-mono font-bold bg-amber-950 border border-amber-700 text-amber-300";
+            statusPill.textContent = data.overall_status || "AUDIT";
+        }
+        if (latencyDisp) latencyDisp.textContent = `Audit completed: ${new Date().toLocaleTimeString()}`;
+
+        container.textContent = "";
+        const listeners = data.listeners || {};
+        for (const [key, item] of Object.entries(listeners)) {
+            const card = document.createElement("div");
+            card.className = "p-2.5 rounded bg-slate-950/70 border border-slate-800 flex items-center justify-between";
+            const left = document.createElement("div");
+            left.className = "flex items-center space-x-2";
+            const icon = document.createElement("span");
+            icon.textContent = item.online ? "🟢" : "🔴";
+            const name = document.createElement("span");
+            name.className = "font-medium text-slate-200";
+            name.textContent = item.service || key;
+            left.appendChild(icon);
+            left.appendChild(name);
+
+            const right = document.createElement("div");
+            right.className = "flex items-center space-x-2";
+            const port = document.createElement("span");
+            port.className = "font-mono text-[10px] text-slate-400";
+            port.textContent = `${item.protocol}:${item.port}`;
+            const lat = document.createElement("span");
+            lat.className = "font-mono text-[11px] font-bold text-sky-400";
+            lat.textContent = item.online ? `${item.latency_ms} ms` : "OFFLINE";
+            right.appendChild(port);
+            right.appendChild(lat);
+
+            card.appendChild(left);
+            card.appendChild(right);
+            container.appendChild(card);
+        }
+    }
+
+    function renderDrillReport(data) {
+        const container = document.getElementById("drill-checks-container");
+        const statusText = document.getElementById("drill-status-text");
+        const statusPill = document.getElementById("drill-status-pill");
+        const statusSub = document.getElementById("drill-status-sub");
+        const latencyDisp = document.getElementById("drill-latency-display");
+        if (!container) return;
+
+        const isPassed = data.status === "PASSED";
+        if (statusText) statusText.textContent = `Verification Drill: ${data.status}`;
+        if (statusSub) statusSub.textContent = data.summary || `${data.checks_passed}/${data.checks_total} autonomous checks validated.`;
+        if (statusPill) {
+            statusPill.className = isPassed
+                ? "px-2.5 py-1 rounded text-xs font-mono font-bold bg-emerald-950 border border-emerald-700 text-emerald-300"
+                : "px-2.5 py-1 rounded text-xs font-mono font-bold bg-rose-950 border border-rose-700 text-rose-300";
+            statusPill.textContent = data.status;
+        }
+        if (latencyDisp) latencyDisp.textContent = `Drill Latency: ${data.duration_ms} ms`;
+
+        container.textContent = "";
+        const checks = data.checks || [];
+        checks.forEach((c) => {
+            const card = document.createElement("div");
+            card.className = "p-2.5 rounded bg-slate-950/70 border border-slate-800 flex items-start justify-between space-x-3";
+            const left = document.createElement("div");
+            const titleRow = document.createElement("div");
+            titleRow.className = "flex items-center space-x-1.5";
+            const badge = document.createElement("span");
+            badge.textContent = c.passed ? "✅" : "⚠️";
+            const name = document.createElement("span");
+            name.className = "font-semibold text-slate-200";
+            name.textContent = c.name;
+            titleRow.appendChild(badge);
+            titleRow.appendChild(name);
+
+            const detail = document.createElement("div");
+            detail.className = "text-[11px] text-slate-400 mt-1 pl-5";
+            detail.textContent = c.detail;
+
+            left.appendChild(titleRow);
+            left.appendChild(detail);
+
+            const right = document.createElement("span");
+            right.className = c.passed ? "text-[11px] font-bold text-emerald-400 shrink-0" : "text-[11px] font-bold text-amber-400 shrink-0";
+            right.textContent = c.passed ? "PASS" : "WARN";
+
+            card.appendChild(left);
+            card.appendChild(right);
+            container.appendChild(card);
+        });
+    }
+
+    window.openDrillModal = async function() {
+        const modal = document.getElementById("drill-modal");
+        if (!modal) return;
+        modal.classList.remove("hidden");
+        const container = document.getElementById("drill-checks-container");
+        if (container) {
+            container.innerHTML = '<div class="text-center text-slate-400 py-4"><span class="animate-pulse">Auditing defense subsystems & deception listeners...</span></div>';
+        }
+        try {
+            const res = await fetch("/api/defense/watchdog/health");
+            const json = await res.json();
+            if (json.status === "success" && json.data) {
+                renderWatchdogHealth(json.data);
+            }
+        } catch (err) {
+            console.error("Failed to fetch watchdog health:", err);
+        }
+    };
+
+    window.closeDrillModal = function() {
+        const modal = document.getElementById("drill-modal");
+        if (modal) modal.classList.add("hidden");
+    };
+
+    window.triggerDefenseDrill = function() {
+        window.openDrillModal();
+    };
+
+    window.executeDefenseDrill = async function() {
+        const btn = document.getElementById("btn-start-drill");
+        const pill = document.getElementById("drill-status-pill");
+        const text = document.getElementById("drill-status-text");
+        const sub = document.getElementById("drill-status-sub");
+        if (btn) btn.disabled = true;
+        if (pill) {
+            pill.className = "px-2.5 py-1 rounded text-xs font-mono font-bold bg-amber-950 border border-amber-700 text-amber-300 animate-pulse";
+            pill.textContent = "RUNNING";
+        }
+        if (text) text.textContent = "Executing Automated Verification Drill...";
+        if (sub) sub.textContent = "Validating Netfilter injection, allowlist invariants, honeypot ports, and persistence...";
+
+        try {
+            const res = await fetch("/api/defense/watchdog/drill", { method: "POST" });
+            const json = await res.json();
+            if (json.status === "success" && json.data) {
+                renderDrillReport(json.data);
+                appendTerminalLog({
+                    stream: "SYSTEM",
+                    category: "system",
+                    severity: json.data.status === "PASSED" ? "INFO" : "WARN",
+                    source: "watchdog_drill",
+                    protocol: "WATCHDOG",
+                    message: json.data.summary || "Automated verification drill completed."
+                });
+            } else {
+                alert("Drill failed: " + (json.message || "Unknown error"));
+            }
+        } catch (err) {
+            alert("Error executing drill: " + err);
+        } finally {
+            if (btn) btn.disabled = false;
+        }
+    };
+
     // Keyboard shortcut to close modals
     document.addEventListener("keydown", (e) => {
         if (e.key === "Escape") {
@@ -2293,6 +2477,7 @@ document.addEventListener("DOMContentLoaded", () => {
             window.closeAnalyticsModal();
             window.closeAddDeviceModal();
             window.closeSnapshotModal();
+            window.closeDrillModal();
             window.closeConfirmModal();
         }
     });

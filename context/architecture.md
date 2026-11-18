@@ -16,7 +16,7 @@
 
 - `simulators/` — Houses lightweight Python container images simulating legitimate IoT nodes (temperature sensor, smart bulb). They have zero defense logic and only publish standard telemetry to the broker.
 - `honeypot/` — Contains Cowrie honeypot configuration (`cowrie.cfg`), download traps, and JSON log volumes shared read-only with the controller.
-- `controller/core/` — Contains the internal detection state machine, sliding-window log analysis, `log_tailer.py` (inode/rotation-resilient Cowrie JSONL tailer), `device_manager.py` (`RealDeviceManager` for physical/external IoT & CCTV registration, SSRF-guarded HTTP/MJPEG snapshot proxy, non-shell TCP health probing, and logical device quarantine), safety allowlists, and mitigation rules.
+- `controller/core/` — Contains the internal detection state machine, sliding-window log analysis, `log_tailer.py` (inode/rotation-resilient Cowrie JSONL tailer), `device_manager.py` (`RealDeviceManager` for physical/external IoT & CCTV registration, SSRF-guarded HTTP/MJPEG snapshot proxy, non-shell TCP health probing, and logical device quarantine), `watchdog.py` (self-healing Netfilter watchdog, listener health auditor, and automated verification drill runner), `stix_exporter.py` (OASIS STIX 2.1 JSON exporter), `webhook_notifier.py` (outbound SIEM alerts), safety allowlists, and mitigation rules.
 - `controller/mitigation/` — Contains isolated drivers for external execution: `firewall.py` (packet drop rules) and `quarantine.py` (Docker Engine socket network management).
 - `controller/api/` — Houses FastAPI router definitions, SSE client subscriber queue pool, and event dispatchers.
 - `controller/templates/` & `controller/static/` — Holds the single-page dashboard layout and static styling/scripts.

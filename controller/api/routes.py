@@ -16,6 +16,7 @@ from controller.core.device_manager import RealDeviceManager
 from controller.core.detector import IntrusionDetector
 from controller.core.models import CowrieEvent
 from controller.core.stix_exporter import generate_stix_bundle
+from controller.core.watchdog import DefenseWatchdog
 from controller.core.webhook_notifier import WebhookNotifier
 from controller.mitigation.quarantine import QuarantineManager
 
@@ -198,6 +199,23 @@ def get_webhook_notifier(request: Request) -> WebhookNotifier:
         notifier = WebhookNotifier(db=detector.db)
         request.app.state.webhook_notifier = notifier
     return notifier
+
+
+def get_watchdog(request: Request) -> DefenseWatchdog:
+    watchdog = getattr(request.app.state, "watchdog", None)
+    if not watchdog:
+        detector = get_detector(request)
+        quarantine = get_quarantine_manager(request)
+        broadcaster = get_broadcaster(request)
+        watchdog = DefenseWatchdog(
+            firewall=detector.firewall,
+            detector=detector,
+            db=detector.db,
+            quarantine=quarantine,
+            on_alert_callback=lambda event, data: broadcaster.broadcast(event, data),
+        )
+        request.app.state.watchdog = watchdog
+    return watchdog
 
 
 def _ensure_simulated_mode(request: Request) -> None:
@@ -771,6 +789,22 @@ async def test_webhook_connection(request: Request) -> Dict[str, Any]:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Failed to deliver probe to webhook: {exc}") from exc
+
+
+@router.get("/defense/watchdog/health")
+async def get_watchdog_health(request: Request) -> Dict[str, Any]:
+    """Returns detailed real-time health across all deception listeners, netfilter, and database."""
+    watchdog = get_watchdog(request)
+    health_data = await watchdog.check_all_listeners()
+    return make_response(data=health_data, message="Watchdog health audit completed.")
+
+
+@router.post("/defense/watchdog/drill")
+async def execute_watchdog_drill(request: Request) -> Dict[str, Any]:
+    """Executes an automated closed-loop defense verification drill and broadcasts results."""
+    watchdog = get_watchdog(request)
+    drill_report = await watchdog.run_verification_drill()
+    return make_response(data=drill_report, message=drill_report.get("summary", "Verification drill completed."))
 
 
 # --- Real-World IoT & CCTV Device Registry / Live Ingestion Routes ---

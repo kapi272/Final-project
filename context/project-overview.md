@@ -74,6 +74,13 @@ This project is an autonomous, containerized host-level IoT cyber defense system
 - Real-Time Streaming Protocol (RTSP RFC 2326 TCP:8554) camera honeypot emulating streaming handshakes (`OPTIONS`, `DESCRIBE`) and harvesting credential brute-force attempts.
 - Automated closed-loop mitigation executing sub-second kernel Netfilter drop bans against offending attacker IPs with 5th Red Team simulation card.
 
+### 10. Self-Healing Defense Watchdog & Verification Drill (`v3.0.0`)
+- Autonomous Netfilter chain integrity monitor verifying `IOT_DEFENSE_BLOCKLIST` existence and parent routing table attachment (`DOCKER-USER` / `INPUT`), automatically re-hooking and re-injecting active bans from SQLite if an external tool flushes rules.
+- Multi-protocol deception listener health auditor probing Cowrie SSH/Telnet, Mosquitto MQTT, and CoAP sensor sockets.
+- On-demand and scheduled closed-loop verification drill engine executing non-destructive allowlist, mitigation, and latency tests (`/api/defense/watchdog/drill`).
+- Docker Compose service readiness with native healthchecks and deterministic dependency startup ordering.
+- MQTT broker authentication hardening with PBKDF2 password store and role-separated access control lists (`acl.conf`).
+
 ## Scope
 
 ### In Scope

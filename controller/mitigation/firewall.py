@@ -2,7 +2,7 @@ import logging
 import re
 import shutil
 import subprocess
-from typing import List, Optional, Set
+from typing import Any, Dict, List, Optional, Set
 
 from controller.mitigation.allowlist import AllowlistManager
 
@@ -180,4 +180,66 @@ class FirewallController:
         else:
             logger.error("Failed to flush chain '%s': %s", CHAIN_NAME, res.stderr.strip())
             return False
+
+    def check_chain_integrity(self, reheal: bool = True) -> Dict[str, Any]:
+        """
+        Verifies that IOT_DEFENSE_BLOCKLIST exists and is hooked into the routing table.
+        If chain was flushed or unhooked externally, auto-heals when reheal=True.
+        """
+        if self.dry_run:
+            return {
+                "chain_name": CHAIN_NAME,
+                "chain_exists": True,
+                "parent_hooked": True,
+                "parent_chain": PARENT_CHAIN,
+                "active_rules": len(self._active_bans),
+                "auto_healed": False,
+                "status": "HEALTHY",
+            }
+
+        # 1. Check custom chain existence
+        check_chain = self._run_cmd(["iptables", "-L", CHAIN_NAME, "-n"])
+        chain_exists = (check_chain.returncode == 0)
+
+        # 2. Check hook into parent
+        parent = PARENT_CHAIN
+        check_parent = self._run_cmd(["iptables", "-C", parent, "-j", CHAIN_NAME])
+        parent_hooked = (check_parent.returncode == 0)
+        if not parent_hooked:
+            parent = "INPUT"
+            check_fallback = self._run_cmd(["iptables", "-C", parent, "-j", CHAIN_NAME])
+            parent_hooked = (check_fallback.returncode == 0)
+
+        auto_healed = False
+        if (not chain_exists or not parent_hooked) and reheal:
+            logger.warning("Netfilter chain integrity degradation detected! Triggering auto-heal...")
+            auto_healed = self.initialize_chains()
+            chain_exists = True
+            parent_hooked = True
+
+        rules = self.list_banned_ips()
+        status = "HEALTHY" if (chain_exists and parent_hooked) else "DEGRADED"
+
+        return {
+            "chain_name": CHAIN_NAME,
+            "chain_exists": chain_exists,
+            "parent_hooked": parent_hooked,
+            "parent_chain": parent if parent_hooked else None,
+            "active_rules": len(rules),
+            "auto_healed": auto_healed,
+            "status": status,
+        }
+
+    def sync_active_bans(self, banned_ips: List[str]) -> int:
+        """
+        Synchronizes a list of authorized banned IPs against the live kernel table.
+        Re-injects missing rules if an external tool cleared the table.
+        """
+        re_injected = 0
+        for ip in banned_ips:
+            if not self.is_ip_banned(ip):
+                if self.ban_ip(ip):
+                    re_injected += 1
+        return re_injected
+
 

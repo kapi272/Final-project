@@ -18,6 +18,7 @@ from controller.core.detector import IntrusionDetector
 from controller.core.log_tailer import HoneypotLogTailer
 from controller.core.models import CowrieEvent, MitigationRecord
 from controller.core.mqtt_listener import IoTTelemetryListener
+from controller.core.watchdog import DefenseWatchdog
 from controller.core.webhook_notifier import WebhookNotifier
 from controller.mitigation.allowlist import AllowlistManager
 from controller.mitigation.firewall import FirewallController
@@ -82,6 +83,14 @@ def create_app(
                 "reason": rec.reason,
                 "timestamp": rec.timestamp,
             })
+
+    watchdog = DefenseWatchdog(
+        firewall=detector_instance.firewall,
+        detector=detector_instance,
+        db=detector_instance.db,
+        quarantine=quarantine_instance,
+        on_alert_callback=lambda event, data: sse_broadcaster.broadcast(event, data),
+    )
 
     saved_mode = detector_instance.db.get_setting("traffic_mode", "simulated")
     initial_mode = saved_mode if saved_mode in {"simulated", "live"} else "simulated"
@@ -244,6 +253,7 @@ def create_app(
     app.state.device_manager = device_manager
     app.state.webhook_notifier = webhook_notifier
     app.state.decoy_manager = decoy_manager
+    app.state.watchdog = watchdog
     app.state.traffic_mode = initial_mode
 
     # CORS configuration scoped to local management origins (same-origin UI does not require wildcard)

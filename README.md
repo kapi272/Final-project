@@ -7,7 +7,7 @@ An autonomous, containerized host-level IoT cyber defense testbed and SOC platfo
 [![Docker Compose](https://img.shields.io/badge/Docker-Compose%20v2+-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 [![Release: v3.0.0](https://img.shields.io/badge/Release-v3.0.0-blue)](./)
 [![Reaction SLA](https://img.shields.io/badge/Mitigation%20Latency-0.65%20ms-emerald)](./context/specs/06-red-team-simulation.md)
-[![Tests Passing](https://img.shields.io/badge/Tests-82%2F82%20Passing-brightgreen)](./tests/)
+[![Tests Passing](https://img.shields.io/badge/Tests-95%2F95%20Passing-brightgreen)](./tests/)
 
 ---
 
@@ -19,6 +19,7 @@ This project unifies an educational cyber-range simulator and a live local-perim
 - **`Live Mode` (Real-World IoT & CCTV Shield):** Mutes synthetic demo traffic, provides **1-Click LAN Auto-Discovery** (ONVIF WS-Discovery + IoT port sweep), and onboards real physical LAN IoT sensors (ESP32, Raspberry Pi) and IP/CCTV cameras via MQTT (`home/#`), SHA-256 token-authenticated HTTP webhooks, periodic TCP health probes, and an SSRF-guarded HTTP/MJPEG live camera viewer.
 - **Threat Intelligence & SIEM Webhook (`v2.4.0`):** Automated **OASIS STIX 2.1** threat intelligence JSON bundle export mapped to MITRE ATT&CK techniques, alongside outbound real-time alert webhooks for Splunk, Elastic, Slack, and Discord.
 - **Multi-Protocol Deception Decoys (`v2.5.0`):** CoAP (RFC 7252 on UDP:5683) smart sensor and RTSP (RFC 2326 on TCP:8554) camera honeypot traps with autonomous closed-loop Netfilter mitigation and 5th Red Team simulation card.
+- **Enterprise Self-Healing Watchdog & Verification Drill (`v3.0.0`):** Real-time Netfilter chain integrity monitor with auto-healing, background listener health probes, and on-demand closed-loop defense verification drills.
 - **SOC Dashboard (`http://localhost:8050`):** Tabbed single-page console organized into **Live Operations**, full-width **Mitigation Ledger**, 6-column IST **Activity Logs**, and **About & Architecture**, with a persistent **Dark / Light Mode** switcher (`soc_theme`).
 
 Built following the **Six-File Context Methodology** for spec-driven development.
