@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 class DefenseWatchdog:
     """
     Self-healing defense watchdog and automated verification drill runner for the
-    Autonomous IoT Cyber Defense System (v3.0.0-SOC).
+    Autonomous IoT Cyber Defense System (v3.1.0-SOC).
 
     Monitors deception listeners, kernel Netfilter chain integrity, SQLite WAL
     persistence, and executes non-destructive closed-loop validation drills.
