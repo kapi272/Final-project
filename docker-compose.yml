@@ -46,14 +46,58 @@ services:
       - MQTT_BROKER_HOST=172.20.0.10
       - MQTT_BROKER_PORT=1883
       - DEVICE_ID=smart_bulb_01
+      - DEVICE_KIND=bulb
       - MQTT_SET_TOPIC=home/devices/bulb/set
       - MQTT_STATUS_TOPIC=home/devices/bulb/status
+      - PUBLISH_INTERVAL=5.0
     depends_on:
       mqtt_broker:
         condition: service_healthy
     networks:
       iot_production_net:
         ipv4_address: 172.20.0.22
+
+  motion_node:
+    build:
+      context: ./simulators/sensor
+      dockerfile: Dockerfile
+    container_name: iot_motion_node
+    restart: unless-stopped
+    environment:
+      - MQTT_BROKER_HOST=172.20.0.10
+      - MQTT_BROKER_PORT=1883
+      - DEVICE_ID=motion_sensor_02
+      - SENSOR_TYPE=motion
+      - SENSOR_ZONE=Living-Room
+      - MQTT_TOPIC=home/sensors/motion
+      - PUBLISH_INTERVAL=3.0
+    depends_on:
+      mqtt_broker:
+        condition: service_healthy
+    networks:
+      iot_production_net:
+        ipv4_address: 172.20.0.23
+
+  lock_node:
+    build:
+      context: ./simulators/bulb
+      dockerfile: Dockerfile
+    container_name: iot_lock_node
+    restart: unless-stopped
+    environment:
+      - MQTT_BROKER_HOST=172.20.0.10
+      - MQTT_BROKER_PORT=1883
+      - DEVICE_ID=smart_lock_01
+      - DEVICE_KIND=lock
+      - MQTT_SET_TOPIC=home/devices/lock/set
+      - MQTT_STATUS_TOPIC=home/devices/lock/status
+      - PUBLISH_INTERVAL=4.0
+    depends_on:
+      mqtt_broker:
+        condition: service_healthy
+    networks:
+      iot_production_net:
+        ipv4_address: 172.20.0.24
 
   cowrie_honeypot:
     image: cowrie/cowrie:latest
@@ -65,11 +109,11 @@ services:
     volumes:
       - ./honeypot/logs:/cowrie/cowrie-git/var/log/cowrie
     healthcheck:
-      test: ["CMD", "python3", "-c", "import socket; s = socket.socket(); s.connect(('127.0.0.1', 2222)); s.close(); exit(0)"]
-      interval: 5s
+      test: ["CMD", "python3", "-c", "import sys; sys.exit(0 if 'cowrie' in open('/proc/1/cmdline').read() else 1)"]
+      interval: 10s
       timeout: 3s
-      retries: 5
-      start_period: 3s
+      retries: 3
+      start_period: 5s
     networks:
       iot_production_net:
         ipv4_address: 172.20.0.50
@@ -92,6 +136,7 @@ services:
     environment:
       - HOST=0.0.0.0
       - PORT=8000
+      - HOST_LAN_SUBNET=${HOST_LAN_SUBNET:-10.165.174.0/24}
     depends_on:
       mqtt_broker:
         condition: service_healthy

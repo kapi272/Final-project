@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 
 from controller.api.routes import router
 from controller.api.sse_broker import SSEBroadcaster
+from controller.core.auth import AuthService
 from controller.core.db import DefenseDatabase
 from controller.core.decoy_services import DecoyManager
 from controller.core.device_manager import RealDeviceManager
@@ -65,6 +66,7 @@ def create_app(
 
     quarantine_instance = quarantine_manager or QuarantineManager()
     device_manager = RealDeviceManager(db=detector_instance.db)
+    auth_service = AuthService(db=detector_instance.db)
     webhook_notifier.db = detector_instance.db
     decoy_manager = DecoyManager(
         on_coap_probe=lambda ip, uri, p: asyncio.create_task(
@@ -97,6 +99,9 @@ def create_app(
 
     async def on_honeypot_event(event: CowrieEvent) -> None:
         """Processes each event from the log tailer and broadcasts raw hit over SSE."""
+        if not event or not event.src_ip or detector_instance.allowlist.is_ip_protected(event.src_ip):
+            logger.debug("Ignoring honeypot event from protected or loopback IP: %s", getattr(event, "src_ip", None))
+            return
         await sse_broadcaster.broadcast("honeypot_hit", event.to_dict())
         detector_instance.process_event(event)
 
@@ -109,6 +114,10 @@ def create_app(
         """Broadcasts IoT node sensor and actuator MQTT messages filtered by active traffic mode."""
         mode = getattr(app.state, "traffic_mode", "simulated")
         matched_dev, is_sim_default = device_manager.match_mqtt_message(topic, payload)
+
+        # In strict Live Mode, completely ignore mock simulation container heartbeats
+        if mode == "live" and is_sim_default:
+            return
 
         src_ip = matched_dev["ip_address"] if matched_dev else None
         device_id = matched_dev["device_id"] if matched_dev else None
@@ -251,21 +260,21 @@ def create_app(
     app.state.quarantine_manager = quarantine_instance
     app.state.sse_broadcaster = sse_broadcaster
     app.state.device_manager = device_manager
+    app.state.auth_service = auth_service
     app.state.webhook_notifier = webhook_notifier
     app.state.decoy_manager = decoy_manager
     app.state.watchdog = watchdog
     app.state.traffic_mode = initial_mode
 
     # CORS configuration scoped to local management origins (same-origin UI does not require wildcard)
-    # TODO(security): Enforce HTTPS origins and operator authentication before exposing port 8050 externally.
     allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "http://localhost:8050,http://127.0.0.1:8050,http://localhost:8000,http://127.0.0.1:8000")
     allowed_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
     app.add_middleware(
         CORSMiddleware,
         allow_origins=allowed_origins,
-        allow_credentials=False,
-        allow_methods=["GET", "POST", "DELETE"],
-        allow_headers=["Content-Type", "X-Device-Token"],
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE"],
+        allow_headers=["Content-Type", "X-Device-Token", "Authorization"],
     )
 
     @app.middleware("http")

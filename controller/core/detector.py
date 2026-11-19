@@ -117,7 +117,15 @@ class IntrusionDetector:
         Analyzes an incoming CowrieEvent and returns a MitigationRecord if autonomous
         action was triggered.
         """
+        if not event or not event.src_ip:
+            return None
+
         src_ip = event.src_ip.strip()
+
+        # Invariant check: Allowlisted and management IPs are never processed as threats or counted in telemetry
+        if self.allowlist.is_ip_protected(src_ip):
+            logger.debug("Source IP %s is protected by allowlist; skipping policy evaluation.", src_ip)
+            return None
 
         # Update telemetry analytics counters
         if event.dst_port:
@@ -161,11 +169,6 @@ class IntrusionDetector:
             self.db.record_threat_event(event_record)
         except Exception as e:
             logger.error("Failed to persist threat event to database: %s", e)
-
-        # Invariant check: Allowlisted and management IPs are never banned
-        if self.allowlist.is_ip_protected(src_ip):
-            logger.debug("Source IP %s is protected by allowlist; skipping policy evaluation.", src_ip)
-            return None
 
         now = time.time()
         mitigation: Optional[MitigationRecord] = None
@@ -237,9 +240,6 @@ class IntrusionDetector:
         effective_ip = (src_ip or "").strip()
         tracking_key = effective_ip or device_id or clean_topic
 
-        # Update target port analytics counter for 1883
-        self._port_counts["1883"] = self._port_counts.get("1883", 0) + 1
-
         # Track publish rate in sliding window
         if tracking_key:
             if tracking_key not in self._mqtt_publish_times:
@@ -288,6 +288,7 @@ class IntrusionDetector:
             return None
 
         # Record threat analytics
+        self._port_counts["1883"] = self._port_counts.get("1883", 0) + 1
         self._attack_counts["exploit"] = self._attack_counts.get("exploit", 0) + 1
         event_record = {
             "timestamp": now,

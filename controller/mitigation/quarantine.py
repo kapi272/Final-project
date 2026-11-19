@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +62,42 @@ class QuarantineManager:
                 return "not_found"
             logger.error("Error inspecting container '%s': %s", container_name_or_id, e)
             return "error"
+
+    def get_all_virtual_node_states(self, default_nodes: Optional[List[str]] = None) -> Dict[str, str]:
+        """
+        Dynamically returns the network status for all known and active virtual IoT nodes.
+        Discovers any container whose name starts with 'iot_' on Docker daemon.
+        """
+        known_nodes = default_nodes or [
+            "iot_sensor_node",
+            "iot_bulb_node",
+            "iot_motion_node",
+            "iot_lock_node",
+            "iot_mqtt_broker",
+            "iot_cowrie_honeypot",
+        ]
+        states: Dict[str, str] = {}
+
+        if not self.client:
+            return {node: "production" for node in known_nodes}
+
+        try:
+            containers = self.client.containers.list(all=True)
+            discovered_iot = [
+                c.name for c in containers
+                if c.name and c.name.startswith("iot_") and c.name != "iot_defense_controller"
+            ]
+            target_nodes = discovered_iot if discovered_iot else known_nodes
+            for node_name in target_nodes:
+                status = self.get_container_network_status(node_name)
+                if status not in {"not_found", "error"}:
+                    states[node_name] = status
+                else:
+                    states[node_name] = "offline"
+            return states if states else {node: "production" for node in known_nodes}
+        except Exception as e:
+            logger.warning("Error dynamically enumerating virtual IoT nodes: %s", e)
+            return {node: self.get_container_network_status(node) for node in known_nodes}
 
     def quarantine_container(self, container_name_or_id: str) -> Dict[str, Any]:
         """

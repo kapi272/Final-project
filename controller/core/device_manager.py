@@ -20,7 +20,12 @@ logger = logging.getLogger(__name__)
 
 ALLOWED_DEVICE_TYPES = {"cctv_camera", "iot_sensor", "smart_actuator", "edge_gateway"}
 ALLOWED_PROTOCOLS = {"mqtt", "rtsp_http", "http_webhook"}
-SIMULATED_DEFAULT_DEVICE_IDS = {"temp_sensor_01", "smart_bulb_01"}
+SIMULATED_DEFAULT_DEVICE_IDS = {
+    "temp_sensor_01",
+    "smart_bulb_01",
+    "motion_sensor_02",
+    "smart_lock_01",
+}
 PROTECTED_INFRA_IPS = {
     ipaddress.ip_address("172.20.0.1"),
     ipaddress.ip_address("172.20.0.5"),
@@ -306,6 +311,18 @@ class RealDeviceManager:
     def get_device(self, device_id: str) -> Optional[Dict[str, Any]]:
         rec = self.db.get_device(device_id, include_secret=False)
         return self.sanitize_device_for_api(rec) if rec else None
+
+    def update_device_name(self, device_id: str, new_name: str) -> Dict[str, Any]:
+        """Updates the friendly display name of an existing registered device."""
+        rec = self.db.get_device(device_id, include_secret=False)
+        if not rec:
+            raise KeyError(f"Device '{device_id}' not found.")
+        clean_name = (new_name or "").strip()[:80]
+        if not clean_name:
+            raise ValueError("Device display name cannot be empty.")
+        self.db.update_device_name(device_id, clean_name)
+        updated = self.db.get_device(device_id, include_secret=False)
+        return self.sanitize_device_for_api(updated)
 
     def delete_device(self, device_id: str) -> bool:
         return self.db.delete_device(device_id)

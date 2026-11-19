@@ -9,7 +9,7 @@ from controller.core.models import MitigationRecord
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_DB_PATH: str = os.path.join("data", "defense_history.db")
+DEFAULT_DB_PATH: str = os.environ.get("DEFENSE_DB_PATH", os.path.join("data", "defense_history.db"))
 
 
 class DefenseDatabase:
@@ -108,6 +108,44 @@ class DefenseDatabase:
             cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_threat_events_type
                 ON threat_events (attack_type)
+            """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    user_id TEXT PRIMARY KEY,
+                    username TEXT UNIQUE NOT NULL,
+                    password_hash TEXT NOT NULL,
+                    salt TEXT NOT NULL,
+                    role TEXT NOT NULL DEFAULT 'operator',
+                    full_name TEXT NOT NULL DEFAULT '',
+                    email TEXT NOT NULL DEFAULT '',
+                    is_active INTEGER NOT NULL DEFAULT 1,
+                    last_login REAL,
+                    created_at REAL NOT NULL
+                )
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_users_username
+                ON users (username)
+            """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS user_sessions (
+                    session_id TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL,
+                    role TEXT NOT NULL,
+                    created_at REAL NOT NULL,
+                    expires_at REAL NOT NULL,
+                    last_activity REAL NOT NULL,
+                    ip_address TEXT NOT NULL DEFAULT '',
+                    user_agent TEXT NOT NULL DEFAULT ''
+                )
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_sessions_user_id
+                ON user_sessions (user_id)
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_sessions_expires_at
+                ON user_sessions (expires_at)
             """)
             conn.commit()
             logger.info("DefenseDatabase initialized at %s", self.db_path)
@@ -428,6 +466,17 @@ class DefenseDatabase:
             conn.commit()
             return cursor.rowcount > 0
 
+    def update_device_name(self, device_id: str, name: str) -> bool:
+        """Updates the friendly display name for a registered device."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE registered_devices SET name = ? WHERE device_id = ?",
+                (name, device_id),
+            )
+            conn.commit()
+            return cursor.rowcount > 0
+
     def delete_device(self, device_id: str) -> bool:
         """Deletes a registered IoT device record."""
         with self._get_connection() as conn:
@@ -435,4 +484,204 @@ class DefenseDatabase:
             cursor.execute("DELETE FROM registered_devices WHERE device_id = ?", (device_id,))
             conn.commit()
             return cursor.rowcount > 0
+
+    # --- SOC User & Session Authentication Persistence ---
+
+    def create_user(
+        self,
+        user_id: str,
+        username: str,
+        password_hash: str,
+        salt: str,
+        role: str = "operator",
+        full_name: str = "",
+        email: str = "",
+        is_active: bool = True,
+    ) -> bool:
+        """Persists a new user record in SQLite."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO users (
+                    user_id, username, password_hash, salt, role,
+                    full_name, email, is_active, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    user_id,
+                    username.strip().lower(),
+                    password_hash,
+                    salt,
+                    role.strip().lower(),
+                    full_name.strip(),
+                    email.strip().lower(),
+                    1 if is_active else 0,
+                    time.time(),
+                ),
+            )
+            conn.commit()
+            return cursor.rowcount > 0
+
+    def get_user_by_username(self, username: str) -> Optional[Dict[str, Any]]:
+        """Retrieves a user by username."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT user_id, username, password_hash, salt, role,
+                       full_name, email, is_active, last_login, created_at
+                FROM users
+                WHERE username = ?
+                """,
+                (username.strip().lower(),),
+            )
+            row = cursor.fetchone()
+            return dict(row) if row else None
+
+    def get_user_by_id(self, user_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieves a user by unique ID."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT user_id, username, password_hash, salt, role,
+                       full_name, email, is_active, last_login, created_at
+                FROM users
+                WHERE user_id = ?
+                """,
+                (user_id,),
+            )
+            row = cursor.fetchone()
+            return dict(row) if row else None
+
+    def list_users(self) -> List[Dict[str, Any]]:
+        """Lists all registered users (excluding sensitive password hashes and salts)."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT user_id, username, role, full_name, email,
+                       is_active, last_login, created_at
+                FROM users
+                ORDER BY created_at ASC
+                """
+            )
+            return [dict(row) for row in cursor.fetchall()]
+
+    def update_user_last_login(self, user_id: str, timestamp: float) -> bool:
+        """Updates the last_login timestamp for a user."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE users SET last_login = ? WHERE user_id = ?",
+                (timestamp, user_id),
+            )
+            conn.commit()
+            return cursor.rowcount > 0
+
+    def create_session(
+        self,
+        session_id: str,
+        user_id: str,
+        role: str,
+        expires_at: float,
+        ip_address: str = "",
+        user_agent: str = "",
+    ) -> bool:
+        """Stores a cryptographically secure user session."""
+        now = time.time()
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO user_sessions (
+                    session_id, user_id, role, created_at,
+                    expires_at, last_activity, ip_address, user_agent
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    session_id,
+                    user_id,
+                    role,
+                    now,
+                    expires_at,
+                    now,
+                    ip_address,
+                    user_agent[:255] if user_agent else "",
+                ),
+            )
+            conn.commit()
+            return cursor.rowcount > 0
+
+    def get_session(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieves session details if active and unexpired."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT s.session_id, s.user_id, s.role, s.created_at,
+                       s.expires_at, s.last_activity, s.ip_address, s.user_agent,
+                       u.username, u.full_name, u.email, u.is_active
+                FROM user_sessions s
+                JOIN users u ON s.user_id = u.user_id
+                WHERE s.session_id = ?
+                """,
+                (session_id,),
+            )
+            row = cursor.fetchone()
+            return dict(row) if row else None
+
+    def touch_session(self, session_id: str, timestamp: float) -> bool:
+        """Updates the last_activity timestamp for an active session."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE user_sessions SET last_activity = ? WHERE session_id = ?",
+                (timestamp, session_id),
+            )
+            conn.commit()
+            return cursor.rowcount > 0
+
+    def delete_session(self, session_id: str) -> bool:
+        """Revokes a session by session ID."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM user_sessions WHERE session_id = ?", (session_id,))
+            conn.commit()
+            return cursor.rowcount > 0
+
+    def delete_user_sessions(self, user_id: str) -> int:
+        """Revokes all active sessions for a user (e.g. on password change or deactivation)."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM user_sessions WHERE user_id = ?", (user_id,))
+            conn.commit()
+            return cursor.rowcount
+
+    def list_active_sessions(self, current_time: float) -> List[Dict[str, Any]]:
+        """Lists currently active unexpired sessions joined with user info."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT s.session_id, s.user_id, s.role, s.created_at,
+                       s.expires_at, s.last_activity, s.ip_address, s.user_agent,
+                       u.username, u.full_name
+                FROM user_sessions s
+                JOIN users u ON s.user_id = u.user_id
+                WHERE s.expires_at > ?
+                ORDER BY s.last_activity DESC
+                """,
+                (current_time,),
+            )
+            return [dict(row) for row in cursor.fetchall()]
+
+    def clean_expired_sessions(self, current_time: float) -> int:
+        """Removes expired sessions from the database."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM user_sessions WHERE expires_at <= ?", (current_time,))
+            conn.commit()
+            return cursor.rowcount
 

@@ -1,6 +1,7 @@
 import asyncio
 import ipaddress
 import logging
+import os
 import re
 import socket
 import time
@@ -53,8 +54,13 @@ PROTECTED_DISCOVERY_IPS = {
 COMMON_IOT_PORTS = [
     (554, "rtsp", "cctv_camera", "rtsp_http"),
     (8080, "http_cam", "cctv_camera", "rtsp_http"),
+    (8081, "mjpeg_cam", "cctv_camera", "rtsp_http"),
+    (8000, "cctv_web", "cctv_camera", "rtsp_http"),
+    (4747, "droidcam", "cctv_camera", "rtsp_http"),
+    (8888, "http_cam", "cctv_camera", "rtsp_http"),
     (1883, "mqtt", "iot_sensor", "mqtt"),
     (80, "http_web", "iot_sensor", "http_webhook"),
+    (5000, "iot_rest", "iot_sensor", "http_webhook"),
 ]
 
 
@@ -184,6 +190,13 @@ async def probe_single_host_port(ip: str, port: int, timeout: float = 0.5) -> bo
         return False
 
 
+class DiscoveredDeviceList(list):
+    """List of discovered devices annotated with scanned_subnet."""
+    def __init__(self, iterable: Optional[Any] = None, scanned_subnet: str = "") -> None:
+        super().__init__(iterable or [])
+        self.scanned_subnet = scanned_subnet
+
+
 def get_local_lan_ip() -> Optional[str]:
     """Determines the primary outbound LAN IPv4 address of the host."""
     try:
@@ -194,28 +207,105 @@ def get_local_lan_ip() -> Optional[str]:
         return None
 
 
+def get_discovery_subnets_info(
+    db: Optional[Any] = None,
+    client_host: Optional[str] = None,
+) -> Tuple[str, List[str]]:
+    """
+    Returns (default_subnet, candidate_subnets) for LAN device auto-discovery.
+    Dynamically identifies valid private LAN subnets while strictly rejecting Docker internal networks.
+    """
+    candidates: List[str] = []
+
+    def _add_if_valid(subnet_str: Optional[str]) -> None:
+        if not subnet_str or not isinstance(subnet_str, str):
+            return
+        cleaned = subnet_str.strip()
+        try:
+            net = ipaddress.ip_network(cleaned, strict=False)
+            if (
+                net.is_private
+                and not any(net.overlaps(b) for b in BLOCKED_SUBNETS)
+                and not net.overlaps(ipaddress.ip_network("192.168.65.0/24"))
+            ):
+                net_str = f"{net.network_address}/{net.prefixlen}"
+                if net_str not in candidates:
+                    candidates.append(net_str)
+        except Exception:
+            pass
+
+    # 1. Host LAN subnet passed via environment variable (e.g. from docker-compose / host)
+    env_sub = os.environ.get("HOST_LAN_SUBNET") or os.environ.get("LAN_SUBNET")
+    _add_if_valid(env_sub)
+
+    # 2. Database registered devices (if real hardware was previously registered)
+    if db and hasattr(db, "list_devices"):
+        try:
+            for dev in db.list_devices():
+                ip_str = dev.get("ip_address")
+                if ip_str:
+                    try:
+                        ip_obj = ipaddress.ip_address(str(ip_str).strip())
+                        if ip_obj.is_private and not any(ip_obj in b for b in BLOCKED_SUBNETS) and not ip_obj.is_loopback:
+                            octets = str(ip_obj).split(".")
+                            _add_if_valid(f"{octets[0]}.{octets[1]}.{octets[2]}.0/24")
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
+    # 3. Client host IP from HTTP request if connected from real LAN host
+    if client_host:
+        try:
+            ip_obj = ipaddress.ip_address(str(client_host).strip())
+            if ip_obj.is_private and not any(ip_obj in b for b in BLOCKED_SUBNETS) and not ip_obj.is_loopback:
+                octets = str(ip_obj).split(".")
+                _add_if_valid(f"{octets[0]}.{octets[1]}.{octets[2]}.0/24")
+        except Exception:
+            pass
+
+    # 4. Outbound socket IP (if physical host and not Docker bridge)
+    local_ip = get_local_lan_ip()
+    if local_ip:
+        try:
+            ip_obj = ipaddress.ip_address(str(local_ip).strip())
+            if ip_obj.is_private and not any(ip_obj in b for b in BLOCKED_SUBNETS) and not ip_obj.is_loopback:
+                octets = str(ip_obj).split(".")
+                _add_if_valid(f"{octets[0]}.{octets[1]}.{octets[2]}.0/24")
+        except Exception:
+            pass
+
+    # 5. Standard common RFC 1918 LAN subnets
+    for fallback in ["192.168.1.0/24", "192.168.0.0/24", "10.0.0.0/24", "192.168.43.0/24"]:
+        if fallback not in candidates:
+            candidates.append(fallback)
+
+    default_subnet = candidates[0] if candidates else "192.168.1.0/24"
+    return default_subnet, candidates
+
+
+def get_default_discovery_subnet(db: Optional[Any] = None, client_host: Optional[str] = None) -> str:
+    """Returns the default auto-detected LAN subnet string."""
+    default_sub, _ = get_discovery_subnets_info(db=db, client_host=client_host)
+    return default_sub
+
+
 async def scan_lan_subnet(
     subnet_cidr: Optional[str] = None,
-    timeout: float = 0.4,
-    max_hosts: int = 64,
-) -> List[Dict[str, Any]]:
+    timeout: float = 0.35,
+    max_hosts: int = 254,
+    db: Optional[Any] = None,
+    client_host: Optional[str] = None,
+) -> Tuple[str, List[Dict[str, Any]]]:
     """
     Performs a fast concurrent TCP sweep across a LAN subnet for open CCTV & IoT ports.
-    Respects strict SSRF boundaries.
+    Respects strict SSRF boundaries. Returns (scanned_subnet_cidr, discovered_devices).
     """
-    if not subnet_cidr:
-        local_ip = get_local_lan_ip()
-        if not local_ip:
-            return []
-        try:
-            # Create /24 network from local IP
-            octets = local_ip.split(".")
-            subnet_cidr = f"{octets[0]}.{octets[1]}.{octets[2]}.0/24"
-        except Exception:
-            return []
+    if not subnet_cidr or not str(subnet_cidr).strip():
+        subnet_cidr = get_default_discovery_subnet(db=db, client_host=client_host)
 
     try:
-        net = ipaddress.ip_network(subnet_cidr, strict=False)
+        net = ipaddress.ip_network(str(subnet_cidr).strip(), strict=False)
     except Exception as e:
         raise ValueError(f"Invalid subnet CIDR '{subnet_cidr}': {e}")
 
@@ -224,73 +314,98 @@ async def scan_lan_subnet(
         if net.overlaps(blocked):
             raise ValueError(f"Subnet '{subnet_cidr}' overlaps with blocked network '{blocked}'.")
 
-    results: List[Dict[str, Any]] = []
+    resolved_cidr = f"{net.network_address}/{net.prefixlen}"
     hosts = list(net.hosts())[:max_hosts]
+    sem = asyncio.Semaphore(100)
 
-    async def _check_host(host_ip: str) -> Optional[Dict[str, Any]]:
+    async def _check_host_port(ip_str: str, port_info: Tuple[int, str, str, str]) -> Optional[Dict[str, Any]]:
+        port, label, dev_type, proto = port_info
+        async with sem:
+            is_open = await probe_single_host_port(ip_str, port, timeout=timeout)
+        if not is_open:
+            return None
+
+        device_id = f"{label}_{ip_str.replace('.', '_')}"
+        snapshot_url = ""
+        if dev_type == "cctv_camera":
+            if port == 8080:
+                snapshot_url = f"http://{ip_str}:8080/video"
+            elif port == 4747:
+                snapshot_url = f"http://{ip_str}:4747/video"
+            elif port in (80, 8000, 8081, 8888):
+                snapshot_url = f"http://{ip_str}:{port}/snapshot.jpg"
+
+        friendly_name = (
+            f"LAN IP Camera ({ip_str}:{port})"
+            if dev_type == "cctv_camera"
+            else f"Smart IoT Node ({ip_str}:{port})"
+        )
+
+        return {
+            "device_id": device_id,
+            "name": friendly_name,
+            "device_type": dev_type,
+            "protocol": proto,
+            "ip_address": ip_str,
+            "port": port,
+            "snapshot_url": snapshot_url,
+            "discovery_method": f"tcp_{label}_probe",
+            "details": f"Discovered open TCP port {port} ({label.upper()})",
+        }
+
+    async def _scan_host(host_ip: str) -> List[Dict[str, Any]]:
         ip_str = str(host_ip)
         try:
             validate_discovery_ip(ip_str)
         except ValueError:
-            return None
+            return []
 
-        # Probe ports concurrently
-        for port, label, dev_type, proto in COMMON_IOT_PORTS:
-            is_open = await probe_single_host_port(ip_str, port, timeout=timeout)
-            if is_open:
-                device_id = f"{label}_{ip_str.replace('.', '_')}"
-                snapshot_url = ""
-                if dev_type == "cctv_camera":
-                    snapshot_url = f"http://{ip_str}:8080/video" if port == 8080 else f"http://{ip_str}/snapshot.jpg"
+        tasks = [_check_host_port(ip_str, p) for p in COMMON_IOT_PORTS]
+        port_results = await asyncio.gather(*tasks, return_exceptions=True)
+        return [r for r in port_results if isinstance(r, dict) and r]
 
-                friendly_name = (
-                    f"LAN IP Camera ({ip_str}:{port})"
-                    if dev_type == "cctv_camera"
-                    else f"Smart IoT Node ({ip_str}:{port})"
-                )
+    all_tasks = [_scan_host(str(h)) for h in hosts]
+    completed_hosts = await asyncio.gather(*all_tasks, return_exceptions=True)
 
-                return {
-                    "device_id": device_id,
-                    "name": friendly_name,
-                    "device_type": dev_type,
-                    "protocol": proto,
-                    "ip_address": ip_str,
-                    "port": port,
-                    "snapshot_url": snapshot_url,
-                    "discovery_method": f"tcp_{label}_probe",
-                    "details": f"Discovered open TCP port {port} ({label.upper()})",
-                }
-        return None
+    results: List[Dict[str, Any]] = []
+    seen_ips: Set[str] = set()
 
-    tasks = [_check_host(str(h)) for h in hosts]
-    completed = await asyncio.gather(*tasks, return_exceptions=True)
+    for host_res in completed_hosts:
+        if isinstance(host_res, list) and host_res:
+            cctv_matches = [d for d in host_res if d.get("device_type") == "cctv_camera"]
+            best = cctv_matches[0] if cctv_matches else host_res[0]
+            if best["ip_address"] not in seen_ips:
+                seen_ips.add(best["ip_address"])
+                results.append(best)
 
-    for res in completed:
-        if isinstance(res, dict) and res:
-            results.append(res)
-
-    return results
+    return resolved_cidr, results
 
 
 async def run_lan_discovery(
     subnet_cidr: Optional[str] = None,
     timeout: float = 2.0,
+    db: Optional[Any] = None,
+    client_host: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     """
     Executes a comprehensive multi-protocol LAN device discovery:
     1. ONVIF WS-Discovery (UDP 3702) for real IP/CCTV cameras
     2. Concurrent TCP sweeps for active IoT/CCTV ports on the local network
-    De-duplicates and merges all discovered records.
+    De-duplicates and merges all discovered records. Returns list with .scanned_subnet metadata.
     """
     discovered_map: Dict[str, Dict[str, Any]] = {}
 
-    # Run ONVIF and TCP probe concurrently
     onvif_task = discover_onvif_cameras(timeout=min(timeout, 2.0))
-    subnet_task = scan_lan_subnet(subnet_cidr=subnet_cidr, timeout=0.35, max_hosts=64)
+    subnet_task = scan_lan_subnet(
+        subnet_cidr=subnet_cidr,
+        timeout=0.35,
+        max_hosts=254,
+        db=db,
+        client_host=client_host,
+    )
 
     results = await asyncio.gather(onvif_task, subnet_task, return_exceptions=True)
 
-    # Propagate any validation or SSRF error from subnet scanning
     if isinstance(results[1], Exception):
         if isinstance(results[1], ValueError):
             raise results[1]
@@ -302,7 +417,10 @@ async def run_lan_discovery(
         logger.warning("ONVIF discovery encountered error: %s", results[0])
 
     onvif_devices = results[0] if isinstance(results[0], list) else []
-    subnet_devices = results[1] if isinstance(results[1], list) else []
+    scanned_cidr, subnet_devices = (
+        results[1] if (isinstance(results[1], tuple) and len(results[1]) == 2)
+        else ("", results[1] if isinstance(results[1], list) else [])
+    )
 
     # Prefer rich ONVIF metadata
     for dev in onvif_devices:
@@ -313,4 +431,4 @@ async def run_lan_discovery(
         if ip not in discovered_map:
             discovered_map[ip] = dev
 
-    return list(discovered_map.values())
+    return DiscoveredDeviceList(discovered_map.values(), scanned_subnet=scanned_cidr)

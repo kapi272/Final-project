@@ -17,18 +17,29 @@ logger = logging.getLogger(__name__)
 BROKER_HOST: str = os.getenv("MQTT_BROKER_HOST", "172.20.0.10")
 BROKER_PORT: int = int(os.getenv("MQTT_BROKER_PORT", "1883"))
 DEVICE_ID: str = os.getenv("DEVICE_ID", "smart_bulb_01")
+DEVICE_KIND: str = os.getenv("DEVICE_KIND", "bulb")
 SET_TOPIC: str = os.getenv("MQTT_SET_TOPIC", "home/devices/bulb/set")
 STATUS_TOPIC: str = os.getenv("MQTT_STATUS_TOPIC", "home/devices/bulb/status")
+PUBLISH_INTERVAL: float = float(os.getenv("PUBLISH_INTERVAL", "5.0"))
 MQTT_USER: str = os.getenv("MQTT_USER") or os.getenv("MQTT_USERNAME", "")
 MQTT_PASSWORD: str = os.getenv("MQTT_PASSWORD", "")
 
-bulb_state: Dict[str, Any] = {
-    "device_id": DEVICE_ID,
-    "state": "ON",
-    "brightness": 80,
-    "color": "#fffaed",
-    "updated_at": time.time()
-}
+if DEVICE_KIND.lower() == "lock":
+    device_state: Dict[str, Any] = {
+        "device_id": DEVICE_ID,
+        "state": "LOCKED",
+        "battery": 94,
+        "tamper_detected": False,
+        "updated_at": time.time(),
+    }
+else:
+    device_state: Dict[str, Any] = {
+        "device_id": DEVICE_ID,
+        "state": "ON",
+        "brightness": 80,
+        "color": "#fffaed",
+        "updated_at": time.time(),
+    }
 
 running: bool = True
 
@@ -50,15 +61,17 @@ def on_message(client: mqtt.Client, userdata: Any, msg: mqtt.MQTTMessage) -> Non
         payload = json.loads(raw_payload)
 
         if "state" in payload:
-            bulb_state["state"] = str(payload["state"]).upper()
+            device_state["state"] = str(payload["state"]).upper()
         if "brightness" in payload:
-            bulb_state["brightness"] = int(payload["brightness"])
+            device_state["brightness"] = int(payload["brightness"])
         if "color" in payload:
-            bulb_state["color"] = str(payload["color"])
+            device_state["color"] = str(payload["color"])
+        if "tamper_detected" in payload:
+            device_state["tamper_detected"] = bool(payload["tamper_detected"])
 
-        bulb_state["updated_at"] = time.time()
-        client.publish(STATUS_TOPIC, json.dumps(bulb_state), qos=0)
-        logger.info("State updated and broadcast to %s: %s", STATUS_TOPIC, bulb_state)
+        device_state["updated_at"] = time.time()
+        client.publish(STATUS_TOPIC, json.dumps(device_state), qos=0)
+        logger.info("State updated and broadcast to %s: %s", STATUS_TOPIC, device_state)
     except Exception as e:
         logger.error("Failed to parse command payload: %s", e)
 
@@ -93,14 +106,15 @@ def main() -> None:
 
     try:
         while running:
-            bulb_state["updated_at"] = time.time()
-            client.publish(STATUS_TOPIC, json.dumps(bulb_state), qos=0)
-            time.sleep(5.0)
+            device_state["updated_at"] = time.time()
+            client.publish(STATUS_TOPIC, json.dumps(device_state), qos=0)
+            logger.info("Published to %s: %s", STATUS_TOPIC, device_state)
+            time.sleep(PUBLISH_INTERVAL)
     finally:
         logger.info("Disconnecting client from broker...")
         client.loop_stop()
         client.disconnect()
-        logger.info("Bulb simulator stopped cleanly.")
+        logger.info("Device simulator stopped cleanly.")
 
 
 if __name__ == "__main__":

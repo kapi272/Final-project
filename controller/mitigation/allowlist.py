@@ -19,6 +19,8 @@ DEFAULT_PROTECTED_IPS: List[str] = [
     "::1",
     "172.20.0.1",
     "172.21.0.1",
+    "172.20.0.5",        # Defense Controller (Production)
+    "172.21.0.5",        # Defense Controller (Quarantine)
     "192.168.65.1",
 ]
 

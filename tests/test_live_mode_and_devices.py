@@ -332,6 +332,68 @@ class TestTrafficModeAndLiveDevices(unittest.TestCase):
         )
         self.assertEqual(restored_ingest.status_code, 200)
 
+    def test_rename_registered_device(self) -> None:
+        """Verifies PATCH and PUT /api/devices/{device_id} renames real-world devices with validation."""
+        create_res = self.client.post(
+            "/api/devices",
+            json={
+                "device_id": "cctv_entrance_01",
+                "name": "Entrance Camera",
+                "device_type": "cctv_camera",
+                "protocol": "rtsp_http",
+                "ip_address": "192.168.1.55",
+                "port": 554,
+            },
+        )
+        self.assertEqual(create_res.status_code, 200)
+        self.assertEqual(create_res.json()["data"]["device"]["name"], "Entrance Camera")
+
+        # PATCH rename
+        patch_res = self.client.patch(
+            "/api/devices/cctv_entrance_01",
+            json={"name": "Front Gate HD Camera"},
+        )
+        self.assertEqual(patch_res.status_code, 200)
+        patched = patch_res.json()["data"]["device"]
+        self.assertEqual(patched["name"], "Front Gate HD Camera")
+        self.assertEqual(patched["device_id"], "cctv_entrance_01")
+
+        # Confirm reflected in GET /api/devices
+        list_res = self.client.get("/api/devices")
+        self.assertEqual(list_res.status_code, 200)
+        devices = list_res.json()["data"]["devices"]
+        target = [d for d in devices if d["device_id"] == "cctv_entrance_01"][0]
+        self.assertEqual(target["name"], "Front Gate HD Camera")
+
+        # PUT rename
+        put_res = self.client.put(
+            "/api/devices/cctv_entrance_01",
+            json={"name": "Perimeter Cam North"},
+        )
+        self.assertEqual(put_res.status_code, 200)
+        self.assertEqual(put_res.json()["data"]["device"]["name"], "Perimeter Cam North")
+
+        # Non-existent device returns 404
+        missing_res = self.client.patch(
+            "/api/devices/nonexistent_camera",
+            json={"name": "Ghost Camera"},
+        )
+        self.assertEqual(missing_res.status_code, 404)
+
+        # Empty name rejected (422 Pydantic or 400)
+        empty_res = self.client.patch(
+            "/api/devices/cctv_entrance_01",
+            json={"name": ""},
+        )
+        self.assertIn(empty_res.status_code, (400, 422))
+
+        # Whitespace-only name rejected
+        ws_res = self.client.patch(
+            "/api/devices/cctv_entrance_01",
+            json={"name": "   "},
+        )
+        self.assertIn(ws_res.status_code, (400, 422))
+
     def test_snapshot_proxy_validation_and_xss_blocking(self) -> None:
         create_res = self.client.post(
             "/api/devices",
@@ -736,6 +798,34 @@ class TestDeviceDiscoveryAndSSRF(unittest.TestCase):
         for subnet in blocked_subnets:
             res = self.client.post("/api/devices/discover", json={"subnet": subnet, "timeout": 1.0})
             self.assertEqual(res.status_code, 400, msg=f"Subnet {subnet} should return 400")
+
+    def test_api_get_discovery_subnets_endpoint(self) -> None:
+        """GET /api/devices/subnets returns default and candidate private subnets."""
+        res = self.client.get("/api/devices/subnets")
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["status"], "success")
+        self.assertIn("default_subnet", data["data"])
+        self.assertIn("candidate_subnets", data["data"])
+        self.assertIsInstance(data["data"]["candidate_subnets"], list)
+        self.assertTrue(len(data["data"]["candidate_subnets"]) > 0)
+        # Ensure no blocked Docker subnets are in candidates
+        for sub in data["data"]["candidate_subnets"]:
+            self.assertFalse(sub.startswith("172.20."))
+            self.assertFalse(sub.startswith("172.21."))
+            self.assertFalse(sub.startswith("127."))
+
+    def test_api_discover_devices_default_autodetect_does_not_crash(self) -> None:
+        """POST /api/devices/discover with empty payload succeeds via auto-detected subnet."""
+        mock_devices = []
+        with patch("controller.api.routes.run_lan_discovery", new_callable=AsyncMock) as mock_run:
+            mock_run.return_value = mock_devices
+            res = self.client.post("/api/devices/discover", json={})
+            self.assertEqual(res.status_code, 200)
+            data = res.json()
+            self.assertEqual(data["status"], "success")
+            self.assertIn("scanned_subnet", data["data"])
+            self.assertTrue(len(data["data"]["scanned_subnet"]) > 0)
 
 
 if __name__ == "__main__":

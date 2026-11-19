@@ -11,10 +11,16 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from controller.api.sse_broker import SSEBroadcaster
-from controller.core.device_discovery import run_lan_discovery
+from controller.core.auth import (
+    AccountDeactivated,
+    AuthService,
+    InvalidCredentials,
+    RateLimitExceeded,
+)
+from controller.core.device_discovery import get_default_discovery_subnet, get_discovery_subnets_info, run_lan_discovery
 from controller.core.device_manager import RealDeviceManager
 from controller.core.detector import IntrusionDetector
-from controller.core.models import CowrieEvent
+from controller.core.models import CowrieEvent, MitigationRecord
 from controller.core.stix_exporter import generate_stix_bundle
 from controller.core.watchdog import DefenseWatchdog
 from controller.core.webhook_notifier import WebhookNotifier
@@ -118,6 +124,10 @@ class DeviceBlockRequest(BaseModel):
     admin_user: Optional[str] = Field("soc_admin", description="Operator identity")
 
 
+class DeviceUpdateRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100, description="Friendly display name for the IoT/CCTV device")
+
+
 class DeviceIngestRequest(BaseModel):
     payload: Dict[str, Any] = Field(default_factory=dict, description="JSON telemetry/event payload from physical IoT device")
 
@@ -131,6 +141,19 @@ class WebhookConfigRequest(BaseModel):
     url: str = Field(..., description="Destination webhook URL (HTTP/HTTPS)")
     enabled: bool = Field(True, description="Whether automated mitigation dispatch is enabled")
     format: str = Field("generic", description="Payload format: generic | slack | discord")
+
+
+class LoginRequest(BaseModel):
+    username: str = Field(..., min_length=1, max_length=64, description="SOC operator username")
+    password: str = Field(..., min_length=1, max_length=128, description="Operator password")
+
+
+class UserCreateRequest(BaseModel):
+    username: str = Field(..., min_length=3, max_length=32, description="Alphanumeric operator username")
+    password: str = Field(..., min_length=8, max_length=128, description="Strong password")
+    full_name: str = Field(..., min_length=1, max_length=100, description="Full display name")
+    email: str = Field(..., min_length=3, max_length=120, description="Contact email address")
+    role: str = Field("operator", description="Role: admin | operator | analyst")
 
 
 def _resolve_simulation_targets(
@@ -218,6 +241,43 @@ def get_watchdog(request: Request) -> DefenseWatchdog:
     return watchdog
 
 
+def get_auth_service(request: Request) -> AuthService:
+    """Retrieves the singleton AuthService instance."""
+    auth_service = getattr(request.app.state, "auth_service", None)
+    if not auth_service:
+        detector = get_detector(request)
+        auth_service = AuthService(db=detector.db)
+        request.app.state.auth_service = auth_service
+    return auth_service
+
+
+def get_current_session(request: Request, require: bool = False) -> Optional[Dict[str, Any]]:
+    """Extracts and validates the current active session from Bearer token or HttpOnly cookie."""
+    auth_service = get_auth_service(request)
+    auth_header = request.headers.get("Authorization", "")
+    token = ""
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:].strip()
+    elif "soc_session" in request.cookies:
+        token = request.cookies["soc_session"]
+
+    session = auth_service.validate_session(token) if token else None
+    if require and not session:
+        raise HTTPException(status_code=401, detail="Authentication required. Please sign in.")
+    return session
+
+
+def require_admin(request: Request) -> Dict[str, Any]:
+    """Ensures the caller has administrative privileges."""
+    session = get_current_session(request, require=True)
+    if session["role"] != "admin":
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied. Action requires SOC Administrator privileges.",
+        )
+    return session
+
+
 def _ensure_simulated_mode(request: Request) -> None:
     """Rejects synthetic simulation calls when controller is running in strict Live Traffic mode."""
     current_mode = getattr(request.app.state, "traffic_mode", "simulated")
@@ -234,6 +294,131 @@ async def health_check() -> Dict[str, Any]:
     return make_response(status="success", data={"service": "defense_controller", "status": "healthy"})
 
 
+# --- SOC User Authentication & Operator Session Routes ---
+
+@router.post("/auth/login")
+async def login_operator(payload: LoginRequest, request: Request) -> Response:
+    """Authenticates SOC operator credentials and establishes a secure session."""
+    auth_service = get_auth_service(request)
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    user_agent = request.headers.get("User-Agent", "")
+
+    try:
+        session_info = auth_service.authenticate_user(
+            username=payload.username,
+            password=payload.password,
+            ip_address=client_ip,
+            user_agent=user_agent,
+        )
+    except RateLimitExceeded as exc:
+        return JSONResponse(
+            status_code=429,
+            content=make_response(status="error", message=str(exc)),
+            headers={"Retry-After": str(exc.retry_after)},
+        )
+    except InvalidCredentials as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    except AccountDeactivated as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+    response = JSONResponse(
+        content=make_response(
+            data=session_info,
+            message=f"Operator '{session_info['user']['username']}' successfully authenticated.",
+        )
+    )
+    # Set HttpOnly, SameSite=Lax cookie for seamless session management
+    response.set_cookie(
+        key="soc_session",
+        value=session_info["session_id"],
+        httponly=True,
+        samesite="lax",
+        secure=False,  # localhost HTTP deployment
+        max_age=8 * 3600,
+        path="/",
+    )
+    return response
+
+
+@router.post("/auth/logout")
+async def logout_operator(request: Request) -> Response:
+    """Revokes active operator session and clears the authentication cookie."""
+    auth_service = get_auth_service(request)
+    auth_header = request.headers.get("Authorization", "")
+    token = ""
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:].strip()
+    elif "soc_session" in request.cookies:
+        token = request.cookies["soc_session"]
+
+    if token:
+        auth_service.logout_session(token)
+
+    response = JSONResponse(content=make_response(message="Session successfully terminated."))
+    response.delete_cookie(key="soc_session", path="/")
+    return response
+
+
+@router.get("/auth/me")
+async def get_current_user_profile(request: Request) -> Dict[str, Any]:
+    """Returns profile and permission details for the current active session."""
+    session = get_current_session(request, require=True)
+    return make_response(
+        data={"user": session},
+        message=f"Active session valid for {session['username']} ({session['role']}).",
+    )
+
+
+@router.get("/auth/users")
+async def list_operators(request: Request) -> Dict[str, Any]:
+    """Lists all registered SOC operator accounts (Administrator only)."""
+    require_admin(request)
+    auth_service = get_auth_service(request)
+    users = auth_service.list_operators()
+    return make_response(data={"users": users, "total": len(users)})
+
+
+@router.post("/auth/users")
+async def create_operator_account(payload: UserCreateRequest, request: Request) -> Dict[str, Any]:
+    """Provisions a new operator account (Administrator only)."""
+    require_admin(request)
+    auth_service = get_auth_service(request)
+    try:
+        new_user = auth_service.create_operator(
+            username=payload.username,
+            password=payload.password,
+            full_name=payload.full_name,
+            email=payload.email,
+            role=payload.role,
+        )
+        return make_response(
+            data={"user": new_user},
+            message=f"Operator account '{new_user['username']}' provisioned successfully.",
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/auth/sessions")
+async def list_operator_sessions(request: Request) -> Dict[str, Any]:
+    """Lists active operator sessions and connected endpoints (Administrator only)."""
+    require_admin(request)
+    auth_service = get_auth_service(request)
+    sessions = auth_service.list_active_sessions()
+    return make_response(data={"sessions": sessions, "total": len(sessions)})
+
+
+@router.delete("/auth/sessions/{session_id}")
+async def revoke_operator_session(session_id: str, request: Request) -> Dict[str, Any]:
+    """Revokes a specific active session (Administrator only)."""
+    require_admin(request)
+    auth_service = get_auth_service(request)
+    deleted = auth_service.revoke_session(session_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Session not found or already expired.")
+    return make_response(message=f"Session '{session_id[:12]}...' revoked successfully.")
+
+
 @router.get("/defense/status")
 async def get_defense_status(request: Request) -> Dict[str, Any]:
     """Returns the current security inventory: active drops, banned count, and audit history."""
@@ -245,12 +430,17 @@ async def get_defense_status(request: Request) -> Dict[str, Any]:
     active_bans = detector.db.get_active_bans()
 
     # Dynamic inspection of IoT virtual node states
-    node_states = {
-        "iot_sensor_node": quarantine.get_container_network_status("iot_sensor_node"),
-        "iot_bulb_node": quarantine.get_container_network_status("iot_bulb_node"),
-        "iot_mqtt_broker": quarantine.get_container_network_status("iot_mqtt_broker"),
-        "iot_cowrie_honeypot": quarantine.get_container_network_status("iot_cowrie_honeypot"),
-    }
+    if hasattr(quarantine, "get_all_virtual_node_states"):
+        node_states = quarantine.get_all_virtual_node_states()
+    else:
+        node_states = {
+            "iot_sensor_node": quarantine.get_container_network_status("iot_sensor_node"),
+            "iot_bulb_node": quarantine.get_container_network_status("iot_bulb_node"),
+            "iot_motion_node": quarantine.get_container_network_status("iot_motion_node"),
+            "iot_lock_node": quarantine.get_container_network_status("iot_lock_node"),
+            "iot_mqtt_broker": quarantine.get_container_network_status("iot_mqtt_broker"),
+            "iot_cowrie_honeypot": quarantine.get_container_network_status("iot_cowrie_honeypot"),
+        }
 
     device_manager = get_device_manager(request)
     traffic_mode = getattr(request.app.state, "traffic_mode", "simulated")
@@ -400,18 +590,43 @@ async def simulate_node_infection(node_id: str, request: Request) -> Dict[str, A
     """Simulates internal compromise of a virtual IoT container, isolating it to quarantine."""
     _ensure_simulated_mode(request)
     quarantine = get_quarantine_manager(request)
+    detector = get_detector(request)
     broadcaster = get_broadcaster(request)
 
     res = quarantine.quarantine_container(node_id)
     if res["status"] != "success":
         return make_response(status="error", data=res, message=res["message"])
 
-    # Broadcast quarantine state transition
+    if res.get("previous_state") == "quarantined":
+        return make_response(data=res, message=f"Container {node_id} is already in quarantine.")
+
+    node_meta = {
+        "iot_sensor_node": ("172.20.0.21", "Temp Sensor 01"),
+        "iot_bulb_node": ("172.20.0.22", "Smart Bulb 01"),
+        "iot_motion_node": ("172.20.0.23", "Motion Sensor 02"),
+        "iot_lock_node": ("172.20.0.24", "Smart Lock 01"),
+        "iot_mqtt_broker": ("172.20.0.10", "MQTT Broker"),
+        "iot_cowrie_honeypot": ("172.20.0.50", "Cowrie Decoy"),
+    }
+    src_ip, node_label = node_meta.get(node_id, ("172.20.0.0", node_id))
+
+    # Audit mitigation record in ledger
+    mit_record = MitigationRecord(
+        src_ip=src_ip,
+        action="QUARANTINE",
+        reason=f"Compromised node isolated into quarantine subnet: {node_label} [{node_id}]",
+        severity="HIGH",
+    )
+    mit_record.id = detector.db.record_mitigation(mit_record)
+
+    # Broadcast quarantine state transition and ledger alert
     await broadcaster.broadcast("node_quarantined", {
         "node_id": node_id,
+        "src_ip": src_ip,
         "state": "quarantined",
         "network": "iot_quarantine_net"
     })
+    await broadcaster.broadcast("mitigation_alert", mit_record.to_dict())
 
     return make_response(data=res, message=f"Container {node_id} isolated into quarantine.")
 
@@ -421,17 +636,42 @@ async def restore_node_container(node_id: str, request: Request) -> Dict[str, An
     """Restores an isolated IoT container back to the production network."""
     _ensure_simulated_mode(request)
     quarantine = get_quarantine_manager(request)
+    detector = get_detector(request)
     broadcaster = get_broadcaster(request)
 
     res = quarantine.restore_container(node_id)
     if res["status"] != "success":
         return make_response(status="error", data=res, message=res["message"])
 
+    if res.get("previous_state") == "production":
+        return make_response(data=res, message=f"Container {node_id} is already in production.")
+
+    node_meta = {
+        "iot_sensor_node": ("172.20.0.21", "Temp Sensor 01"),
+        "iot_bulb_node": ("172.20.0.22", "Smart Bulb 01"),
+        "iot_motion_node": ("172.20.0.23", "Motion Sensor 02"),
+        "iot_lock_node": ("172.20.0.24", "Smart Lock 01"),
+        "iot_mqtt_broker": ("172.20.0.10", "MQTT Broker"),
+        "iot_cowrie_honeypot": ("172.20.0.50", "Cowrie Decoy"),
+    }
+    src_ip, node_label = node_meta.get(node_id, ("172.20.0.0", node_id))
+
+    # Audit restoration record in ledger
+    mit_record = MitigationRecord(
+        src_ip=src_ip,
+        action="NODE_RESTORED",
+        reason=f"Node restored from quarantine to production: {node_label} [{node_id}]",
+        severity="INFO",
+    )
+    mit_record.id = detector.db.record_mitigation(mit_record)
+
     await broadcaster.broadcast("node_restored", {
         "node_id": node_id,
+        "src_ip": src_ip,
         "state": "production",
         "network": "iot_production_net"
     })
+    await broadcaster.broadcast("mitigation_alert", mit_record.to_dict())
 
     return make_response(data=res, message=f"Container {node_id} restored to production.")
 
@@ -809,6 +1049,20 @@ async def execute_watchdog_drill(request: Request) -> Dict[str, Any]:
 
 # --- Real-World IoT & CCTV Device Registry / Live Ingestion Routes ---
 
+@router.get("/devices/subnets")
+async def get_discovery_subnets_endpoint(request: Request) -> Dict[str, Any]:
+    """Returns the primary detected LAN subnet and candidate subnets for discovery."""
+    detector = get_detector(request)
+    client_host = request.client.host if request.client else None
+    default_sub, candidates = get_discovery_subnets_info(db=detector.db, client_host=client_host)
+    return make_response(
+        data={
+            "default_subnet": default_sub,
+            "candidate_subnets": candidates,
+        }
+    )
+
+
 @router.post("/devices/discover")
 async def discover_devices_on_lan(
     request: Request,
@@ -817,18 +1071,32 @@ async def discover_devices_on_lan(
     """Scans local network via ONVIF WS-Discovery and IoT port sweeps to auto-discover hardware."""
     subnet = payload.subnet if payload else None
     timeout = payload.timeout if payload else 2.0
+    detector = get_detector(request)
+    client_host = request.client.host if request.client else None
+    resolved_sub = (
+        subnet.strip()
+        if (subnet and str(subnet).strip())
+        else get_default_discovery_subnet(db=detector.db, client_host=client_host)
+    )
+
     try:
-        devices = await run_lan_discovery(subnet_cidr=subnet, timeout=timeout)
+        devices = await run_lan_discovery(
+            subnet_cidr=resolved_sub,
+            timeout=timeout,
+            db=detector.db,
+            client_host=client_host,
+        )
+        scanned_sub = getattr(devices, "scanned_subnet", "") or resolved_sub
         return make_response(
-            data={"devices": devices, "count": len(devices)},
-            message=f"LAN discovery complete. Found {len(devices)} candidate device(s).",
+            data={"devices": devices, "count": len(devices), "scanned_subnet": scanned_sub},
+            message=f"LAN discovery complete for {scanned_sub}. Found {len(devices)} candidate device(s).",
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
         logger.error("Error during LAN device discovery: %s", exc)
         return make_response(
-            data={"devices": [], "count": 0},
+            data={"devices": [], "count": 0, "scanned_subnet": subnet or ""},
             message=f"Discovery completed with 0 devices found: {exc}",
         )
 
@@ -864,6 +1132,30 @@ async def register_real_device(payload: DeviceCreateRequest, request: Request) -
     return make_response(
         data={"device": device},
         message=f"Device '{device['name']}' ({device['device_id']}) registered for Live Traffic monitoring.",
+    )
+
+
+@router.patch("/devices/{device_id}")
+@router.put("/devices/{device_id}")
+async def update_registered_device_name(
+    device_id: str,
+    payload: DeviceUpdateRequest,
+    request: Request,
+) -> Dict[str, Any]:
+    """Updates the friendly display name of a registered IoT/CCTV device."""
+    device_manager = get_device_manager(request)
+    broadcaster = get_broadcaster(request)
+    try:
+        updated = device_manager.update_device_name(device_id, payload.name)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    await broadcaster.broadcast("device_updated", updated)
+    return make_response(
+        data={"device": updated},
+        message=f"Device '{device_id}' renamed to '{payload.name.strip()}'.",
     )
 
 

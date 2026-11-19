@@ -13,6 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let currentLogFilter = 'all';
     let currentTrafficMode = "simulated";
     let registeredDevices = [];
+    let virtualNodeStates = {};
     let activeSnapshotDevice = null;
     let currentSnapshotObjectUrl = null;
     let liveSnapshotActive = false;
@@ -29,9 +30,36 @@ document.addEventListener("DOMContentLoaded", () => {
         return el;
     }
 
+    function checkMitigationEmptyState() {
+        if (!mitigationTableBody) return;
+        const validRows = mitigationTableBody.querySelectorAll("tr:not(#mitigation-empty-state)");
+        const existingEmpty = document.getElementById("mitigation-empty-state");
+        if (validRows.length === 0) {
+            if (!existingEmpty) {
+                const tr = document.createElement("tr");
+                tr.id = "mitigation-empty-state";
+                const td = createSafeElement(
+                    "td",
+                    "No active mitigations in effect. All IoT nodes and network traffic in normal state.",
+                    "px-4 py-8 text-center text-slate-500 font-mono text-xs"
+                );
+                td.colSpan = 5;
+                tr.appendChild(td);
+                mitigationTableBody.appendChild(tr);
+            }
+        } else if (existingEmpty) {
+            existingEmpty.remove();
+        }
+    }
+
     function syncWorkspaceBadges() {
         const mitBadge = document.getElementById("tab-badge-mitigations");
-        if (mitBadge) mitBadge.textContent = String(activeBansCount);
+        if (mitBadge) {
+            const rowsCount = mitigationTableBody
+                ? mitigationTableBody.querySelectorAll("tr:not(#mitigation-empty-state)").length
+                : activeBansCount;
+            mitBadge.textContent = String(rowsCount);
+        }
         const logBadge = document.getElementById("tab-badge-logs");
         if (logBadge) logBadge.textContent = String(terminalLogsBuffer.length);
     }
@@ -351,6 +379,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Add or update row in live mitigation table
     function addMitigationRow(record, prepend = true) {
+        const existingEmpty = document.getElementById("mitigation-empty-state");
+        if (existingEmpty) {
+            existingEmpty.remove();
+        }
+
         const rowKey = record.id ? `row-id-${record.id}` : `row-ip-${record.src_ip.replace(/[^a-zA-Z0-9]/g, '_')}`;
         const existingRow = document.getElementById(rowKey);
         if (existingRow) {
@@ -361,6 +394,9 @@ document.addEventListener("DOMContentLoaded", () => {
         tr.id = rowKey;
         if (record.src_ip) {
             tr.dataset.srcIp = record.src_ip;
+        }
+        if (record.action) {
+            tr.dataset.action = record.action;
         }
         tr.className = "border-b border-slate-800/80 hover:bg-slate-800/40 transition-colors";
 
@@ -384,9 +420,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const tdAction = document.createElement("td");
         tdAction.className = "px-4 py-2";
         let badgeClass = "px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-rose-950/60 border border-rose-800 text-rose-400";
-        if (record.action === "UNBAN" || record.action === "DEVICE_RESTORED") {
+        if (record.action === "UNBAN" || record.action === "DEVICE_RESTORED" || record.action === "NODE_RESTORED") {
             badgeClass = "px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-emerald-950/60 border border-emerald-800 text-emerald-400";
-        } else if (record.action === "RESET_ALL_BANS" || record.action === "DEVICE_BLOCKED") {
+        } else if (record.action === "RESET_ALL_BANS" || record.action === "DEVICE_BLOCKED" || record.action === "QUARANTINE") {
             badgeClass = "px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-amber-950/60 border border-amber-800 text-amber-400";
         }
         const actionBadge = createSafeElement("span", record.action || "IPTABLES_DROP", badgeClass);
@@ -395,13 +431,26 @@ document.addEventListener("DOMContentLoaded", () => {
         // Reason
         const tdReason = createSafeElement("td", record.reason, "px-4 py-2 text-xs text-slate-300 max-w-xs truncate");
 
-        // Unban Action Button
+        // Action Controls Button
         const tdControls = document.createElement("td");
         tdControls.className = "px-4 py-2 text-right";
         if (record.action === "IPTABLES_DROP") {
             const unbanBtn = createSafeElement("button", "Unban", "px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-rose-900/60 border border-slate-700 text-slate-300 hover:text-white transition-colors");
             unbanBtn.onclick = () => unbanIp(record.src_ip);
             tdControls.appendChild(unbanBtn);
+        } else if (record.action === "QUARANTINE") {
+            const nodeMeta = {
+                "172.20.0.21": "iot_sensor_node",
+                "172.20.0.22": "iot_bulb_node",
+                "172.20.0.23": "iot_motion_node",
+                "172.20.0.24": "iot_lock_node",
+            };
+            const targetNode = nodeMeta[record.src_ip];
+            if (targetNode) {
+                const restoreBtn = createSafeElement("button", "Restore", "px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-emerald-900/60 border border-slate-700 text-emerald-400 hover:text-white transition-colors");
+                restoreBtn.onclick = () => window.restoreNode(targetNode);
+                tdControls.appendChild(restoreBtn);
+            }
         }
 
         tr.appendChild(tdTime);
@@ -415,23 +464,93 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
             mitigationTableBody.appendChild(tr);
         }
+        syncWorkspaceBadges();
     }
 
     // Update node topology card UI
     function updateNodeStatus(nodeId, state) {
-        const card = document.getElementById(`card-${nodeId}`);
-        const badge = document.getElementById(`badge-${nodeId}`);
-        if (!card || !badge) return;
+        if (!nodeId) return;
+        virtualNodeStates[nodeId] = state;
 
-        if (state === "quarantined") {
-            card.className = "p-4 rounded-lg bg-red-950/30 border border-red-600 shadow-lg shadow-red-950/40 transition-all";
-            badge.className = "px-2 py-0.5 rounded-full text-[11px] font-bold tracking-wide uppercase bg-red-950 border border-red-500 text-red-400 animate-pulse";
-            badge.textContent = "QUARANTINED";
-        } else {
-            card.className = "p-4 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 transition-all";
-            badge.className = "px-2 py-0.5 rounded-full text-[11px] font-bold tracking-wide uppercase bg-emerald-950/60 border border-emerald-800 text-emerald-400";
-            badge.textContent = "PRODUCTION";
+        let card = document.getElementById(`card-${nodeId}`);
+        let badge = document.getElementById(`badge-${nodeId}`);
+
+        // If card does not exist yet in DOM (e.g., dynamically added container), construct it dynamically
+        if (!card) {
+            const grid = document.querySelector("#section-simulated-topology .grid");
+            if (grid) {
+                card = document.createElement("div");
+                card.id = `card-${nodeId}`;
+                card.className = "p-4 rounded-lg bg-slate-900 border border-slate-800 shadow-sm transition-all";
+
+                const topDiv = document.createElement("div");
+                topDiv.className = "flex items-center justify-between mb-2";
+
+                const humanName = nodeId
+                    .replace(/^iot_/, "")
+                    .split("_")
+                    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+                    .join(" ");
+
+                const nameSpan = createSafeElement("span", humanName, "font-semibold text-sm text-slate-200");
+                badge = createSafeElement(
+                    "span",
+                    state === "quarantined" ? "QUARANTINED" : (state === "offline" ? "OFFLINE" : "PRODUCTION"),
+                    "px-2 py-0.5 rounded-full text-[11px] font-bold tracking-wide uppercase bg-emerald-950/60 border border-emerald-800 text-emerald-400"
+                );
+                badge.id = `badge-${nodeId}`;
+
+                topDiv.appendChild(nameSpan);
+                topDiv.appendChild(badge);
+                card.appendChild(topDiv);
+
+                const infoDiv = createSafeElement("div", `ID: ${nodeId} • Dynamic Virtual Node`, "text-xs font-mono text-slate-400 mb-3");
+                card.appendChild(infoDiv);
+
+                if (!nodeId.includes("broker") && !nodeId.includes("cowrie") && !nodeId.includes("decoy")) {
+                    const btnDiv = document.createElement("div");
+                    btnDiv.className = "flex items-center space-x-2 pt-2 border-t border-slate-800/80";
+
+                    const infectBtn = createSafeElement(
+                        "button",
+                        "Simulate Infection",
+                        "flex-1 py-1 px-2 text-[11px] rounded bg-rose-950/40 hover:bg-rose-900 border border-rose-800 text-rose-300 font-medium transition-colors"
+                    );
+                    infectBtn.onclick = () => window.infectNode(nodeId);
+
+                    const restoreBtn = createSafeElement(
+                        "button",
+                        "Restore",
+                        "py-1 px-2 text-[11px] rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+                    );
+                    restoreBtn.onclick = () => window.restoreNode(nodeId);
+
+                    btnDiv.appendChild(infectBtn);
+                    btnDiv.appendChild(restoreBtn);
+                    card.appendChild(btnDiv);
+                }
+
+                grid.appendChild(card);
+            }
         }
+
+        if (badge && card) {
+            if (state === "quarantined") {
+                card.className = "p-4 rounded-lg bg-red-950/30 border border-red-600 shadow-lg shadow-red-950/40 transition-all";
+                badge.className = "px-2 py-0.5 rounded-full text-[11px] font-bold tracking-wide uppercase bg-red-950 border border-red-500 text-red-400 animate-pulse";
+                badge.textContent = "QUARANTINED";
+            } else if (state === "offline") {
+                card.className = "p-4 rounded-lg bg-slate-900/60 border border-slate-800 opacity-60 transition-all";
+                badge.className = "px-2 py-0.5 rounded-full text-[11px] font-bold tracking-wide uppercase bg-slate-800 border border-slate-700 text-slate-400";
+                badge.textContent = "OFFLINE";
+            } else {
+                card.className = "p-4 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 transition-all";
+                badge.className = "px-2 py-0.5 rounded-full text-[11px] font-bold tracking-wide uppercase bg-emerald-950/60 border border-emerald-800 text-emerald-400";
+                badge.textContent = "PRODUCTION";
+            }
+        }
+
+        updateModeMetrics();
     }
 
     // Initial status fetch
@@ -447,15 +566,60 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 // Pre-populate node states
                 if (payload.node_states) {
+                    virtualNodeStates = Object.assign({}, payload.node_states);
+
+                    // Reconcile DOM cards: remove dynamically added cards if container was removed from Docker
+                    const domCards = document.querySelectorAll("#section-simulated-topology div[id^='card-']");
+                    const staticNodes = new Set([
+                        "iot_sensor_node", "iot_bulb_node", "iot_motion_node",
+                        "iot_lock_node", "iot_mqtt_broker", "iot_cowrie_honeypot"
+                    ]);
+                    domCards.forEach(c => {
+                        const domNodeId = c.id.replace("card-", "");
+                        if (!(domNodeId in payload.node_states)) {
+                            if (!staticNodes.has(domNodeId)) {
+                                c.remove();
+                            } else {
+                                updateNodeStatus(domNodeId, "offline");
+                            }
+                        }
+                    });
+
                     for (const [nodeId, state] of Object.entries(payload.node_states)) {
                         updateNodeStatus(nodeId, state);
                     }
                 }
 
-                // Pre-populate mitigation rows in descending order
+                // Pre-populate only currently active mitigation rows in descending order
                 if (payload.recent_mitigations) {
                     mitigationTableBody.replaceChildren();
-                    payload.recent_mitigations.forEach(r => addMitigationRow(r, false));
+                    const activeDrops = new Set(payload.banned_ips || []);
+                    const nodeStates = payload.node_states || {};
+                    const nodeIpMap = {
+                        "172.20.0.21": "iot_sensor_node",
+                        "172.20.0.22": "iot_bulb_node",
+                        "172.20.0.23": "iot_motion_node",
+                        "172.20.0.24": "iot_lock_node",
+                    };
+
+                    payload.recent_mitigations.forEach(r => {
+                        if (r.action === "IPTABLES_DROP") {
+                            if (activeDrops.has(r.src_ip)) {
+                                addMitigationRow(r, false);
+                            }
+                        } else if (r.action === "QUARANTINE") {
+                            const targetNode = nodeIpMap[r.src_ip];
+                            if (targetNode && nodeStates[targetNode] === "quarantined") {
+                                addMitigationRow(r, false);
+                            }
+                        } else if (r.action === "DEVICE_BLOCKED") {
+                            const blockedDevs = new Set((payload.registered_devices || []).filter(d => d.blocked).map(d => d.ip_address));
+                            if (blockedDevs.has(r.src_ip)) {
+                                addMitigationRow(r, false);
+                            }
+                        }
+                    });
+                    checkMitigationEmptyState();
                 }
 
                 renderLiveDevices();
@@ -558,18 +722,33 @@ document.addEventListener("DOMContentLoaded", () => {
                     ? `row-id-${rec.id}`
                     : (rec.src_ip ? `row-ip-${rec.src_ip.replace(/[^a-zA-Z0-9]/g, '_')}` : null);
                 const action = rec.action || "IPTABLES_DROP";
-                const alreadyRendered = Boolean(rowKey && document.getElementById(rowKey));
-                if (!alreadyRendered && (action === "IPTABLES_DROP" || action === "BLOCK")) {
-                    updateBannedCountDisplay(activeBansCount + 1);
+
+                if (action === "NODE_RESTORED" || action === "DEVICE_RESTORED" || action === "UNBAN") {
+                    // Restoration or unban event: clear matching active mitigation row from ledger
+                    if (mitigationTableBody && rec.src_ip) {
+                        mitigationTableBody.querySelectorAll("tr").forEach((tr) => {
+                            if (tr.dataset.srcIp === rec.src_ip) {
+                                tr.remove();
+                            }
+                        });
+                        checkMitigationEmptyState();
+                        syncWorkspaceBadges();
+                    }
+                } else {
+                    const alreadyRendered = Boolean(rowKey && document.getElementById(rowKey));
+                    if (!alreadyRendered && (action === "IPTABLES_DROP" || action === "BLOCK")) {
+                        updateBannedCountDisplay(activeBansCount + 1);
+                    }
+                    addMitigationRow(rec);
                 }
-                addMitigationRow(rec);
-                if (action === "DEVICE_BLOCKED" || action === "DEVICE_RESTORED") {
+
+                if (action === "DEVICE_BLOCKED" || action === "DEVICE_RESTORED" || action === "QUARANTINE" || action === "NODE_RESTORED") {
                     fetchInitialStatus();
                 }
-                const logMsg = action === "DEVICE_RESTORED"
-                    ? `DEVICE RESTORED: ${rec.reason}`
-                    : (action === "DEVICE_BLOCKED"
-                        ? `LOGICAL QUARANTINE ENFORCED: ${rec.reason}`
+                const logMsg = (action === "DEVICE_RESTORED" || action === "NODE_RESTORED")
+                    ? `RESTORED: ${rec.reason}`
+                    : (action === "DEVICE_BLOCKED" || action === "QUARANTINE"
+                        ? `QUARANTINE ENFORCED: ${rec.reason}`
                         : `AUTONOMOUS BAN ENFORCED: ${rec.reason} (Chain: IOT_DEFENSE_BLOCKLIST)`);
                 appendTerminalLog({
                     stream: "MITIGATION",
@@ -604,6 +783,8 @@ document.addEventListener("DOMContentLoaded", () => {
                             tr.remove();
                         }
                     });
+                    checkMitigationEmptyState();
+                    syncWorkspaceBadges();
                 }
                 updateBannedCountDisplay(activeBansCount - 1);
                 appendTerminalLog({
@@ -624,6 +805,8 @@ document.addEventListener("DOMContentLoaded", () => {
         eventSource.addEventListener("reset_alert", () => {
             updateBannedCountDisplay(0);
             mitigationTableBody.replaceChildren();
+            checkMitigationEmptyState();
+            syncWorkspaceBadges();
             appendTerminalLog({
                 stream: "MITIGATION",
                 category: "mitigation",
@@ -639,6 +822,7 @@ document.addEventListener("DOMContentLoaded", () => {
             totalTraps = 0;
             trapsCountEl.textContent = "0";
             mitigationTableBody.replaceChildren();
+            checkMitigationEmptyState();
             window.clearConsole();
             fetchInitialStatus();
             loadAnalytics();
@@ -656,6 +840,11 @@ document.addEventListener("DOMContentLoaded", () => {
             try {
                 const payload = JSON.parse(e.data);
                 const nextMode = payload.data && payload.data.mode === "live" ? "live" : "simulated";
+                if (terminalFeed) {
+                    terminalFeed.replaceChildren();
+                }
+                terminalLogsBuffer.length = 0;
+                syncWorkspaceBadges();
                 applyTrafficModeUI(nextMode);
                 appendTerminalLog({
                     stream: "SYSTEM",
@@ -663,7 +852,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     severity: "SYS",
                     source: "mode_ctrl",
                     protocol: "SOC:MODE",
-                    message: `Traffic mode switched to ${nextMode.toUpperCase()} (${nextMode === "live" ? "Simulated feeds paused; Real Device Mesh active" : "Virtual IoT simulators & Red Team controls active"}).`
+                    message: `Traffic mode switched to ${nextMode.toUpperCase()} (${nextMode === "live" ? "Simulated feeds paused; Real Device Mesh active. Console cleared." : "Virtual IoT simulators & Red Team controls active. Console cleared."}).`
                 });
             } catch (err) {
                 console.error(err);
@@ -773,12 +962,32 @@ document.addEventListener("DOMContentLoaded", () => {
         eventSource.addEventListener("node_restored", (e) => {
             try {
                 const payload = JSON.parse(e.data);
-                updateNodeStatus(payload.data.node_id, "production");
+                const nodeData = payload.data || payload;
+                const nodeId = nodeData.node_id;
+                updateNodeStatus(nodeId, "production");
+
+                const nodeMeta = {
+                    "iot_sensor_node": "172.20.0.21",
+                    "iot_bulb_node": "172.20.0.22",
+                    "iot_motion_node": "172.20.0.23",
+                    "iot_lock_node": "172.20.0.24",
+                };
+                const targetIp = nodeData.src_ip || nodeMeta[nodeId];
+                if (mitigationTableBody && targetIp) {
+                    mitigationTableBody.querySelectorAll("tr").forEach((tr) => {
+                        if (tr.dataset.srcIp === targetIp) {
+                            tr.remove();
+                        }
+                    });
+                    checkMitigationEmptyState();
+                    syncWorkspaceBadges();
+                }
+
                 appendTerminalLog({
                     stream: "QUARANTINE",
                     category: "quarantine",
                     severity: "INFO",
-                    source: payload.data.node_id,
+                    source: nodeId,
                     protocol: "DOCKER-API",
                     message: "Container restored: Reconnected to production mesh network (iot_production_net)"
                 });
@@ -795,8 +1004,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 const val = data.payload || "";
                 let dev = data.device_id || "iot_node";
                 if (!data.device_id) {
-                    if (topic.includes("temperature") || topic.includes("sensor")) dev = "temp_sensor_01";
-                    else if (topic.includes("bulb") || topic.includes("device")) dev = "smart_bulb_01";
+                    if (topic.includes("temperature")) dev = "temp_sensor_01";
+                    else if (topic.includes("motion")) dev = "motion_sensor_02";
+                    else if (topic.includes("bulb")) dev = "smart_bulb_01";
+                    else if (topic.includes("lock")) dev = "smart_lock_01";
                 }
                 const protoLabel = topic.startsWith("http/webhook/") ? "HTTP:HOOK" : "MQTT:1883";
                 appendTerminalLog({
@@ -1113,7 +1324,7 @@ document.addEventListener("DOMContentLoaded", () => {
             // Top Usernames
             const userContainer = document.getElementById("intel-usernames");
             if (userContainer) {
-                userContainer.innerHTML = "";
+                userContainer.replaceChildren();
                 const users = stats.top_usernames || [];
                 if (users.length === 0) {
                     userContainer.appendChild(createSafeElement("span", "none yet", "text-[11px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-500"));
@@ -1127,7 +1338,7 @@ document.addEventListener("DOMContentLoaded", () => {
             // Top Passwords
             const passContainer = document.getElementById("intel-passwords");
             if (passContainer) {
-                passContainer.innerHTML = "";
+                passContainer.replaceChildren();
                 const passes = stats.top_passwords || [];
                 if (passes.length === 0) {
                     passContainer.appendChild(createSafeElement("span", "none yet", "text-[11px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-500"));
@@ -1445,12 +1656,55 @@ document.addEventListener("DOMContentLoaded", () => {
             if (isoValue) isoValue.textContent = "LIVE ACTIVE";
             if (isoBadge) isoBadge.textContent = `${quarantined} Quarantined`;
         } else {
+            const nodeIds = Object.keys(virtualNodeStates);
+            const total = nodeIds.length > 0
+                ? nodeIds.length
+                : (document.querySelectorAll("#section-simulated-topology div[id^='card-']").length || 6);
+
+            let quarantined = 0;
+            let production = 0;
+            let offline = 0;
+
+            for (const state of Object.values(virtualNodeStates)) {
+                if (state === "quarantined") {
+                    quarantined++;
+                } else if (state === "offline") {
+                    offline++;
+                } else {
+                    production++;
+                }
+            }
+
+            if (nodeIds.length === 0) {
+                production = total;
+            }
+
             if (nodesLabel) nodesLabel.textContent = "Virtual IoT Nodes";
-            if (nodesValue) nodesValue.textContent = "4 / 4";
+            if (nodesValue) {
+                nodesValue.textContent = `${production} / ${total}`;
+                if (quarantined > 0) {
+                    nodesValue.className = "text-3xl font-bold font-mono text-amber-400";
+                } else {
+                    nodesValue.className = "text-3xl font-bold font-mono text-emerald-400";
+                }
+            }
             if (nodesBadge) nodesBadge.textContent = "172.20.0.0/24";
             if (isoLabel) isoLabel.textContent = "Quarantine Isolation";
-            if (isoValue) isoValue.textContent = "ARMED";
-            if (isoBadge) isoBadge.textContent = "internal: true";
+            if (isoValue) {
+                isoValue.textContent = quarantined > 0 ? "CONTAINED" : "ARMED";
+                isoValue.className = quarantined > 0
+                    ? "text-lg font-bold font-mono text-amber-400 mt-1"
+                    : "text-lg font-bold font-mono text-sky-400 mt-1";
+            }
+            if (isoBadge) {
+                if (quarantined > 0) {
+                    isoBadge.textContent = `${quarantined} Quarantined`;
+                    isoBadge.className = "text-[11px] font-mono text-amber-400/80 bg-amber-950/40 border border-amber-900/50 px-1.5 py-0.5 rounded animate-pulse";
+                } else {
+                    isoBadge.textContent = "internal: true";
+                    isoBadge.className = "text-[11px] font-mono text-sky-400/80 bg-sky-950/40 border border-sky-900/50 px-1.5 py-0.5 rounded";
+                }
+            }
         }
     }
 
@@ -1482,7 +1736,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     window.setTrafficMode = async function(targetMode) {
         const cleanMode = targetMode === "live" ? "live" : "simulated";
-        if (cleanMode === currentTrafficMode) return;
+        
+        // Immediately clear the console buffer and DOM feed
+        if (terminalFeed) {
+            terminalFeed.replaceChildren();
+        }
+        terminalLogsBuffer.length = 0;
+        syncWorkspaceBadges();
+
         try {
             const res = await fetch("/api/system/mode", {
                 method: "POST",
@@ -1493,6 +1754,14 @@ document.addEventListener("DOMContentLoaded", () => {
             if (res.ok && data.status === "success") {
                 applyTrafficModeUI(cleanMode);
                 await fetchInitialStatus();
+                appendTerminalLog({
+                    stream: "SYSTEM",
+                    category: "system",
+                    severity: "INFO",
+                    source: "mode_ctrl",
+                    protocol: "SOC:MODE",
+                    message: `Telemetry mode switched to ${cleanMode.toUpperCase()}. Activity logs console cleared.`
+                });
             } else {
                 appendTerminalLog({
                     stream: "SYSTEM",
@@ -1567,9 +1836,22 @@ document.addEventListener("DOMContentLoaded", () => {
             // Top row: icon + name + badge
             const topWrap = createSafeElement("div", "", "space-y-1.5");
             const headerRow = createSafeElement("div", "", "flex items-center justify-between gap-2");
-            const nameGroup = createSafeElement("div", "", "flex items-center space-x-2 min-w-0");
+            const nameGroup = createSafeElement("div", "", "flex items-center space-x-1.5 min-w-0 flex-1");
             nameGroup.appendChild(createSafeElement("span", getDeviceIcon(dev.device_type), "text-base shrink-0"));
-            nameGroup.appendChild(createSafeElement("span", dev.name || dev.device_id, "font-semibold text-sm text-slate-100 truncate"));
+            const nameSpan = createSafeElement("span", dev.name || dev.device_id, "font-semibold text-sm text-slate-100 truncate");
+            nameSpan.title = dev.name || dev.device_id;
+            nameGroup.appendChild(nameSpan);
+
+            const editBtn = createSafeElement("button", "✏️", "text-xs text-slate-400 hover:text-sky-300 p-0.5 rounded hover:bg-slate-800 transition-colors shrink-0 ml-1");
+            editBtn.title = "Rename device";
+            editBtn.setAttribute("aria-label", `Rename device ${dev.name || dev.device_id}`);
+            editBtn.type = "button";
+            editBtn.onclick = (e) => {
+                e.stopPropagation();
+                startEditDeviceName(dev.device_id, dev.name || dev.device_id, nameGroup);
+            };
+            nameGroup.appendChild(editBtn);
+
             headerRow.appendChild(nameGroup);
             headerRow.appendChild(createSafeElement("span", status, `px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase border shrink-0 ${badgeCls}`));
             topWrap.appendChild(headerRow);
@@ -1628,6 +1910,110 @@ document.addEventListener("DOMContentLoaded", () => {
         grid.replaceChildren(frag);
     }
 
+    function startEditDeviceName(deviceId, currentName, containerEl) {
+        containerEl.replaceChildren();
+
+        const input = document.createElement("input");
+        input.type = "text";
+        input.value = currentName;
+        input.maxLength = 80;
+        input.className = "px-2 py-0.5 text-xs bg-slate-900 border border-sky-500 rounded text-slate-100 focus:outline-none focus:ring-1 focus:ring-sky-400 w-full min-w-[120px]";
+        input.placeholder = "Device Name";
+
+        const saveBtn = createSafeElement("button", "✓", "px-2 py-0.5 text-xs rounded bg-sky-600 hover:bg-sky-500 text-white font-bold transition-colors shrink-0");
+        saveBtn.title = "Save name";
+        saveBtn.type = "button";
+
+        const cancelBtn = createSafeElement("button", "✕", "px-2 py-0.5 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold transition-colors shrink-0");
+        cancelBtn.title = "Cancel";
+        cancelBtn.type = "button";
+
+        let saving = false;
+        const doSave = async () => {
+            if (saving) return;
+            const val = input.value.trim();
+            if (!val) {
+                alert("Device name cannot be empty.");
+                input.focus();
+                return;
+            }
+            if (val === currentName) {
+                renderLiveDevices();
+                return;
+            }
+            saving = true;
+            saveBtn.disabled = true;
+            cancelBtn.disabled = true;
+            saveBtn.textContent = "...";
+            await window.saveDeviceName(deviceId, val);
+        };
+
+        saveBtn.onclick = (e) => {
+            e.stopPropagation();
+            doSave();
+        };
+
+        cancelBtn.onclick = (e) => {
+            e.stopPropagation();
+            renderLiveDevices();
+        };
+
+        input.onkeydown = (e) => {
+            if (e.key === "Enter") {
+                if (e.isComposing || e.keyCode === 229) return;
+                e.preventDefault();
+                doSave();
+            } else if (e.key === "Escape") {
+                e.preventDefault();
+                renderLiveDevices();
+            }
+        };
+
+        containerEl.appendChild(input);
+        containerEl.appendChild(saveBtn);
+        containerEl.appendChild(cancelBtn);
+
+        input.focus();
+        input.select();
+    }
+
+    window.saveDeviceName = async function(deviceId, newName) {
+        try {
+            const res = await fetch(`/api/devices/${encodeURIComponent(deviceId)}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: newName })
+            });
+            const data = await res.json();
+            if (res.ok && data.status === "success") {
+                const updated = data.data && data.data.device;
+                if (updated) {
+                    upsertDeviceLocal(updated);
+                } else {
+                    const idx = registeredDevices.findIndex(d => d.device_id === deviceId);
+                    if (idx >= 0) {
+                        registeredDevices[idx].name = newName;
+                    }
+                    renderLiveDevices();
+                }
+                appendTerminalLog({
+                    stream: "IOT MESH",
+                    category: "iot",
+                    severity: "INFO",
+                    source: deviceId,
+                    protocol: "HTTP:API",
+                    message: `Renamed device '${deviceId}' to '${newName}'`
+                });
+            } else {
+                alert(`Failed to rename device: ${data.detail || data.message || "Unknown error"}`);
+                renderLiveDevices();
+            }
+        } catch (err) {
+            alert(`Error renaming device: ${err.message || err}`);
+            renderLiveDevices();
+        }
+    };
+
     function escapeHtml(str) {
         if (!str) return "";
         const d = document.createElement("div");
@@ -1637,9 +2023,48 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let _lastDiscoveredDevices = [];
 
-    window.openDiscoverModal = function() {
+    window.openDiscoverModal = async function() {
         const modal = document.getElementById("discover-modal");
         if (modal) modal.classList.remove("hidden");
+
+        const subnetInput = document.getElementById("discover-subnet-input");
+        const chipsContainer = document.getElementById("discover-subnet-chips");
+
+        try {
+            const res = await fetch("/api/devices/subnets");
+            const data = await res.json();
+            if (data.status === "success" && data.data) {
+                const defSub = data.data.default_subnet;
+                const candidates = data.data.candidate_subnets || [defSub];
+
+                if (subnetInput && !subnetInput.value.trim() && defSub) {
+                    subnetInput.value = defSub;
+                }
+
+                if (chipsContainer) {
+                    chipsContainer.replaceChildren();
+                    const label = createSafeElement("span", "Quick Subnets:", "text-slate-500 mr-1");
+                    chipsContainer.appendChild(label);
+
+                    candidates.forEach(sub => {
+                        const pill = createSafeElement(
+                            "button",
+                            sub,
+                            "px-2 py-0.5 rounded bg-slate-800 hover:bg-sky-900/60 border border-slate-700 hover:border-sky-600 text-slate-300 hover:text-sky-300 transition-colors cursor-pointer"
+                        );
+                        pill.type = "button";
+                        pill.onclick = () => {
+                            if (subnetInput) {
+                                subnetInput.value = sub;
+                            }
+                        };
+                        chipsContainer.appendChild(pill);
+                    });
+                }
+            }
+        } catch (e) {
+            console.debug("Subnet auto-detection fetch error:", e);
+        }
     };
 
     window.closeDiscoverModal = function() {
@@ -1663,7 +2088,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         if (banner) {
             banner.classList.remove("hidden");
-            if (statusText) statusText.textContent = "Broadcasting ONVIF WS-Discovery probes & sweeping subnet...";
+            if (statusText) {
+                statusText.textContent = subnet
+                    ? `Sweeping ${subnet} (ONVIF + 254-host IoT port scan)...`
+                    : "Auto-detecting LAN subnet & sweeping for IoT/CCTV nodes...";
+            }
         }
 
         try {
@@ -1680,7 +2109,12 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             const devices = (data.data && data.data.devices) ? data.data.devices : [];
+            const scannedSubnet = (data.data && data.data.scanned_subnet) ? data.data.scanned_subnet : (subnet || "LAN");
             _lastDiscoveredDevices = devices;
+
+            if (subnetInput && !subnetInput.value.trim() && scannedSubnet) {
+                subnetInput.value = scannedSubnet;
+            }
 
             if (countPill) {
                 countPill.textContent = `${devices.length} device${devices.length === 1 ? "" : "s"} found`;
@@ -1690,14 +2124,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (container) {
                     container.innerHTML = `
                         <div class="text-center py-6 text-slate-400 font-mono text-xs">
-                            ⚠️ No responsive ONVIF cameras or open IoT ports found on subnet.<br>
-                            <span class="text-[11px] text-slate-500">Ensure the device is powered on and connected to the same Wi-Fi / Ethernet LAN.</span>
+                            ⚠️ No responsive ONVIF cameras or open IoT ports found on <span class="text-sky-400 font-bold">${escapeHtml(scannedSubnet)}</span>.<br>
+                            <span class="text-[11px] text-slate-500">Ensure the device/camera is powered on, connected to this Wi-Fi, or select another subnet from Quick Subnets.</span>
                         </div>`;
                 }
-                if (statusText) statusText.textContent = "Scan complete: 0 devices responded.";
+                if (statusText) statusText.textContent = `Scan complete for ${scannedSubnet}: 0 devices responded.`;
             } else {
                 if (container) {
-                    container.innerHTML = "";
+                    container.replaceChildren();
                     devices.forEach((dev, idx) => {
                         const card = document.createElement("div");
                         card.className = "p-3 rounded-lg bg-slate-950/80 border border-slate-800 hover:border-sky-500/50 flex items-center justify-between transition-all";
@@ -1710,6 +2144,9 @@ document.addEventListener("DOMContentLoaded", () => {
                             ? `<span class="px-1.5 py-0.5 rounded bg-sky-900/40 text-sky-400 border border-sky-700/60 font-mono text-[10px]">ONVIF</span>`
                             : `<span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 font-mono text-[10px]">Port ${dev.port}</span>`;
 
+                        const snapPreview = dev.snapshot_url
+                            ? `<div class="text-[10px] text-sky-400/80 font-mono truncate max-w-xs mt-0.5">${escapeHtml(dev.snapshot_url)}</div>`
+                            : "";
                         const extraInfo = dev.details ? `<div class="text-[10px] text-slate-400 truncate max-w-xs">${escapeHtml(dev.details)}</div>` : "";
 
                         card.innerHTML = `
@@ -1723,6 +2160,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                     <div class="font-mono text-[11px] text-slate-400">
                                         ${escapeHtml(devIp)}:${dev.port} &bull; <span class="text-slate-500">${escapeHtml(dev.protocol)}</span>
                                     </div>
+                                    ${snapPreview}
                                     ${extraInfo}
                                 </div>
                             </div>
@@ -1733,7 +2171,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         container.appendChild(card);
                     });
                 }
-                if (statusText) statusText.textContent = `Scan complete: ${devices.length} device${devices.length === 1 ? "" : "s"} discovered.`;
+                if (statusText) statusText.textContent = `✅ Scan complete for ${scannedSubnet}: ${devices.length} device${devices.length === 1 ? "" : "s"} discovered.`;
             }
         } catch (err) {
             console.error("Discovery error:", err);
@@ -2215,6 +2653,11 @@ document.addEventListener("DOMContentLoaded", () => {
         root.classList.remove("dark", "light");
         root.classList.add(normalized);
 
+        const metaTheme = document.querySelector('meta[name="color-scheme"]');
+        if (metaTheme) {
+            metaTheme.content = normalized;
+        }
+
         const darkBtn = document.getElementById("theme-btn-dark");
         const lightBtn = document.getElementById("theme-btn-light");
         const activeCls = "px-2.5 py-1 rounded-md font-semibold transition-all bg-sky-600 text-white shadow-sm solid-accent-btn";
@@ -2238,7 +2681,8 @@ document.addEventListener("DOMContentLoaded", () => {
             soc: { panelId: "workspace-panel-soc", btnId: "tab-btn-soc", iconClass: "" },
             mitigations: { panelId: "workspace-panel-mitigations", btnId: "tab-btn-mitigations", iconClass: "text-rose-400" },
             logs: { panelId: "workspace-panel-logs", btnId: "tab-btn-logs", iconClass: "text-sky-400" },
-            about: { panelId: "workspace-panel-about", btnId: "btn-open-about", iconClass: "text-cyan-400" }
+            about: { panelId: "workspace-panel-about", btnId: "btn-open-about", iconClass: "text-cyan-400" },
+            users: { panelId: "workspace-panel-users", btnId: "tab-btn-users", iconClass: "text-indigo-400" }
         };
         const target = Object.prototype.hasOwnProperty.call(tabs, tabName) ? tabName : "soc";
 
@@ -2262,6 +2706,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (target === "logs" && terminalFeed) {
             terminalFeed.scrollTop = terminalFeed.scrollHeight;
+        }
+        if (target === "users") {
+            window.fetchUsersAndSessions();
         }
         window.scrollTo({ top: 0, behavior: "smooth" });
     };
@@ -2470,6 +2917,454 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
 
+    // --- SOC Operator Authentication & User Dashboard Engine ---
+
+    let currentOperator = null;
+    let isDashboardInitialized = false;
+
+    window.toggleLoginPasswordVisibility = function() {
+        const input = document.getElementById("login-input-password");
+        if (!input) return;
+        input.type = input.type === "password" ? "text" : "password";
+    };
+
+    window.fillDemoCredentials = function(username, password) {
+        const u = document.getElementById("login-input-username");
+        const p = document.getElementById("login-input-password");
+        if (u) u.value = username;
+        if (p) {
+            p.value = password;
+            p.focus();
+        }
+        const err = document.getElementById("login-error-alert");
+        if (err) err.classList.add("hidden");
+    };
+
+    window.showLoginScreen = function() {
+        const loginEl = document.getElementById("login-screen");
+        const dashEl = document.getElementById("main-dashboard-app");
+        if (loginEl) loginEl.classList.remove("hidden");
+        if (dashEl) dashEl.classList.add("hidden");
+
+        const errAlert = document.getElementById("login-error-alert");
+        if (errAlert) errAlert.classList.add("hidden");
+        const submitBtn = document.getElementById("btn-submit-login");
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            const btnText = document.getElementById("login-btn-text");
+            if (btnText) btnText.textContent = "Sign In to SOC Gateway";
+        }
+    };
+
+    window.showDashboard = function(operator) {
+        currentOperator = operator;
+        const loginEl = document.getElementById("login-screen");
+        const dashEl = document.getElementById("main-dashboard-app");
+        if (loginEl) loginEl.classList.add("hidden");
+        if (dashEl) dashEl.classList.remove("hidden");
+
+        const usernameEl = document.getElementById("auth-username");
+        const roleEl = document.getElementById("auth-role-badge");
+        if (usernameEl && operator) usernameEl.textContent = operator.username;
+        if (roleEl && operator) {
+            const role = (operator.role || "operator").toLowerCase();
+            roleEl.textContent = role.toUpperCase();
+            if (role === "admin") {
+                roleEl.className = "px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-950 border border-amber-600 text-amber-300";
+            } else if (role === "analyst") {
+                roleEl.className = "px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-sky-950 border border-sky-600 text-sky-300";
+            } else {
+                roleEl.className = "px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-950 border border-emerald-600 text-emerald-300";
+            }
+        }
+
+        // Apply RBAC permissions to destructive / admin buttons
+        const resetDbBtn = document.getElementById("btn-reset-db");
+        const resetBansBtn = document.getElementById("btn-reset-bans");
+        const addUserBtn = document.getElementById("btn-open-add-user");
+        const isAdmin = operator && operator.role === "admin";
+        const isOperator = operator && operator.role === "operator";
+
+        if (resetDbBtn) {
+            resetDbBtn.disabled = !isAdmin;
+            resetDbBtn.classList.toggle("opacity-50", !isAdmin);
+            resetDbBtn.classList.toggle("cursor-not-allowed", !isAdmin);
+            resetDbBtn.title = isAdmin ? "Completely purge database audit logs, active bans, and threat analytics" : "Requires SOC Administrator role";
+        }
+        if (resetBansBtn) {
+            const canResetBans = isAdmin || isOperator;
+            resetBansBtn.disabled = !canResetBans;
+            resetBansBtn.classList.toggle("opacity-50", !canResetBans);
+            resetBansBtn.classList.toggle("cursor-not-allowed", !canResetBans);
+            resetBansBtn.title = canResetBans ? "Flush active netfilter rules" : "Requires SOC Administrator or Operator role";
+        }
+        if (addUserBtn) {
+            addUserBtn.style.display = isAdmin ? "flex" : "none";
+        }
+
+        if (!isDashboardInitialized) {
+            isDashboardInitialized = true;
+            fetchInitialStatus();
+            loadAnalytics();
+            connectSSE();
+            setInterval(fetchInitialStatus, 10000);
+        }
+    };
+
+    window.submitOperatorLogin = async function(e) {
+        if (e) e.preventDefault();
+        const usernameInput = document.getElementById("login-input-username");
+        const passwordInput = document.getElementById("login-input-password");
+        const errAlert = document.getElementById("login-error-alert");
+        const errMsg = document.getElementById("login-error-msg");
+        const submitBtn = document.getElementById("btn-submit-login");
+        const btnText = document.getElementById("login-btn-text");
+
+        const username = (usernameInput?.value || "").trim();
+        const password = passwordInput?.value || "";
+
+        if (!username || !password) {
+            if (errAlert && errMsg) {
+                errMsg.textContent = "Please enter both operator username and password.";
+                errAlert.classList.remove("hidden");
+            }
+            return;
+        }
+
+        if (submitBtn) submitBtn.disabled = true;
+        if (btnText) btnText.textContent = "Authenticating...";
+
+        try {
+            const res = await fetch("/api/auth/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password })
+            });
+            const data = await res.json();
+            if (res.ok && data.status === "success" && data.data) {
+                const user = data.data.user;
+                if (data.data.session_id) {
+                    try { localStorage.setItem("soc_auth_token", data.data.session_id); } catch (_) {}
+                }
+                window.showDashboard(user);
+                appendTerminalLog({
+                    stream: "SYSTEM",
+                    category: "system",
+                    severity: "INFO",
+                    source: user.username,
+                    protocol: "AUTH:SCRYPT",
+                    message: `Operator '${user.username}' (${user.role.toUpperCase()}) authenticated successfully via SOC Security Gateway.`
+                });
+            } else {
+                if (errAlert && errMsg) {
+                    errMsg.textContent = data.detail || data.message || "Invalid credentials or rate limit reached.";
+                    errAlert.classList.remove("hidden");
+                }
+            }
+        } catch (err) {
+            if (errAlert && errMsg) {
+                errMsg.textContent = "Network error connecting to SOC Gateway: " + err.message;
+                errAlert.classList.remove("hidden");
+            }
+        } finally {
+            if (submitBtn) submitBtn.disabled = false;
+            if (btnText) btnText.textContent = "Sign In to SOC Gateway";
+        }
+    };
+
+    window.logoutOperator = async function() {
+        try {
+            let token = "";
+            try { token = localStorage.getItem("soc_auth_token") || ""; } catch (_) {}
+            const headers = token ? { "Authorization": `Bearer ${token}` } : {};
+            await fetch("/api/auth/logout", { method: "POST", headers });
+        } catch (_) {}
+        try { localStorage.removeItem("soc_auth_token"); } catch (_) {}
+        currentOperator = null;
+        window.showLoginScreen();
+    };
+
+    window.checkAuthSession = async function() {
+        try {
+            let token = "";
+            try { token = localStorage.getItem("soc_auth_token") || ""; } catch (_) {}
+            const headers = token ? { "Authorization": `Bearer ${token}` } : {};
+            const res = await fetch("/api/auth/me", { headers });
+            const data = await res.json();
+            if (res.ok && data.status === "success" && data.data && data.data.user) {
+                window.showDashboard(data.data.user);
+            } else {
+                window.showLoginScreen();
+            }
+        } catch (err) {
+            window.showLoginScreen();
+        }
+    };
+
+    window.fetchUsersAndSessions = async function() {
+        try {
+            let token = "";
+            try { token = localStorage.getItem("soc_auth_token") || ""; } catch (_) {}
+            const headers = token ? { "Authorization": `Bearer ${token}` } : {};
+
+            const usersRes = await fetch("/api/auth/users", { headers });
+            const usersJson = await usersRes.json();
+
+            let users = [];
+            if (usersRes.ok && usersJson.status === "success" && usersJson.data) {
+                users = usersJson.data.users || [];
+            }
+
+            const totalUsersEl = document.getElementById("metric-total-users");
+            const adminCountEl = document.getElementById("metric-admin-count");
+            const usersCountTag = document.getElementById("users-count-tag");
+            const badgeUsers = document.getElementById("tab-badge-users");
+
+            if (totalUsersEl) totalUsersEl.textContent = `${users.length}`;
+            if (adminCountEl) adminCountEl.textContent = `${users.filter(u => u.role === "admin").length} Admin`;
+            if (usersCountTag) usersCountTag.textContent = `${users.length} Operators`;
+            if (badgeUsers) badgeUsers.textContent = `${users.length}`;
+
+            const usersTbody = document.getElementById("users-table-body");
+            if (usersTbody) {
+                usersTbody.replaceChildren();
+                if (users.length === 0) {
+                    const tr = document.createElement("tr");
+                    const td = document.createElement("td");
+                    td.colSpan = 6;
+                    td.className = "p-4 text-center text-slate-500 italic";
+                    td.textContent = "No operator accounts loaded or access restricted.";
+                    tr.appendChild(td);
+                    usersTbody.appendChild(tr);
+                } else {
+                    users.forEach(u => {
+                        const tr = document.createElement("tr");
+                        tr.className = "hover:bg-slate-900/60 transition-colors";
+
+                        // Operator column
+                        const tdUser = document.createElement("td");
+                        tdUser.className = "p-3 font-semibold text-slate-100 flex items-center space-x-2";
+                        const iconSpan = document.createElement("span");
+                        iconSpan.textContent = u.role === "admin" ? "👑" : (u.role === "analyst" ? "🔍" : "⚙️");
+                        const nameSpan = document.createElement("span");
+                        nameSpan.textContent = `${u.full_name || u.username} (${u.username})`;
+                        tdUser.appendChild(iconSpan);
+                        tdUser.appendChild(nameSpan);
+
+                        // Role column
+                        const tdRole = document.createElement("td");
+                        tdRole.className = "p-3";
+                        const roleBadge = document.createElement("span");
+                        roleBadge.textContent = u.role.toUpperCase();
+                        roleBadge.className = u.role === "admin"
+                            ? "px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-950 border border-amber-600 text-amber-300"
+                            : (u.role === "analyst"
+                                ? "px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-sky-950 border border-sky-600 text-sky-300"
+                                : "px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-950 border border-emerald-600 text-emerald-300");
+                        tdRole.appendChild(roleBadge);
+
+                        // Email column
+                        const tdEmail = document.createElement("td");
+                        tdEmail.className = "p-3 text-slate-300";
+                        tdEmail.textContent = u.email || "—";
+
+                        // Status column
+                        const tdStatus = document.createElement("td");
+                        tdStatus.className = "p-3";
+                        const statusBadge = document.createElement("span");
+                        statusBadge.textContent = u.is_active ? "ACTIVE" : "INACTIVE";
+                        statusBadge.className = u.is_active
+                            ? "px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-950/80 text-emerald-400 border border-emerald-800"
+                            : "px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-950/80 text-rose-400 border border-rose-800";
+                        tdStatus.appendChild(statusBadge);
+
+                        // Last Login column
+                        const tdLast = document.createElement("td");
+                        tdLast.className = "p-3 text-slate-400";
+                        tdLast.textContent = u.last_login ? formatDateTime(u.last_login) : "Never logged in";
+
+                        // Created At column
+                        const tdCreated = document.createElement("td");
+                        tdCreated.className = "p-3 text-slate-500";
+                        tdCreated.textContent = u.created_at ? formatDateTime(u.created_at) : "System Default";
+
+                        tr.appendChild(tdUser);
+                        tr.appendChild(tdRole);
+                        tr.appendChild(tdEmail);
+                        tr.appendChild(tdStatus);
+                        tr.appendChild(tdLast);
+                        tr.appendChild(tdCreated);
+                        usersTbody.appendChild(tr);
+                    });
+                }
+            }
+
+            // Fetch active sessions
+            const sessRes = await fetch("/api/auth/sessions", { headers });
+            const sessJson = await sessRes.json();
+            let sessions = [];
+            if (sessRes.ok && sessJson.status === "success" && sessJson.data) {
+                sessions = sessJson.data.sessions || [];
+            }
+
+            const activeSessEl = document.getElementById("metric-active-sessions");
+            const sessionsCountTag = document.getElementById("sessions-count-tag");
+            if (activeSessEl) activeSessEl.textContent = `${sessions.length}`;
+            if (sessionsCountTag) sessionsCountTag.textContent = `${sessions.length} Active Sessions`;
+
+            const sessTbody = document.getElementById("sessions-table-body");
+            if (sessTbody) {
+                sessTbody.replaceChildren();
+                if (sessions.length === 0) {
+                    const tr = document.createElement("tr");
+                    const td = document.createElement("td");
+                    td.colSpan = 7;
+                    td.className = "p-4 text-center text-slate-500 italic";
+                    td.textContent = "No active operator sessions recorded.";
+                    tr.appendChild(td);
+                    sessTbody.appendChild(tr);
+                } else {
+                    sessions.forEach(s => {
+                        const tr = document.createElement("tr");
+                        tr.className = "hover:bg-slate-900/60 transition-colors";
+
+                        const tdToken = document.createElement("td");
+                        tdToken.className = "p-3 text-slate-300 font-mono";
+                        tdToken.textContent = s.session_id ? `${s.session_id.substring(0, 18)}...` : "—";
+
+                        const tdUser = document.createElement("td");
+                        tdUser.className = "p-3 font-semibold text-slate-100";
+                        tdUser.textContent = s.username;
+
+                        const tdRole = document.createElement("td");
+                        tdRole.className = "p-3 uppercase text-slate-300";
+                        tdRole.textContent = s.role;
+
+                        const tdIp = document.createElement("td");
+                        tdIp.className = "p-3 text-sky-400 font-mono";
+                        tdIp.textContent = s.ip_address || "127.0.0.1";
+
+                        const tdUa = document.createElement("td");
+                        tdUa.className = "p-3 text-slate-400 truncate max-w-[200px]";
+                        tdUa.title = s.user_agent || "";
+                        tdUa.textContent = (s.user_agent || "").substring(0, 30) || "Browser Session";
+
+                        const tdActive = document.createElement("td");
+                        tdActive.className = "p-3 text-slate-400";
+                        tdActive.textContent = s.last_activity ? formatDateTime(s.last_activity) : "—";
+
+                        const tdAction = document.createElement("td");
+                        tdAction.className = "p-3 text-right";
+                        const revokeBtn = document.createElement("button");
+                        revokeBtn.type = "button";
+                        revokeBtn.textContent = "Revoke";
+                        revokeBtn.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-rose-950/80 hover:bg-rose-900 border border-rose-700 text-rose-300 transition-colors";
+                        revokeBtn.onclick = () => window.revokeOperatorSession(s.session_id);
+                        tdAction.appendChild(revokeBtn);
+
+                        tr.appendChild(tdToken);
+                        tr.appendChild(tdUser);
+                        tr.appendChild(tdRole);
+                        tr.appendChild(tdIp);
+                        tr.appendChild(tdUa);
+                        tr.appendChild(tdActive);
+                        tr.appendChild(tdAction);
+                        sessTbody.appendChild(tr);
+                    });
+                }
+            }
+        } catch (err) {
+            console.error("Error fetching users & sessions:", err);
+        }
+    };
+
+    window.openAddUserModal = function() {
+        const modal = document.getElementById("add-user-modal");
+        const form = document.getElementById("form-add-user");
+        const errBox = document.getElementById("add-user-error");
+        if (form) form.reset();
+        if (errBox) {
+            errBox.textContent = "";
+            errBox.classList.add("hidden");
+        }
+        if (modal) modal.classList.remove("hidden");
+    };
+
+    window.closeAddUserModal = function() {
+        const modal = document.getElementById("add-user-modal");
+        if (modal) modal.classList.add("hidden");
+    };
+
+    window.submitAddUser = async function(e) {
+        if (e) e.preventDefault();
+        const errBox = document.getElementById("add-user-error");
+        if (errBox) errBox.classList.add("hidden");
+
+        const username = document.getElementById("new-user-username")?.value?.trim();
+        const full_name = document.getElementById("new-user-fullname")?.value?.trim();
+        const email = document.getElementById("new-user-email")?.value?.trim();
+        const role = document.getElementById("new-user-role")?.value;
+        const password = document.getElementById("new-user-password")?.value;
+
+        try {
+            let token = "";
+            try { token = localStorage.getItem("soc_auth_token") || ""; } catch (_) {}
+            const headers = { "Content-Type": "application/json" };
+            if (token) headers["Authorization"] = `Bearer ${token}`;
+
+            const res = await fetch("/api/auth/users", {
+                method: "POST",
+                headers: headers,
+                body: JSON.stringify({ username, full_name, email, role, password })
+            });
+            const data = await res.json();
+            if (res.ok && data.status === "success") {
+                window.closeAddUserModal();
+                await window.fetchUsersAndSessions();
+                appendTerminalLog({
+                    stream: "SYSTEM",
+                    category: "system",
+                    severity: "INFO",
+                    source: "soc_admin",
+                    protocol: "RBAC:USER",
+                    message: `Provisioned new operator '${username}' (Role: ${role.toUpperCase()}) with Scrypt password security.`
+                });
+            } else {
+                if (errBox) {
+                    errBox.textContent = data.detail || data.message || "Failed to create operator.";
+                    errBox.classList.remove("hidden");
+                }
+            }
+        } catch (err) {
+            if (errBox) {
+                errBox.textContent = "Error creating operator: " + err.message;
+                errBox.classList.remove("hidden");
+            }
+        }
+    };
+
+    window.revokeOperatorSession = async function(sessionId) {
+        if (!confirm("Are you sure you want to revoke this operator session?")) return;
+        try {
+            let token = "";
+            try { token = localStorage.getItem("soc_auth_token") || ""; } catch (_) {}
+            const headers = token ? { "Authorization": `Bearer ${token}` } : {};
+
+            const res = await fetch(`/api/auth/sessions/${encodeURIComponent(sessionId)}`, {
+                method: "DELETE",
+                headers: headers
+            });
+            const data = await res.json();
+            if (res.ok && data.status === "success") {
+                await window.fetchUsersAndSessions();
+            } else {
+                alert("Failed to revoke session: " + (data.detail || data.message));
+            }
+        } catch (err) {
+            alert("Error revoking session: " + err.message);
+        }
+    };
+
     // Keyboard shortcut to close modals
     document.addEventListener("keydown", (e) => {
         if (e.key === "Escape") {
@@ -2479,6 +3374,7 @@ document.addEventListener("DOMContentLoaded", () => {
             window.closeSnapshotModal();
             window.closeDrillModal();
             window.closeConfirmModal();
+            window.closeAddUserModal();
         }
     });
 
@@ -2491,9 +3387,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     applyThemeUI(savedTheme);
     window.setAboutChapter("all");
+    checkMitigationEmptyState();
     syncWorkspaceBadges();
-    fetchInitialStatus();
-    loadAnalytics();
-    connectSSE();
+    window.checkAuthSession();
 });
 

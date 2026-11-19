@@ -44,6 +44,14 @@ class TestAPIRoutes(unittest.TestCase):
 
         self.mock_quarantine = MagicMock(spec=QuarantineManager)
         self.mock_quarantine.get_container_network_status.return_value = "production"
+        self.mock_quarantine.get_all_virtual_node_states.return_value = {
+            "iot_sensor_node": "production",
+            "iot_bulb_node": "production",
+            "iot_motion_node": "production",
+            "iot_lock_node": "production",
+            "iot_mqtt_broker": "production",
+            "iot_cowrie_honeypot": "production",
+        }
         self.mock_quarantine.quarantine_container.return_value = {
             "status": "success",
             "current_state": "quarantined",
@@ -116,9 +124,21 @@ class TestAPIRoutes(unittest.TestCase):
         self.assertEqual(infect_res.status_code, 200)
         self.mock_quarantine.quarantine_container.assert_called_with("iot_sensor_node")
 
+        # Verify QUARANTINE mitigation record is logged in audit database
+        history = self.db.get_history()
+        self.assertGreaterEqual(len(history), 1)
+        self.assertEqual(history[0]["action"], "QUARANTINE")
+        self.assertEqual(history[0]["src_ip"], "172.20.0.21")
+
         restore_res = self.client.post("/api/simulate/restore/iot_sensor_node")
         self.assertEqual(restore_res.status_code, 200)
         self.mock_quarantine.restore_container.assert_called_with("iot_sensor_node")
+
+        # Verify NODE_RESTORED mitigation record is logged in audit database
+        history_after = self.db.get_history()
+        self.assertGreaterEqual(len(history_after), 2)
+        self.assertEqual(history_after[0]["action"], "NODE_RESTORED")
+        self.assertEqual(history_after[0]["src_ip"], "172.20.0.21")
 
     def test_sse_stream_headers_and_initial_handshake(self) -> None:
         with self.client.stream("GET", "/api/stream") as stream:

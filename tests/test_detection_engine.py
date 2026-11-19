@@ -225,6 +225,27 @@ class TestIntrusionDetector(unittest.TestCase):
             self.assertIsNone(res)
 
         self.assertFalse(self.firewall.is_ip_banned(gateway_ip))
+        # Invariant: Allowlisted/gateway traffic must never pollute attack analytics
+        analytics = self.detector.get_analytics()
+        self.assertEqual(analytics["attack_breakdown"].get("brute_force", 0), 0)
+        self.assertEqual(analytics["recent_events_count"], 0)
+
+    def test_loopback_healthchecks_not_counted_as_reconnaissance_probes(self) -> None:
+        loopback_ip = "127.0.0.1"
+        for _ in range(20):
+            evt = CowrieEvent(
+                eventid="cowrie.session.connect",
+                src_ip=loopback_ip,
+                dst_port=2222,
+            )
+            res = self.detector.process_event(evt)
+            self.assertIsNone(res)
+
+        analytics = self.detector.get_analytics()
+        self.assertEqual(analytics["attack_breakdown"].get("probe", 0), 0)
+        self.assertEqual(analytics["target_ports"]["2222"], 0)
+        self.assertEqual(analytics["recent_events_count"], 0)
+        self.assertEqual(self.db.get_persisted_threat_analytics()["total_threat_events"], 0)
 
     def test_critical_command_execution(self) -> None:
         attacker_ip = "203.0.113.88"

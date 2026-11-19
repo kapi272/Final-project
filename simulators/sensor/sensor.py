@@ -20,6 +20,8 @@ BROKER_PORT: int = int(os.getenv("MQTT_BROKER_PORT", "1883"))
 DEVICE_ID: str = os.getenv("DEVICE_ID", "temp_sensor_01")
 TOPIC: str = os.getenv("MQTT_TOPIC", "home/sensors/temperature")
 PUBLISH_INTERVAL: float = float(os.getenv("PUBLISH_INTERVAL", "2.0"))
+SENSOR_TYPE: str = os.getenv("SENSOR_TYPE", "temperature")
+SENSOR_ZONE: str = os.getenv("SENSOR_ZONE", "Living-Room")
 
 MQTT_USER: str = os.getenv("MQTT_USER") or os.getenv("MQTT_USERNAME", "")
 MQTT_PASSWORD: str = os.getenv("MQTT_PASSWORD", "")
@@ -67,13 +69,23 @@ def main() -> None:
 
     try:
         while running:
-            current_temp = round(base_temp + random.uniform(-0.8, 0.8), 2)
-            payload: Dict[str, Any] = {
-                "device_id": DEVICE_ID,
-                "temperature": current_temp,
-                "unit": "C",
-                "timestamp": time.time()
-            }
+            if SENSOR_TYPE.lower() == "motion":
+                is_motion = random.random() < 0.45
+                payload: Dict[str, Any] = {
+                    "device_id": DEVICE_ID,
+                    "motion_detected": is_motion,
+                    "zone": SENSOR_ZONE,
+                    "battery": round(random.uniform(92.0, 99.0), 1),
+                    "timestamp": time.time()
+                }
+            else:
+                current_temp = round(base_temp + random.uniform(-0.8, 0.8), 2)
+                payload: Dict[str, Any] = {
+                    "device_id": DEVICE_ID,
+                    "temperature": current_temp,
+                    "unit": "C",
+                    "timestamp": time.time()
+                }
             client.publish(TOPIC, json.dumps(payload), qos=0)
             logger.info("Published to %s: %s", TOPIC, payload)
             time.sleep(PUBLISH_INTERVAL)
