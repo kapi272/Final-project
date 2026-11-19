@@ -10,28 +10,30 @@ Top navigation houses global toggles (`Simulated | Live` traffic switch, `Dark |
 - **Activity Logs Workspace (`#workspace-panel-logs`):** Dedicated full-width 6-column SIEM console (`#terminal-feed`, `540px` height) with stream filter pills (`ALL`, `HONEYPOT`, `MITIGATION`, `QUARANTINE`, `IOT MESH`, `SYSTEM`) and selective export triggers.
 - **About & Architecture Workspace (`#workspace-panel-about`):** Chapter-filtered documentation tabs (`#about-chapter-tabs`: Full Guide, How It Works, Simulated vs Live, Differences & Advantages) with `.diagram-showcase-frame` containers preserving obsidian framing around dark-HUD diagrams across themes.
 
-## Colors (Neo-Pastel Cyber Palette on Pure Black)
+## Colors (Executive Cyber SOC Palette)
 
-The design system adopts a 5-tone pastel accent palette paired with high-contrast `#000000` (Pure Black) foundations:
+A bespoke, high-contrast, human-crafted cybersecurity visual system avoiding flat AI-generated aesthetics. Built on an atmospheric midnight-obsidian foundation in Dark Mode and a crisp editorial slate-50 in Light Mode:
 
-| Role | Tone / Hex | Dark Mode (`html.dark`) | Light Mode (`html.light`) | Usage & Contrast Rules |
-| :--- | :--- | :--- | :--- | :--- |
-| **Page Base** | `#000000` (`darkBase`) | `#000000` (Pure Black Canvas) | `#f8fafc` (`Slate 50`) | Deep obsidian terminal background |
-| **Surface Card** | Deep Void | `#0a0d14` / `#000000` | `#ffffff` (`White`) | Panels, card containers, widgets with fine borders |
-| **Sub-Card / Well** | Pure Black | `#000000` | `#f1f5f9` (`Slate 100`) | Nested cards, SIEM feed, form inputs |
-| **Border Default** | High-Contrast Charcoal | `#1a202c` / `#2d3748` | `#e2e8f0` (`Slate 200`) | Structural dividers, panel borders |
-| **Text Primary** | High-Contrast White | `#ffffff` / `#f8fafc` | `#000000` / `#0f172a` | Primary headings and vital metrics |
-| **Text Muted** | Slate Gray | `#94a3b8` | `#475569` | Metadata labels, descriptions, subheaders |
-| **Text Monospace** | Crisp Ice Slate | `#cbd5e1` | `#1e293b` | IP addresses, ports, timestamps |
-| **State Healthy (Primary)** | `#b9e192` (Pistachio Green) | `#b9e192` (paired with `#000000`) | `#2e6309` / `#b9e192` | Online stream, normal node status, healthy KPIs |
-| **State Healthy (Secondary)** | `#cfebb6` (Tea Green / Mint) | `#cfebb6` (paired with `#000000`) | `#3b7512` / `#cfebb6` | Verified badges, secondary healthy glows, safe pills |
-| **Accent Primary / Active** | `#b3c7f7` (Periwinkle Blue) | `#b3c7f7` (paired with `#000000`) | `#1d4ed8` / `#b3c7f7` | Active tabs, primary CTAs (`solid-accent-btn`), brand accents |
-| **State Warning / Trap** | `#f8b8d0` (Pastel Rose) | `#f8b8d0` (paired with `#000000`) | `#9d174d` / `#f8b8d0` | Honeypot traps captured, recon sweeps, caution badges |
-| **State Threat / Quarantine** | `#f194b8` (Raspberry Pink) | `#f194b8` (paired with `#000000`) | `#be185d` / `#f194b8` | Netfilter drops, quarantined hardware, exploit triggers |
+| Role | Dark Mode (`html.dark`) | Light Mode (`html.light`) | Usage & Semantics |
+| :--- | :--- | :--- | :--- |
+| **Page Base** | `#080c15` (Deep Obsidian Midnight) | `#f8fafc` (Slate 50) | Full-viewport canvas, prevents harsh glare |
+| **Surface Card** | `#0e1626` (Elevated Panel) | `#ffffff` (Pure White) | Workspaces, KPI widgets, card frames |
+| **Sub-Card / Well** | `#050811` (Deep Well) | `#f1f5f9` (Slate 100) | Console feed, data tables, input backgrounds |
+| **Border Default** | `#1e293b` (Slate 800) | `#e2e8f0` (Slate 200) | Structural dividers and cards (WCAG 3:1 non-text) |
+| **Border Subtle** | `#162032` (Slate 850) | `#cbd5e1` (Slate 300) | Secondary dividers, table row borders |
+| **Text Primary** | `#f8fafc` (Slate 50) | `#0f172a` (Slate 900) | Primary titles, critical metric values |
+| **Text Muted** | `#94a3b8` (Slate 400) | `#475569` (Slate 600) | Subheaders, descriptions, labels |
+| **Text Monospace** | `#cbd5e1` (Slate 300) | `#334155` (Slate 700) | IP addresses, timestamps, terminal logs |
+| **Primary Accent / Brand** | `#0284c7` / `#38bdf8` (Cyber Azure) | `#0284c7` / `#2563eb` | Active tabs, primary CTAs (`solid-accent-btn`) |
+| **State Healthy / Armed** | `#10b981` / `#34d399` (Precision Emerald) | `#047857` / `#059669` | Production nodes, online SSE, verified status |
+| **State Warning / Trap** | `#f59e0b` / `#fbbf24` (Tactical Amber) | `#b45309` / `#d97706` | Honeypot captures, port sweeps, caution alerts |
+| **State Threat / Containment**| `#f43f5e` / `#fb7185` (Cyber Crimson) | `#be123c` / `#e11d48` | Netfilter drops, quarantined hardware, exploits |
+| **Protocol / Telemetry** | `#818cf8` / `#6366f1` (Cyber Indigo) | `#4338ca` (Deep Indigo) | Users & Sessions, operator pills, protocol chips |
 
-### Contrast & Typography Pairing Rules
-- **Solid Pastel Badges & Action Buttons:** Whenever a component uses a solid fill from the 5 pastel tones (`#b9e192`, `#cfebb6`, `#b3c7f7`, `#f8b8d0`, `#f194b8`), the foreground text and icon color MUST be `#000000` (Pure Black, bold font weight) for maximum legibility.
-- **Glass / Tinted Containers:** Container backgrounds use low-opacity alpha tints (`rgba(179, 199, 247, 0.12)`, `rgba(185, 225, 146, 0.12)`, `rgba(241, 148, 184, 0.12)`) bounded by matching saturated borders.
+### Contrast & Ergonomic Rules
+- **Solid Action Buttons (`.solid-accent-btn`):** Use saturated Cyber Azure (`#0284c7` hover `#0369a1`) with crisp `#ffffff` text, 600 font weight, and subtle depth shadow (`shadow-md shadow-sky-950/40`), giving tactile realism across both themes.
+- **Micro-Badges & Status Chips:** Use low-opacity alpha tints (`rgba(16, 185, 129, 0.12)`, `rgba(244, 63, 94, 0.12)`, `rgba(245, 158, 11, 0.12)`) bounded by matching 1px saturated borders (`rgba(..., 0.45)`), preventing visual vibration.
+- **Accessible Text Contrast:** All primary text exceeds WCAG 4.5:1; component boundaries satisfy WCAG 1.4.11 (3:1 minimum).
 
 ## Typography
 

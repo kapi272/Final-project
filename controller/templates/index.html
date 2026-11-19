@@ -30,12 +30,9 @@
             theme: {
                 extend: {
                     colors: {
-                        darkBase: '#000000',
-                        pastelGreen: '#b9e192',
-                        pastelMint: '#cfebb6',
-                        pastelPeriwinkle: '#b3c7f7',
-                        pastelRose: '#f8b8d0',
-                        pastelPink: '#f194b8',
+                        darkBase: '#080c15',
+                        socNavy: '#0e1626',
+                        socWell: '#050811',
                     }
                 }
             }
@@ -43,24 +40,34 @@
     </script>
     <style id="theme-overrides">
         /* ========================================================= */
-        /* SIGNATURE NEO-PASTEL CYBER PALETTE ON PURE BLACK (#000000)*/
-        /* Tones: #b9e192, #cfebb6, #b3c7f7, #f8b8d0, #f194b8       */
-        /* High-contrast text on solid fills: #000000                */
+        /* EXECUTIVE CYBER SOC DESIGN SYSTEM — BESPOKE ARCHITECTURE  */
+        /* Engineered for maximum legibility, tactical clarity, and   */
+        /* zero generic AI-generated artifacting.                     */
         /* ========================================================= */
         :root {
-            --palette-black: #000000;
-            --palette-healthy: #b9e192;
-            --palette-mint: #cfebb6;
-            --palette-accent: #b3c7f7;
-            --palette-warning: #f8b8d0;
-            --palette-threat: #f194b8;
+            color-scheme: light dark;
+            --color-canvas-dark: #080c15;
+            --color-card-dark: #0e1626;
+            --color-well-dark: #050811;
+            --color-border-dark: #1e293b;
+            --color-border-subtle: #162032;
+            --color-primary: #0284c7;
+            --color-primary-hover: #0369a1;
+            --color-primary-glow: #38bdf8;
+            --color-emerald: #10b981;
+            --color-amber: #f59e0b;
+            --color-rose: #f43f5e;
+            --color-indigo: #6366f1;
+            --color-cyan: #06b6d4;
         }
 
-        /* Pure Black Canvas in Dark Mode */
+        /* --------------------------------------------------------- */
+        /* DARK MODE: DEEP OBSIDIAN MIDNIGHT COMMANDER                */
+        /* --------------------------------------------------------- */
         html.dark body,
         html.dark #login-screen,
         html.dark .bg-darkBase {
-            background-color: #000000 !important;
+            background-color: #080c15 !important;
         }
         html.dark .bg-slate-900,
         html.dark .bg-slate-900\/95,
@@ -68,8 +75,8 @@
         html.dark .bg-slate-900\/80,
         html.dark .bg-slate-900\/60,
         html.dark .bg-slate-900\/40 {
-            background-color: #070a12 !important;
-            border-color: #1a2233 !important;
+            background-color: #0e1626 !important;
+            border-color: #1e293b !important;
         }
         html.dark .bg-slate-950,
         html.dark .bg-slate-950\/95,
@@ -78,8 +85,8 @@
         html.dark .bg-slate-950\/80,
         html.dark .bg-slate-950\/70,
         html.dark .bg-slate-950\/40 {
-            background-color: #000000 !important;
-            border-color: #151c2a !important;
+            background-color: #050811 !important;
+            border-color: #162032 !important;
         }
         html.dark .bg-slate-800,
         html.dark .bg-slate-800\/90,
@@ -88,65 +95,83 @@
         html.dark .bg-slate-800\/60,
         html.dark .bg-slate-800\/50,
         html.dark .bg-slate-800\/40 {
-            background-color: #0d131f !important;
-            border-color: #1e283d !important;
+            background-color: #162032 !important;
+            border-color: #1e293b !important;
         }
         html.dark .border-slate-800,
         html.dark .border-slate-800\/90,
         html.dark .border-slate-800\/80,
         html.dark .border-slate-800\/70,
         html.dark .border-slate-800\/60 {
-            border-color: #1a2336 !important;
+            border-color: #1e293b !important;
         }
         html.dark .border-slate-700,
         html.dark .border-slate-700\/80 {
-            border-color: #243049 !important;
+            border-color: #26354d !important;
         }
         html.dark .divide-slate-800 > :not([hidden]) ~ :not([hidden]),
         html.dark .divide-slate-800\/60 > :not([hidden]) ~ :not([hidden]) {
-            border-color: #1a2336 !important;
+            border-color: #1e293b !important;
         }
 
-        /* Selection styling */
+        /* Tactical Focus Indicators */
+        html.dark input:focus,
+        html.dark select:focus {
+            border-color: #0284c7 !important;
+            box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.25) !important;
+        }
+
+        /* Selection Glow */
         ::selection {
-            background-color: #b3c7f7;
-            color: #000000;
+            background-color: #0284c7;
+            color: #ffffff;
         }
 
-        /* Primary Accent: #b3c7f7 (Periwinkle Blue with #000000 text on solid fills) */
+        /* Solid Accent Action Buttons & Active Tabs */
         .solid-accent-btn,
         html.dark .solid-accent-btn,
         html.light .solid-accent-btn,
         .bg-sky-600,
         #tab-btn-soc.solid-accent-btn {
-            background-color: #b3c7f7 !important;
-            color: #000000 !important;
-            font-weight: 700 !important;
-            border: 1px solid #b3c7f7 !important;
+            background: linear-gradient(180deg, #0284c7 0%, #0369a1 100%) !important;
+            color: #ffffff !important;
+            font-weight: 600 !important;
+            border: 1px solid #0284c7 !important;
+            box-shadow: 0 1px 3px rgba(2, 132, 199, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
         }
         .solid-accent-btn:hover,
         html.dark .solid-accent-btn:hover,
         html.light .solid-accent-btn:hover,
         .bg-sky-600:hover {
-            background-color: #c9d9fa !important;
-            color: #000000 !important;
-            border-color: #c9d9fa !important;
+            background: linear-gradient(180deg, #0369a1 0%, #075985 100%) !important;
+            color: #ffffff !important;
+            border-color: #0369a1 !important;
         }
         .solid-accent-btn svg,
         .solid-accent-btn span {
-            color: #000000 !important;
+            color: #ffffff !important;
         }
+
+        /* Active Workspace Tab Live Badge Pill */
+        .solid-accent-btn .tab-count-badge {
+            background-color: rgba(255, 255, 255, 0.22) !important;
+            border: 1px solid rgba(255, 255, 255, 0.4) !important;
+            color: #ffffff !important;
+            font-weight: 700 !important;
+        }
+
+        /* Primary Accent Tints (Dark Mode) */
         html.dark .text-sky-400,
         html.dark .text-sky-300,
         html.dark .text-sky-400\/80 {
-            color: #b3c7f7 !important;
+            color: #38bdf8 !important;
         }
         html.dark .border-sky-500,
         html.dark .border-sky-600,
         html.dark .border-sky-700,
         html.dark .border-sky-700\/80,
         html.dark .border-sky-800 {
-            border-color: rgba(179, 199, 247, 0.45) !important;
+            border-color: rgba(56, 189, 248, 0.45) !important;
         }
         html.dark .bg-sky-950,
         html.dark .bg-sky-950\/90,
@@ -155,28 +180,26 @@
         html.dark .bg-sky-950\/60,
         html.dark .bg-sky-950\/50,
         html.dark .bg-sky-950\/40 {
-            background-color: rgba(179, 199, 247, 0.12) !important;
-            border-color: rgba(179, 199, 247, 0.35) !important;
-        }
-        html.dark .focus\:border-sky-500:focus {
-            border-color: #b3c7f7 !important;
-        }
-        html.dark .focus\:ring-sky-500:focus {
-            --tw-ring-color: #b3c7f7 !important;
+            background-color: rgba(2, 132, 199, 0.12) !important;
+            border-color: rgba(2, 132, 199, 0.35) !important;
         }
 
-        /* State Healthy: #b9e192 & #cfebb6 (Pistachio Green / Mint with #000000 text on solid) */
+        /* Healthy / Normal / Online State (Dark Mode) */
         html.dark .text-emerald-400,
         html.dark .text-emerald-300,
         html.dark .text-emerald-400\/90,
         html.dark .text-emerald-400\/80,
         html.dark .text-green-400 {
-            color: #b9e192 !important;
+            color: #34d399 !important;
         }
         html.dark .bg-emerald-400,
         html.dark .bg-emerald-500 {
-            background-color: #b9e192 !important;
-            color: #000000 !important;
+            background-color: #10b981 !important;
+            color: #ffffff !important;
+        }
+        html.dark .bg-emerald-600 {
+            background: linear-gradient(180deg, #059669 0%, #047857 100%) !important;
+            color: #ffffff !important;
         }
         html.dark .border-emerald-700,
         html.dark .border-emerald-700\/80,
@@ -186,7 +209,7 @@
         html.dark .border-emerald-800\/60,
         html.dark .border-emerald-800\/50,
         html.dark .border-emerald-600 {
-            border-color: rgba(185, 225, 146, 0.5) !important;
+            border-color: rgba(16, 185, 129, 0.4) !important;
         }
         html.dark .bg-emerald-950,
         html.dark .bg-emerald-950\/90,
@@ -195,21 +218,21 @@
         html.dark .bg-emerald-950\/60,
         html.dark .bg-emerald-950\/50,
         html.dark .bg-emerald-950\/40 {
-            background-color: rgba(185, 225, 146, 0.12) !important;
-            border-color: rgba(185, 225, 146, 0.38) !important;
+            background-color: rgba(16, 185, 129, 0.1) !important;
+            border-color: rgba(16, 185, 129, 0.35) !important;
         }
 
-        /* State Warning / Honey-Trap / Recon: #f8b8d0 (Pastel Rose with #000000 text on solid) */
+        /* Warning / Honeypot / Recon State (Dark Mode) */
         html.dark .text-amber-400,
         html.dark .text-amber-300,
         html.dark .text-amber-400\/80,
         html.dark .text-yellow-400 {
-            color: #f8b8d0 !important;
+            color: #fbbf24 !important;
         }
         html.dark .bg-amber-400,
         html.dark .bg-amber-500 {
-            background-color: #f8b8d0 !important;
-            color: #000000 !important;
+            background-color: #f59e0b !important;
+            color: #ffffff !important;
         }
         html.dark .border-amber-700,
         html.dark .border-amber-800,
@@ -218,7 +241,7 @@
         html.dark .border-amber-800\/40,
         html.dark .border-amber-900\/50,
         html.dark .border-amber-600 {
-            border-color: rgba(248, 184, 208, 0.45) !important;
+            border-color: rgba(245, 158, 11, 0.4) !important;
         }
         html.dark .bg-amber-950,
         html.dark .bg-amber-950\/90,
@@ -226,11 +249,11 @@
         html.dark .bg-amber-950\/70,
         html.dark .bg-amber-950\/60,
         html.dark .bg-amber-950\/40 {
-            background-color: rgba(248, 184, 208, 0.12) !important;
-            border-color: rgba(248, 184, 208, 0.35) !important;
+            background-color: rgba(245, 158, 11, 0.1) !important;
+            border-color: rgba(245, 158, 11, 0.35) !important;
         }
 
-        /* State Threat / Quarantine / Netfilter Drop: #f194b8 (Raspberry Pink with #000000 text on solid) */
+        /* Threat / Containment / Quarantined State (Dark Mode) */
         html.dark .text-rose-400,
         html.dark .text-rose-500,
         html.dark .text-rose-300,
@@ -238,15 +261,15 @@
         html.dark .text-red-400,
         html.dark .text-red-500,
         html.dark .text-red-300 {
-            color: #f194b8 !important;
+            color: #fb7185 !important;
         }
         html.dark .bg-rose-500,
         html.dark .bg-rose-600,
         html.dark .bg-red-500,
         html.dark .bg-red-600 {
-            background-color: #f194b8 !important;
-            color: #000000 !important;
-            font-weight: 700 !important;
+            background: linear-gradient(180deg, #e11d48 0%, #be123c 100%) !important;
+            color: #ffffff !important;
+            font-weight: 600 !important;
         }
         html.dark .border-rose-600,
         html.dark .border-rose-700,
@@ -258,7 +281,7 @@
         html.dark .border-red-600,
         html.dark .border-red-700,
         html.dark .border-red-800 {
-            border-color: rgba(241, 148, 184, 0.5) !important;
+            border-color: rgba(244, 63, 94, 0.45) !important;
         }
         html.dark .bg-rose-950,
         html.dark .bg-rose-950\/90,
@@ -273,82 +296,98 @@
         html.dark .bg-red-950\/60,
         html.dark .bg-red-950\/40,
         html.dark .bg-red-950\/30 {
-            background-color: rgba(241, 148, 184, 0.12) !important;
-            border-color: rgba(241, 148, 184, 0.4) !important;
+            background-color: rgba(244, 63, 94, 0.12) !important;
+            border-color: rgba(244, 63, 94, 0.4) !important;
         }
 
-        /* Indigo & Violet mapped to Periwinkle #b3c7f7 */
+        /* Indigo & Sessions Management (Dark Mode) */
         html.dark .text-indigo-400,
         html.dark .text-indigo-300,
         html.dark .text-violet-400,
         html.dark .text-violet-300 {
-            color: #b3c7f7 !important;
+            color: #818cf8 !important;
         }
         html.dark .border-indigo-700,
         html.dark .border-indigo-800,
         html.dark .border-indigo-900\/60,
         html.dark .border-violet-800 {
-            border-color: rgba(179, 199, 247, 0.45) !important;
+            border-color: rgba(99, 102, 241, 0.45) !important;
         }
         html.dark .bg-indigo-950,
         html.dark .bg-indigo-950\/80,
         html.dark .bg-indigo-950\/60,
         html.dark .bg-indigo-950\/40,
         html.dark .bg-violet-950\/60 {
-            background-color: rgba(179, 199, 247, 0.12) !important;
-            border-color: rgba(179, 199, 247, 0.35) !important;
+            background-color: rgba(99, 102, 241, 0.1) !important;
+            border-color: rgba(99, 102, 241, 0.35) !important;
         }
         html.dark .bg-indigo-600 {
-            background-color: #b3c7f7 !important;
-            color: #000000 !important;
-            font-weight: 700 !important;
+            background: linear-gradient(180deg, #6366f1 0%, #4f46e5 100%) !important;
+            color: #ffffff !important;
+            font-weight: 600 !important;
         }
 
-        /* Cyan & Teal mapped to Tea Green / Mint #cfebb6 */
+        /* Cyan & Deception Decoy (Dark Mode) */
         html.dark .text-cyan-400,
         html.dark .text-cyan-300 {
-            color: #cfebb6 !important;
+            color: #22d3ee !important;
         }
         html.dark .border-cyan-700\/70,
         html.dark .border-cyan-800 {
-            border-color: rgba(207, 235, 182, 0.45) !important;
+            border-color: rgba(6, 182, 212, 0.45) !important;
         }
         html.dark .bg-cyan-950,
         html.dark .bg-cyan-950\/80,
         html.dark .bg-cyan-950\/60,
         html.dark .bg-cyan-950\/40 {
-            background-color: rgba(207, 235, 182, 0.12) !important;
-            border-color: rgba(207, 235, 182, 0.35) !important;
+            background-color: rgba(6, 182, 212, 0.1) !important;
+            border-color: rgba(6, 182, 212, 0.35) !important;
         }
 
-        /* Operator Role Badge */
+        /* Authenticated Operator Profile Badge */
+        #auth-operator-pill {
+            background-color: #0e1626 !important;
+            border-color: #1e293b !important;
+        }
         #auth-role-badge {
-            background-color: #b3c7f7 !important;
-            color: #000000 !important;
-            font-weight: 800 !important;
-            border: 1px solid #b3c7f7 !important;
+            background-color: rgba(2, 132, 199, 0.15) !important;
+            border-color: rgba(2, 132, 199, 0.5) !important;
+            color: #38bdf8 !important;
+            font-weight: 700 !important;
         }
 
-        /* Active Workspace Tab Pill */
-        .solid-accent-btn .tab-count-badge {
-            background-color: #000000 !important;
-            border-color: #000000 !important;
-            color: #b3c7f7 !important;
-            font-weight: 800 !important;
+        /* Custom Dark-Mode Scrollbars */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        html.dark ::-webkit-scrollbar-track {
+            background: #080c15;
+        }
+        html.dark ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        html.dark ::-webkit-scrollbar-thumb:hover {
+            background: #334155;
         }
 
-        /* Light Theme Overrides (Preserves clean contrast when html.light is active) */
+        /* --------------------------------------------------------- */
+        /* LIGHT MODE: PRISTINE EDITORIAL SOC CONSOLE                 */
+        /* --------------------------------------------------------- */
         html.light body {
-            background-color: #f8fafc;
-            color: #0f172a;
+            background-color: #f8fafc !important;
+            color: #0f172a !important;
         }
         html.light header {
-            background-color: rgba(255, 255, 255, 0.94);
-            border-color: #e2e8f0;
+            background-color: rgba(255, 255, 255, 0.94) !important;
+            border-color: #e2e8f0 !important;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
         }
         html.light footer {
-            border-color: #e2e8f0;
-            color: #475569;
+            border-color: #e2e8f0 !important;
+            color: #475569 !important;
+            background-color: #f8fafc !important;
         }
         html.light .bg-darkBase {
             background-color: #f8fafc !important;
@@ -361,6 +400,7 @@
         html.light .bg-slate-900\/40 {
             background-color: #ffffff !important;
             border-color: #e2e8f0 !important;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.03);
         }
         html.light .bg-slate-950,
         html.light .bg-slate-950\/95,
@@ -380,31 +420,33 @@
         html.light .bg-slate-800\/40 {
             background-color: #f1f5f9 !important;
             border-color: #cbd5e1 !important;
+            color: #334155 !important;
         }
         html.light .bg-slate-800\/40.hover\:bg-slate-800:hover,
         html.light .hover\:bg-slate-800:hover,
         html.light .hover\:bg-slate-700:hover {
             background-color: #e2e8f0 !important;
+            color: #0f172a !important;
         }
         html.light .hover\:text-white:hover,
         html.light .hover\:text-slate-200:hover {
-            color: #0f172a;
+            color: #0f172a !important;
         }
-        /* Keep frosted obsidian backdrops for full-screen modals */
+        /* Keep frosted obsidian backdrops for modals */
         html.light div.fixed.inset-0 {
             background-color: rgba(15, 23, 42, 0.55);
         }
-        /* Keep dark showcase canvas for cybersecurity dark-HUD illustrations and live CCTV preview */
+        /* Keep dark canvas for cybersecurity architecture diagrams & live CCTV feed */
         html.light .diagram-showcase-frame,
         html.light .diagram-showcase-frame .bg-slate-950 {
-            background-color: #000000;
-            border-color: #1e293b;
+            background-color: #080c15 !important;
+            border-color: #1e293b !important;
         }
         html.light .diagram-showcase-frame .text-slate-500,
         html.light .diagram-showcase-frame .text-slate-400 {
-            color: #94a3b8;
+            color: #94a3b8 !important;
         }
-        /* Borders & Dividers */
+        /* Borders & Dividers (Light Mode) */
         html.light .border-slate-900\/60,
         html.light .border-slate-800,
         html.light .border-slate-800\/90,
@@ -426,108 +468,133 @@
         html.light .rounded-full.bg-slate-800 {
             background-color: #e2e8f0 !important;
         }
-        /* Typography */
-        html.light .text-white { color: #0f172a; }
-        html.light .text-slate-100 { color: #0f172a; }
-        html.light .text-slate-200 { color: #1e293b; }
-        html.light .text-slate-300 { color: #334155; }
-        html.light .text-slate-400 { color: #475569; }
-        html.light .text-slate-500 { color: #64748b; }
-        html.light .text-slate-600 { color: #64748b; }
-        /* Form inputs & selects */
+        /* Typography (Light Mode) */
+        html.light .text-white { color: #0f172a !important; }
+        html.light .text-slate-100 { color: #0f172a !important; }
+        html.light .text-slate-200 { color: #1e293b !important; }
+        html.light .text-slate-300 { color: #334155 !important; }
+        html.light .text-slate-400 { color: #475569 !important; }
+        html.light .text-slate-500 { color: #64748b !important; }
+        html.light .text-slate-600 { color: #64748b !important; }
+        /* Form inputs & selects (Light Mode) */
         html.light select,
         html.light input[type="text"],
         html.light input[type="number"],
         html.light input[type="url"],
         html.light input[type="password"] {
-            background-color: #ffffff;
-            border-color: #cbd5e1;
-            color: #0f172a;
+            background-color: #ffffff !important;
+            border-color: #cbd5e1 !important;
+            color: #0f172a !important;
         }
-        /* Semantic Tints & Readable Text in Light Mode with New Palette */
+        html.light input:focus,
+        html.light select:focus {
+            border-color: #0284c7 !important;
+            box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2) !important;
+        }
+        /* Semantic Tints (Light Mode) */
         html.light .bg-sky-950,
         html.light .bg-sky-950\/90,
         html.light .bg-sky-950\/80,
         html.light .bg-sky-950\/70,
         html.light .bg-sky-950\/60,
-        html.light .bg-sky-950\/40 { background-color: rgba(179, 199, 247, 0.18); }
+        html.light .bg-sky-950\/40 { background-color: #f0f9ff !important; }
         html.light .hover\:bg-sky-900:hover,
-        html.light .hover\:bg-sky-900\/80:hover { background-color: rgba(179, 199, 247, 0.28); }
+        html.light .hover\:bg-sky-900\/80:hover { background-color: #e0f2fe !important; }
         html.light .border-sky-800,
-        html.light .border-sky-700 { border-color: #b3c7f7; }
+        html.light .border-sky-700 { border-color: #bae6fd !important; }
         html.light .text-sky-300,
-        html.light .text-sky-400 { color: #1d4ed8; }
+        html.light .text-sky-400 { color: #0369a1 !important; }
 
         html.light .bg-emerald-950,
         html.light .bg-emerald-950\/90,
         html.light .bg-emerald-950\/80,
         html.light .bg-emerald-950\/60,
         html.light .bg-emerald-950\/50,
-        html.light .bg-emerald-950\/40 { background-color: rgba(185, 225, 146, 0.2); }
-        html.light .hover\:bg-emerald-900:hover { background-color: rgba(185, 225, 146, 0.35); }
+        html.light .bg-emerald-950\/40 { background-color: #ecfdf5 !important; }
+        html.light .hover\:bg-emerald-900:hover { background-color: #d1fae5 !important; }
         html.light .border-emerald-800,
-        html.light .border-emerald-700 { border-color: #b9e192; }
+        html.light .border-emerald-700 { border-color: #a7f3d0 !important; }
         html.light .text-emerald-300,
-        html.light .text-emerald-400 { color: #2e6309; }
+        html.light .text-emerald-400 { color: #047857 !important; }
+        html.light .bg-emerald-600 {
+            background: linear-gradient(180deg, #059669 0%, #047857 100%) !important;
+            color: #ffffff !important;
+        }
 
         html.light .bg-amber-950,
         html.light .bg-amber-950\/80,
         html.light .bg-amber-950\/60,
-        html.light .bg-amber-950\/40 { background-color: rgba(248, 184, 208, 0.2); }
-        html.light .hover\:bg-amber-900:hover { background-color: rgba(248, 184, 208, 0.35); }
+        html.light .bg-amber-950\/40 { background-color: #fffbeb !important; }
+        html.light .hover\:bg-amber-900:hover { background-color: #fef3c7 !important; }
         html.light .border-amber-700,
-        html.light .border-amber-800 { border-color: #f8b8d0; }
+        html.light .border-amber-800 { border-color: #fde68a !important; }
         html.light .text-amber-300,
-        html.light .text-amber-400 { color: #9d174d; }
+        html.light .text-amber-400 { color: #b45309 !important; }
 
         html.light .bg-rose-950,
         html.light .bg-rose-950\/80,
         html.light .bg-rose-950\/60,
         html.light .bg-rose-950\/40,
         html.light .bg-red-950,
-        html.light .bg-red-950\/40 { background-color: rgba(241, 148, 184, 0.2); }
-        html.light .hover\:bg-rose-900:hover { background-color: rgba(241, 148, 184, 0.35); }
+        html.light .bg-red-950\/40 { background-color: #fff1f2 !important; }
+        html.light .hover\:bg-rose-900:hover { background-color: #ffe4e6 !important; }
         html.light .border-rose-700,
         html.light .border-rose-800,
-        html.light .border-red-600 { border-color: #f194b8; }
+        html.light .border-red-600 { border-color: #fecdd3 !important; }
         html.light .text-rose-300,
         html.light .text-rose-400,
         html.light .text-rose-500,
-        html.light .text-red-400 { color: #be185d; }
+        html.light .text-red-400 { color: #be123c !important; }
 
         html.light .bg-indigo-950,
         html.light .bg-indigo-950\/80,
-        html.light .bg-indigo-950\/40 { background-color: rgba(179, 199, 247, 0.2); }
+        html.light .bg-indigo-950\/40 { background-color: #eef2ff !important; }
         html.light .border-indigo-700,
-        html.light .border-indigo-800 { border-color: #b3c7f7; }
+        html.light .border-indigo-800 { border-color: #c7d2fe !important; }
         html.light .text-indigo-300,
-        html.light .text-indigo-400 { color: #1d4ed8; }
+        html.light .text-indigo-400 { color: #4338ca !important; }
 
         html.light .bg-cyan-950,
         html.light .bg-cyan-950\/80,
-        html.light .bg-cyan-950\/40 { background-color: rgba(207, 235, 182, 0.2); }
+        html.light .bg-cyan-950\/40 { background-color: #ecfeff !important; }
         html.light .border-cyan-700,
-        html.light .border-cyan-800 { border-color: #cfebb6; }
+        html.light .border-cyan-800 { border-color: #a5f3fc !important; }
         html.light .text-cyan-300,
-        html.light .text-cyan-400 { color: #2e6309; }
+        html.light .text-cyan-400 { color: #0e7490 !important; }
 
-        /* Solid buttons with high-contrast black text */
-        .solid-accent-btn,
-        html.light .solid-accent-btn {
-            background-color: #b3c7f7 !important;
-            color: #000000 !important;
+        html.light #auth-operator-pill {
+            background-color: #f1f5f9 !important;
+            border-color: #cbd5e1 !important;
+        }
+        html.light #auth-role-badge {
+            background-color: #e0f2fe !important;
+            border-color: #bae6fd !important;
+            color: #0369a1 !important;
             font-weight: 700 !important;
-            border-color: #94b4f5 !important;
         }
-        .tab-count-badge {
-            background-color: rgba(0, 0, 0, 0.65);
-            border: 1px solid rgba(148, 163, 184, 0.35);
-            color: #cbd5e1;
-        }
+
+        /* Light Mode Inactive Tab Count Badges */
         html.light .tab-count-badge {
             background-color: #e2e8f0;
             border-color: #cbd5e1;
             color: #334155;
+        }
+        .tab-count-badge {
+            background-color: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            color: #cbd5e1;
+        }
+
+        /* Light Mode Scrollbars */
+        html.light ::-webkit-scrollbar-track {
+            background: #f8fafc;
+        }
+        html.light ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        html.light ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
         }
     </style>
 </head>
